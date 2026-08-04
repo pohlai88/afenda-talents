@@ -162,3 +162,14 @@ Consequences already absorbed:
 `AGENTS.md` carries a managed block, rewritten by `next dev`, pointing at version-matched docs
 in `node_modules/next/dist/docs/`. Read those before writing Next-specific code rather than
 relying on recall — this version diverges from training data in ways that are easy to miss.
+
+## D14 — Local development database is embedded-postgres, not `prisma dev`
+
+Until the Neon project exists, local dev and e2e need a Postgres. `prisma dev` (PGlite behind
+a connection proxy) was tried first and repeatedly entered a state where it reset every new
+connection while claiming to be running — reproduced outside the test suite with five
+consecutive raw-client failures. Real PostgreSQL binaries via `embedded-postgres` replaced it:
+`pnpm db:local` serves `afenda` (dev) and `afenda_test` (e2e) on port 54329, data in `.pgdata/`.
+
+This is scaffolding, not architecture: production remains Neon (D1), and `.env`/`.env.test`
+swap to the Neon pooled/direct pairs when that project is created.

@@ -1,0 +1,105 @@
+import { test, expect, type Page } from "@playwright/test";
+import fs from "node:fs/promises";
+import { clearLoginAttempts } from "./helpers";
+
+const PASSWORD = process.env.ADMIN_PASSWORD!;
+
+// The auth spec deliberately leaves the shared client IP rate-limited; clear it.
+test.beforeAll(async () => {
+  await clearLoginAttempts();
+});
+
+async function signIn(page: Page) {
+  await page.goto("/admin/login");
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+}
+
+/** The console transport prints every email to the server's stdout, captured in server.log. */
+async function capturedLinks(): Promise<string[]> {
+  const log = await fs.readFile("server.log", "utf8").catch(() => "");
+  return log.match(/http:\/\/localhost:3000\/a\/[A-Za-z0-9_-]+/g) ?? [];
+}
+
+test("inviting two candidates prints two distinct links and shows both as SENT", async ({
+  page,
+}) => {
+  const before = (await capturedLinks()).length;
+  const stamp = Date.now();
+
+  await signIn(page);
+  await page.goto("/admin/invite");
+  await page
+    .getByLabel(/paste many/i)
+    .fill(`Amira Yusof, amira+${stamp}@example.com\nDaniel Tan, daniel+${stamp}@example.com`);
+  await page.getByRole("button", { name: "Send invitations" }).click();
+  await expect(page.getByRole("status")).toContainText("Invited 2");
+
+  const links = await capturedLinks();
+  expect(links.length).toBe(before + 2);
+  const [a, b] = links.slice(-2);
+  expect(a).not.toBe(b);
+
+  await page.goto("/admin");
+  const amira = page.getByRole("row", { name: new RegExp(`amira\\+${stamp}`) });
+  const daniel = page.getByRole("row", { name: new RegExp(`daniel\\+${stamp}`) });
+  await expect(amira).toContainText("SENT");
+  await expect(daniel).toContainText("SENT");
+});
+
+test("revoking a candidate nulls the token and shows REVOKED", async ({ page }) => {
+  const stamp = Date.now();
+  await signIn(page);
+  await page.goto("/admin/invite");
+  await page.getByLabel("Full name").fill("Bilal Rahman");
+  await page.getByLabel("Email", { exact: true }).fill(`bilal+${stamp}@example.com`);
+  await page.getByRole("button", { name: "Send invitations" }).click();
+  await expect(page.getByRole("status")).toContainText("Invited 1");
+
+  await page.goto("/admin");
+  const row = page.getByRole("row", { name: new RegExp(`bilal\\+${stamp}`) });
+  await row.getByRole("button", { name: "Revoke" }).click();
+  await expect(row).toContainText("REVOKED");
+  // The revoked link's 404 behaviour is asserted end-to-end in the Phase 5 specs,
+  // once /a/[token] exists to serve anything at all.
+});
+
+test("resending issues a different link", async ({ page }) => {
+  const stamp = Date.now();
+  await signIn(page);
+  await page.goto("/admin/invite");
+  await page.getByLabel("Full name").fill("Chen Wei");
+  await page.getByLabel("Email", { exact: true }).fill(`chen+${stamp}@example.com`);
+  await page.getByRole("button", { name: "Send invitations" }).click();
+  await expect(page.getByRole("status")).toContainText("Invited 1");
+
+  const linksBeforeResend = await capturedLinks();
+  const original = linksBeforeResend.at(-1)!;
+
+  await page.goto("/admin");
+  const row = page.getByRole("row", { name: new RegExp(`chen\\+${stamp}`) });
+  await row.getByRole("button", { name: "Resend" }).click();
+  await expect
+    .poll(async () => (await capturedLinks()).length, { timeout: 10_000 })
+    .toBeGreaterThan(linksBeforeResend.length);
+
+  const replacement = (await capturedLinks()).at(-1)!;
+  expect(replacement).not.toBe(original);
+  await expect(row).toContainText("SENT");
+});
+
+test("inviting the same email twice is skipped, not duplicated", async ({ page }) => {
+  const stamp = Date.now();
+  await signIn(page);
+  await page.goto("/admin/invite");
+  await page.getByLabel("Full name").fill("Dupe Test");
+  await page.getByLabel("Email", { exact: true }).fill(`dupe+${stamp}@example.com`);
+  await page.getByRole("button", { name: "Send invitations" }).click();
+  await expect(page.getByRole("status")).toContainText("Invited 1");
+
+  await page.getByLabel("Full name").fill("Dupe Test");
+  await page.getByLabel("Email", { exact: true }).fill(`dupe+${stamp}@example.com`);
+  await page.getByRole("button", { name: "Send invitations" }).click();
+  await expect(page.getByRole("status")).toContainText("Skipped 1");
+});

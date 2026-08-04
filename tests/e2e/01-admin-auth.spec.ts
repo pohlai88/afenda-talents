@@ -1,14 +1,11 @@
 import { test, expect } from "@playwright/test";
-import { Client } from "pg";
+import { clearLoginAttempts } from "./helpers";
 
 const PASSWORD = process.env.ADMIN_PASSWORD!;
 
 // Rate-limit state persists in the database between runs; start each run clean.
 test.beforeAll(async () => {
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
-  await client.connect();
-  await client.query('DELETE FROM "LoginAttempt"');
-  await client.end();
+  await clearLoginAttempts();
 });
 
 test("redirects to login when signed out", async ({ page }) => {

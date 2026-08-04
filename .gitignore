@@ -49,3 +49,6 @@ server.log
 /test-results/
 /playwright-report/
 /src/generated/
+
+# local embedded postgres data
+.pgdata/
