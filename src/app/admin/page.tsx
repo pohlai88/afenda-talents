@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { env } from "@/lib/env";
 import { requireAdmin } from "@/lib/auth-admin";
 import { Button } from "@/components/ui/button";
 import { CandidateRowActions } from "@/components/candidate-row-actions";
+import { DangerZone } from "@/components/danger-zone";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,12 @@ export default async function AdminDashboardPage() {
     <main className="mx-auto max-w-5xl p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Candidates</h1>
-        <Button render={<Link href="/admin/invite" />}>Invite candidates</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" render={<a href="/api/admin/export" />}>
+            Export CSV
+          </Button>
+          <Button render={<Link href="/admin/invite" />}>Invite candidates</Button>
+        </div>
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
@@ -75,6 +82,8 @@ export default async function AdminDashboardPage() {
           </tbody>
         </table>
       </div>
+
+      <DangerZone retentionDays={env.RETENTION_DAYS} />
     </main>
   );
 }

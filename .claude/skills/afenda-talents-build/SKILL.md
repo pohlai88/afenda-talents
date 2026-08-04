@@ -75,6 +75,9 @@ If a feature seems necessary anyway, write it in `DECISIONS.md` and move on. Do 
 ## Red Flags — Stop
 
 - About to write "this should now work" instead of pasting output
+- Piping the invariant check (`check-invariants.sh | tail`) inside a `&&` chain — the
+  pipe reports tail's exit code, not the check's, and a FAIL sails through. Observed
+  once: a violation-flagged commit landed this way. Run the check bare, read its output.
 - A `console.log` whose argument could contain a raw token
 - `db.candidate.update` with `status` in the `data` object
 - An `import` of `auth-admin` under `api/candidate/`, or `auth-candidate` under `api/admin/`

@@ -1,43 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
-import fs from "node:fs/promises";
-
-const PASSWORD = process.env.ADMIN_PASSWORD!;
-
-async function signIn(page: Page) {
-  await page.goto("/admin/login");
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/admin$/);
-}
-
-async function latestLink(): Promise<string> {
-  const log = await fs.readFile("server.log", "utf8");
-  return (log.match(/http:\/\/localhost:3000\/a\/[A-Za-z0-9_-]+/g) ?? []).at(-1)!;
-}
-
-/** Walks a candidate through the whole assessment so a Result exists to inspect. */
-async function completeAssessment(page: Page, name: string, email: string) {
-  await page.goto("/admin/invite");
-  await page.getByLabel("Full name").fill(name);
-  await page.getByLabel("Email", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Send invitations" }).click();
-  await expect(page.getByRole("status")).toContainText("Invited 1");
-
-  const link = await latestLink();
-  await page.goto(link);
-  await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Start the assessment" }).click();
-
-  const groups = page.locator("li[id^='item-']");
-  for (let i = 0; i < 34; i++) {
-    // Alternate answers so the straight-lining flag is not triggered by the fixture.
-    const label = i % 2 === 0 ? /: Agree$/ : /: Neither agree nor disagree$/;
-    await groups.nth(i).getByRole("button", { name: label }).click();
-  }
-  await page.waitForTimeout(1500);
-  await page.getByRole("button", { name: "Submit" }).click();
-  await expect(page).toHaveURL(/\/done$/, { timeout: 15_000 });
-}
+import { test, expect } from "@playwright/test";
+import { signIn, invite, completeAssessment } from "./helpers";
 
 test("spec §15 step 5: the profile shows five dimensions, bands, flags, and item responses", async ({
   page,
@@ -46,7 +8,9 @@ test("spec §15 step 5: the profile shows five dimensions, bands, flags, and ite
   const stamp = Date.now();
   const name = `Hana-${stamp}`;
   await signIn(page);
-  await completeAssessment(page, name, `hana+${stamp}@example.com`);
+  const link = await invite(page, name, `hana+${stamp}@example.com`);
+  await completeAssessment(page, link);
+  await signIn(page); // submission cleared the candidate cookie; sign back in
 
   await page.goto("/admin");
   await page.getByRole("link", { name: new RegExp(name) }).click();
