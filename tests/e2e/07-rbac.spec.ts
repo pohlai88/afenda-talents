@@ -47,7 +47,8 @@ test("an admin creates a viewer; the viewer can read but not act", async ({ page
   await expect(viewer.getByRole("row", { name: new RegExp(`seen\\+${stamp}`) })).toBeVisible();
   // …but every mutating control is absent.
   await expect(viewer.getByRole("button", { name: "Invite candidates" })).toHaveCount(0);
-  await expect(viewer.getByRole("button", { name: "Revoke" })).toHaveCount(0);
+  // Viewers get no row actions at all, so the overflow trigger is absent entirely.
+  await expect(viewer.getByRole("button", { name: /more actions/i })).toHaveCount(0);
   await expect(viewer.getByRole("button", { name: "Delete all candidate data" })).toHaveCount(0);
 
   // And the API enforces what the UI hides — 403 on every mutation and on export.

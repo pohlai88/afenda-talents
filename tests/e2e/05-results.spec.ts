@@ -16,7 +16,7 @@ test("spec §15 step 5: the profile shows five dimensions, bands, flags, and ite
   await page.getByRole("link", { name: new RegExp(name) }).click();
   await expect(page).toHaveURL(/\/admin\/candidate\//);
 
-  // Five dimensions with band labels.
+  // Five dimensions with band labels (scale aria-label).
   for (const dimension of [
     "Work ethic and reliability",
     "Communication and collaboration",
@@ -24,23 +24,24 @@ test("spec §15 step 5: the profile shows five dimensions, bands, flags, and ite
     "Adaptability and resilience",
     "Integrity and accountability",
   ]) {
-    await expect(page.getByText(dimension)).toBeVisible();
+    await expect(page.getByRole("img", { name: new RegExp(dimension) })).toBeVisible();
   }
 
-  // All four validity chips, neutrally phrased.
-  await expect(page.getByText("Impression management:")).toBeVisible();
-  await expect(page.getByText("Consistency:")).toBeVisible();
-  await expect(page.getByText("Answer variation:")).toBeVisible();
-  await expect(page.getByText("Time on task:", { exact: true })).toBeVisible();
+  // Response-context indicators, neutrally titled (UI §8.4).
+  await expect(page.getByText("Impression management", { exact: true })).toBeVisible();
+  await expect(page.getByText("Response consistency", { exact: true })).toBeVisible();
+  await expect(page.getByText("Answer variation", { exact: true })).toBeVisible();
+  await expect(page.getByText("Time on task", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Not observed|Review context/).first()).toBeVisible();
 
   // Timing is attributed, and the framing text is present.
-  await expect(page.getByText(/Self-reported time on task/).first()).toBeVisible();
+  await expect(page.getByText(/Self-reported active time/i).first()).toBeVisible();
+  await expect(page.getByText(/Server-observed elapsed window/i).first()).toBeVisible();
   await expect(page.getByText(/one input into a hiring decision/)).toBeVisible();
 
-  // The framing disclaims scores and rankings, and no overall number is presented.
-  // ("ranking" may only appear inside that negation.)
+  // The framing disclaims scores and rankings; the only “overall” is the disclaimer.
   await expect(page.getByText(/not a test score, a ranking, or a recommendation/)).toBeVisible();
-  await expect(page.getByText(/overall/i)).toHaveCount(0);
+  await expect(page.getByText(/No overall score/)).toBeVisible();
   await expect(page.getByText(/rank/i)).toHaveCount(1);
 
   // Item-level table opens on demand.
@@ -51,7 +52,8 @@ test("spec §15 step 5: the profile shows five dimensions, bands, flags, and ite
 
   // The audit trail recorded the view without storing a name or an email.
   // (Asserted properly in the Phase 7 spec; here we just confirm the page loaded scored data.)
-  await expect(page.getByText(/· Effective|· Strong|· Developing/).first()).toBeVisible();
+  // Band labels on the scale.
+  await expect(page.getByText(/Effective band|Strong band|Developing band/).first()).toBeVisible();
 
   // Print media: the toggle disappears and the item table is unconditionally present,
   // approximating the spec's Ctrl+P check. A real print run stays a Phase 8 manual step.

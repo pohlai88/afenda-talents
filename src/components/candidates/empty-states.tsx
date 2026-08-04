@@ -1,60 +1,87 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
+import { SearchX, FilterX, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
-function Shell({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
-  return (
-    <div className="flex flex-col items-center gap-2 py-12 text-center">
-      <p className="text-sm font-medium">{title}</p>
-      <p className="max-w-sm text-sm text-muted-foreground">{body}</p>
-      {action && <div className="mt-2">{action}</div>}
-    </div>
-  );
-}
+/**
+ * Requirements §7.6 wants these three distinguishable, each with its own recovery
+ * action — "no candidates at all" is a different problem from "your filter is too
+ * narrow", and telling them apart is what stops a manager thinking the round is empty.
+ */
 
 /** Nobody has been invited at all — the round has not started. */
 export function NoCandidates({ isAdmin }: { isAdmin: boolean }) {
   return (
-    <Shell
-      title="No candidates invited yet"
-      body="Invite candidates by email. Each one receives a personal link that expires, and their profile appears here once they submit."
-      action={
-        isAdmin ? (
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <UserPlus />
+        </EmptyMedia>
+        <EmptyTitle>No candidates invited yet</EmptyTitle>
+        <EmptyDescription>
+          Invite candidates by email. Each one receives a personal link that expires, and their
+          profile appears here once they submit.
+        </EmptyDescription>
+      </EmptyHeader>
+      {isAdmin && (
+        <EmptyContent>
           <Button nativeButton={false} render={<Link href="/admin/invite" />}>
             Invite candidates
           </Button>
-        ) : undefined
-      }
-    />
+        </EmptyContent>
+      )}
+    </Empty>
   );
 }
 
 /** People exist, but none match the current filters. */
 export function NoFilterMatch() {
   return (
-    <Shell
-      title="No candidates match these filters"
-      body="Nobody in this round is at that stage right now. Clear the filters to see everyone."
-      action={
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <FilterX />
+        </EmptyMedia>
+        <EmptyTitle>No candidates match these filters</EmptyTitle>
+        <EmptyDescription>
+          Nobody in this round is at that stage right now. Clear the filters to see everyone.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
         <Button variant="outline" nativeButton={false} render={<Link href="/admin/candidates" />}>
           Clear filters
         </Button>
-      }
-    />
+      </EmptyContent>
+    </Empty>
   );
 }
 
 /** People exist, but the search term found nobody. */
 export function NoSearchMatch({ term }: { term: string }) {
   return (
-    <Shell
-      title={`Nothing matches “${term}”`}
-      body="Search looks at names and email addresses. Check the spelling, or try part of the address."
-      action={
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <SearchX />
+        </EmptyMedia>
+        <EmptyTitle>Nothing matches “{term}”</EmptyTitle>
+        <EmptyDescription>
+          Search looks at names and email addresses. Check the spelling, or try part of the
+          address.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
         <Button variant="outline" nativeButton={false} render={<Link href="/admin/candidates" />}>
           Show all candidates
         </Button>
-      }
-    />
+      </EmptyContent>
+    </Empty>
   );
 }

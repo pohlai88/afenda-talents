@@ -1,175 +1,428 @@
 "use client";
 
-import { useState } from "react";
+import { Eye, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Eye } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { useId, useMemo, useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import {
+	classifyInviteRows,
+	type InviteRow,
+	inviteRowCounts,
+	parseInviteLines,
+	validInviteEntries,
+} from "@/lib/invite-parse";
+import { cn } from "@/lib/utils";
 
-type Entry = { fullName: string; email: string };
-
-function parsePasted(text: string): Entry[] {
-  return text
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [fullName, email] = line.split(",").map((part) => part?.trim() ?? "");
-      return { fullName, email };
-    })
-    .filter((entry) => entry.fullName && entry.email);
-}
+type SendResult = { invited: number; skipped: number };
 
 export function InviteForm({
-  invitationPreviewHtml,
-  receiptPreviewHtml,
+	invitationPreviewHtml,
+	receiptPreviewHtml,
+	existingEmails,
+	ttlDays,
 }: {
-  invitationPreviewHtml: string;
-  receiptPreviewHtml: string;
+	invitationPreviewHtml: string;
+	receiptPreviewHtml: string;
+	existingEmails: string[];
+	ttlDays: number;
 }) {
-  const router = useRouter();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [pasted, setPasted] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
+	const router = useRouter();
+	const existingSet = useMemo(
+		() => new Set(existingEmails.map((e) => e.trim().toLowerCase())),
+		[existingEmails],
+	);
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
-    const candidates = [...parsePasted(pasted)];
-    if (fullName && email) candidates.unshift({ fullName, email });
-    if (candidates.length === 0) {
-      setMessage("Add at least one candidate.");
-      return;
-    }
+	const [mode, setMode] = useState<"single" | "many">("single");
+	const [fullName, setFullName] = useState("");
+	const [email, setEmail] = useState("");
+	const [pasted, setPasted] = useState("");
+	const [rows, setRows] = useState<InviteRow[]>([]);
+	const [busy, setBusy] = useState(false);
+	const [previewOpen, setPreviewOpen] = useState(false);
+	const [confirmOpen, setConfirmOpen] = useState(false);
+	const [result, setResult] = useState<SendResult | null>(null);
+	const [error, setError] = useState<string | null>(null);
+	const singleNameId = useId();
+	const singleEmailId = useId();
+	const pasteId = useId();
 
-    setBusy(true);
-    const response = await fetch("/api/admin/invite", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ candidates }),
-    });
-    const body = await response.json().catch(() => ({}));
-    setBusy(false);
+	const counts = inviteRowCounts(rows);
+	const toSend = validInviteEntries(rows);
 
-    if (!response.ok) {
-      setMessage(body.error ?? "Could not send invitations");
-      return;
-    }
-    setMessage(`Invited ${body.invited}. Skipped ${body.skipped} already-invited address(es).`);
-    setFullName("");
-    setEmail("");
-    setPasted("");
-    router.refresh();
-  }
+	function reviewSingle() {
+		setResult(null);
+		setError(null);
+		const parsed = parseInviteLines(`${fullName.trim()}, ${email.trim()}`);
+		const classified = classifyInviteRows(parsed, existingSet);
+		setRows(classified);
+	}
 
-  return (
-    <form onSubmit={submit}>
-      {/* Rendered from the same HTML builders the sender uses — what you see is what
-          is sent. The sample uses a placeholder link; no real token comes near it. */}
-      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>What candidates receive</DialogTitle>
-            <DialogDescription>
-              Rendered from the live templates with a sample name and link. The real email
-              carries the candidate&apos;s personal one-time link.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-4">
-            <div>
-              <p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                Invitation — “Your Afenda Talents self-assessment”
-              </p>
-              <div
-                className="rounded-md border bg-white p-4 text-sm [&_a]:pointer-events-none [&_a]:underline"
-                dangerouslySetInnerHTML={{ __html: invitationPreviewHtml }}
-              />
-            </div>
-            <div>
-              <p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                Receipt — “We have received your Afenda Talents self-assessment”
-              </p>
-              <div
-                className="rounded-md border bg-white p-4 text-sm"
-                dangerouslySetInnerHTML={{ __html: receiptPreviewHtml }}
-              />
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+	function reviewPaste() {
+		setResult(null);
+		setError(null);
+		const classified = classifyInviteRows(
+			parseInviteLines(pasted),
+			existingSet,
+		);
+		setRows(classified);
+	}
 
-      <Card>
-        <CardContent className="flex flex-col gap-6 pt-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full name</Label>
-              <Input
-                id="fullName"
-                name="candidate-name"
-                autoComplete="off"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="candidate-email"
-                type="email"
-                autoComplete="off"
-                spellCheck={false}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">or paste many</span>
-            <Separator className="flex-1" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="pasted">One per line as “Name, email”</Label>
-            <Textarea
-              id="pasted"
-              name="pasted-candidates"
-              spellCheck={false}
-              rows={8}
-              value={pasted}
-              onChange={(e) => setPasted(e.target.value)}
-              placeholder={"Amira Yusof, amira@example.com\nDaniel Tan, daniel@example.com"}
-            />
-          </div>
-          {message && (
-            <p role="status" className="text-sm">
-              {message}
-            </p>
-          )}
-        </CardContent>
-        <CardFooter className="justify-between">
-          <Button type="submit" disabled={busy}>
-            {busy ? "Sending…" : "Send invitations"}
-          </Button>
-          <Button type="button" variant="ghost" onClick={() => setPreviewOpen(true)}>
-            <Eye className="mr-1 size-3.5" />
-            Preview the email
-          </Button>
-        </CardFooter>
-      </Card>
-    </form>
-  );
+	function removeRow(id: string) {
+		setRows((prev) => prev.filter((row) => row.id !== id));
+	}
+
+	async function send() {
+		if (toSend.length === 0) return;
+		setBusy(true);
+		setError(null);
+		const response = await fetch("/api/admin/invite", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ candidates: toSend }),
+		});
+		const body = await response.json().catch(() => ({}));
+		setBusy(false);
+		setConfirmOpen(false);
+
+		if (!response.ok) {
+			setError(
+				typeof body.error === "string"
+					? body.error
+					: "Could not send invitations",
+			);
+			return;
+		}
+
+		setResult({
+			invited: Number(body.invited) || 0,
+			skipped: Number(body.skipped) || 0,
+		});
+		setRows([]);
+		setFullName("");
+		setEmail("");
+		setPasted("");
+		router.refresh();
+	}
+
+	return (
+		<div className="flex flex-col gap-6">
+			<Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+				<DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+					<DialogHeader>
+						<DialogTitle>What candidates receive</DialogTitle>
+						<DialogDescription>
+							Rendered from the live templates with a sample name and link. The
+							real email carries the candidate&apos;s personal one-time link at
+							send time.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="flex flex-col gap-4">
+						<div>
+							<p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+								Invitation — “Your Afenda Talents self-assessment”
+							</p>
+							<EmailHtmlPreview
+								className="rounded-md border bg-white p-4 text-sm [&_a]:pointer-events-none [&_a]:underline"
+								html={invitationPreviewHtml}
+							/>
+						</div>
+						<div>
+							<p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+								Receipt — “We have received your Afenda Talents self-assessment”
+							</p>
+							<EmailHtmlPreview
+								className="rounded-md border bg-white p-4 text-sm"
+								html={receiptPreviewHtml}
+							/>
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			<AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>
+							Send {toSend.length} invitation{toSend.length === 1 ? "" : "s"}?
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							{toSend.length} personal link{toSend.length === 1 ? "" : "s"} will
+							be emailed. Links expire after {ttlDays} day
+							{ttlDays === 1 ? "" : "s"}.{" "}
+							{counts.existing + counts.duplicate + counts.invalid > 0
+								? `${counts.existing} already invited, ${counts.duplicate} duplicate, and ${counts.invalid} invalid row${counts.invalid === 1 ? "" : "s"} will not be sent.`
+								: "Every row in the review list is ready to send."}
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							disabled={busy || toSend.length === 0}
+							onClick={() => void send()}
+						>
+							{busy ? "Sending…" : "Send invitations"}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			<Card>
+				<CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+					<CardTitle className="text-base">Add candidates</CardTitle>
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						onClick={() => setPreviewOpen(true)}
+					>
+						<Eye className="size-3.5" />
+						Preview the email
+					</Button>
+				</CardHeader>
+				<CardContent>
+					<Tabs
+						value={mode}
+						onValueChange={(value) => {
+							if (value === "single" || value === "many") setMode(value);
+						}}
+					>
+						<TabsList>
+							<TabsTrigger value="single">Single candidate</TabsTrigger>
+							<TabsTrigger value="many">Add many</TabsTrigger>
+						</TabsList>
+
+						<TabsContent value="single" className="mt-4 flex flex-col gap-4">
+							<div className="grid gap-4 sm:grid-cols-2">
+								<div className="space-y-2">
+									<Label htmlFor={singleNameId}>Full name</Label>
+									<Input
+										id={singleNameId}
+										name="candidate-name"
+										autoComplete="off"
+										value={fullName}
+										onChange={(e) => setFullName(e.target.value)}
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor={singleEmailId}>Email</Label>
+									<Input
+										id={singleEmailId}
+										name="candidate-email"
+										type="email"
+										autoComplete="off"
+										spellCheck={false}
+										value={email}
+										onChange={(e) => setEmail(e.target.value)}
+									/>
+								</div>
+							</div>
+							<div>
+								<Button
+									type="button"
+									variant="secondary"
+									disabled={!fullName.trim() || !email.trim()}
+									onClick={reviewSingle}
+								>
+									Review invitation
+								</Button>
+							</div>
+						</TabsContent>
+
+						<TabsContent value="many" className="mt-4 flex flex-col gap-4">
+							<div className="space-y-2">
+								<Label htmlFor={pasteId}>One per line as “Name, email”</Label>
+								<Textarea
+									id={pasteId}
+									name="pasted-candidates"
+									spellCheck={false}
+									rows={8}
+									value={pasted}
+									onChange={(e) => setPasted(e.target.value)}
+									placeholder={
+										"Amira Yusof, amira@example.com\nDaniel Tan, daniel@example.com"
+									}
+								/>
+							</div>
+							<div>
+								<Button
+									type="button"
+									variant="secondary"
+									disabled={!pasted.trim()}
+									onClick={reviewPaste}
+								>
+									Parse and review
+								</Button>
+							</div>
+						</TabsContent>
+					</Tabs>
+				</CardContent>
+			</Card>
+
+			{rows.length > 0 && (
+				<Card className="min-w-0 overflow-hidden">
+					<CardHeader>
+						<CardTitle className="text-base">Review before sending</CardTitle>
+						<p className="text-sm text-muted-foreground">
+							{counts.valid} ready · {counts.existing} already invited ·{" "}
+							{counts.duplicate} duplicate · {counts.invalid} invalid
+						</p>
+					</CardHeader>
+					<CardContent className="min-w-0 px-0 sm:px-6">
+						<div className="min-w-0 overflow-x-auto">
+							<Table className="min-w-[36rem]">
+								<TableHeader>
+									<TableRow>
+										<TableHead>Name</TableHead>
+										<TableHead>Email</TableHead>
+										<TableHead>Status</TableHead>
+										<TableHead className="w-12">
+											<span className="sr-only">Remove</span>
+										</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{rows.map((row) => (
+										<TableRow key={row.id}>
+											<TableCell className="font-medium">
+												{row.fullName || "—"}
+											</TableCell>
+											<TableCell className="text-muted-foreground">
+												{row.email || "—"}
+											</TableCell>
+											<TableCell>
+												<RowStatusBadge
+													status={row.status}
+													reason={row.reason}
+												/>
+											</TableCell>
+											<TableCell>
+												<Button
+													type="button"
+													size="icon-sm"
+													variant="ghost"
+													aria-label={`Remove ${row.fullName || row.email || "row"}`}
+													onClick={() => removeRow(row.id)}
+												>
+													<Trash2 className="size-3.5" />
+												</Button>
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+						</div>
+					</CardContent>
+					<CardFooter className="justify-between gap-3">
+						<Button type="button" variant="ghost" onClick={() => setRows([])}>
+							Clear list
+						</Button>
+						<Button
+							type="button"
+							disabled={toSend.length === 0 || busy}
+							onClick={() => setConfirmOpen(true)}
+						>
+							Send {toSend.length} invitation{toSend.length === 1 ? "" : "s"}
+						</Button>
+					</CardFooter>
+				</Card>
+			)}
+
+			{error && (
+				<p role="alert" className="text-sm text-destructive">
+					{error}
+				</p>
+			)}
+
+			{result && (
+				<p
+					role="status"
+					className="rounded-md border bg-muted/40 px-4 py-3 text-sm"
+				>
+					Invited {result.invited}. Skipped {result.skipped} already-invited
+					address(es).
+				</p>
+			)}
+		</div>
+	);
+}
+
+function EmailHtmlPreview({
+	html,
+	className,
+}: {
+	html: string;
+	className?: string;
+}) {
+	// Trusted server-built templates (same builders as live mail).
+	return (
+		// biome-ignore lint/security/noDangerouslySetInnerHtml: email preview from server templates
+		<div className={className} dangerouslySetInnerHTML={{ __html: html }} />
+	);
+}
+
+function RowStatusBadge({
+	status,
+	reason,
+}: {
+	status: InviteRow["status"];
+	reason: string | null;
+}) {
+	const label =
+		status === "valid"
+			? "Ready"
+			: status === "existing"
+				? "Already invited"
+				: status === "duplicate"
+					? "Duplicate"
+					: "Invalid";
+
+	return (
+		<Badge
+			variant={status === "valid" ? "secondary" : "outline"}
+			title={reason ?? undefined}
+			className={cn(status === "valid" && "border-transparent")}
+		>
+			{label}
+			{reason && status !== "valid" ? (
+				<span className="font-normal text-muted-foreground"> — {reason}</span>
+			) : null}
+		</Badge>
+	);
 }
