@@ -66,8 +66,8 @@ export default async function AssessmentPreviewPage({
 	const source = assessment.draftDocument ?? assessment.versions[0]?.document ?? null;
 
 	return (
-		<CandidateShell>
-			<main id="main" tabIndex={-1} className="mx-auto max-w-xl px-4 py-6 pb-16 outline-none">
+		<CandidateShell embedded>
+			<div className="mx-auto max-w-xl px-4 py-6 pb-16">
 				<div className="mb-5 flex items-center justify-between gap-3">
 					<Button
 						variant="ghost"
@@ -100,7 +100,7 @@ export default async function AssessmentPreviewPage({
 				) : (
 					<PreviewBody doc={parseDraftDocument(source)} />
 				)}
-			</main>
+			</div>
 		</CandidateShell>
 	);
 }

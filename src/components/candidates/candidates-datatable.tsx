@@ -482,10 +482,21 @@ export function CandidatesDatatable({
 									<TableHeader>
 										{table.getHeaderGroups().map((headerGroup) => (
 											<TableRow key={headerGroup.id} className="h-14 border-t">
-												{headerGroup.headers.map((header) => (
+												{headerGroup.headers.map((header) => {
+													const sorted = header.column.getIsSorted();
+													const ariaSort =
+														sorted === "asc"
+															? "ascending"
+															: sorted === "desc"
+																? "descending"
+																: header.column.getCanSort()
+																	? "none"
+																	: undefined;
+													return (
 													<TableHead
 														key={header.id}
 														style={{ width: `${header.getSize()}px` }}
+														aria-sort={ariaSort}
 														className="sticky top-0 z-10 bg-card text-muted-foreground first:pl-4 last:px-4"
 													>
 														{header.isPlaceholder ? null : header.column.getCanSort() ? (
@@ -493,6 +504,7 @@ export function CandidatesDatatable({
 																type="button"
 																className="flex h-full w-full cursor-pointer items-center justify-between gap-2 select-none"
 																onClick={header.column.getToggleSortingHandler()}
+																aria-label={`Sort by ${String(header.column.columnDef.header ?? header.column.id)}`}
 															>
 																{flexRender(
 																	header.column.columnDef.header,
@@ -513,7 +525,7 @@ export function CandidatesDatatable({
 																			aria-hidden
 																		/>
 																	),
-																}[header.column.getIsSorted() as string] ??
+																}[sorted as string] ??
 																	null}
 															</button>
 														) : (
@@ -523,7 +535,8 @@ export function CandidatesDatatable({
 															)
 														)}
 													</TableHead>
-												))}
+													);
+												})}
 											</TableRow>
 										))}
 									</TableHeader>

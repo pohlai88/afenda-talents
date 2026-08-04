@@ -7,18 +7,29 @@ import type { ReactNode } from "react";
 export function CandidateShell({
 	children,
 	progress,
+	/** When true, omit skip-link (host page already owns #main). */
+	embedded = false,
 }: {
 	children: ReactNode;
 	progress?: ReactNode;
+	embedded?: boolean;
 }) {
 	return (
-		<div className="min-h-dvh bg-background text-foreground">
-			<a
-				href="#main"
-				className="sr-only z-50 rounded-md bg-background px-3 py-2 text-sm ring-1 ring-ring focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:left-2"
-			>
-				Skip to content
-			</a>
+		<div
+			className={
+				embedded
+					? "bg-background text-foreground"
+					: "min-h-dvh bg-background text-foreground"
+			}
+		>
+			{embedded ? null : (
+				<a
+					href="#main"
+					className="sr-only z-50 rounded-md bg-background px-3 py-2 text-sm ring-1 ring-ring focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:left-2"
+				>
+					Skip to content
+				</a>
+			)}
 			<header className="sticky top-0 z-20 border-b border-border/80 bg-background/95 backdrop-blur">
 				<div className="mx-auto flex max-w-xl items-center justify-between gap-3 px-4 py-3">
 					<p className="font-heading text-sm font-semibold tracking-tight text-primary">

@@ -281,9 +281,8 @@ export function InviteForm({
 						}}
 					>
 						<SelectTrigger id={roundSelectId} className="w-full sm:w-96">
-							<SelectValue placeholder="Choose an open round">
-								{selectedRound?.name}
-							</SelectValue>
+							{/* Item children supply the visible label (same pattern as round-manager). */}
+							<SelectValue placeholder="Choose an open round" />
 						</SelectTrigger>
 						<SelectContent>
 							{openRounds.map((round) => (
@@ -404,8 +403,8 @@ export function InviteForm({
 			{rows.length > 0 && (
 				<Card className="min-w-0 overflow-hidden">
 					<CardHeader>
-						<CardTitle className="text-base">
-							<h2 className="text-base font-semibold">Review before sending</h2>
+						<CardTitle className="text-base font-semibold">
+							Review before sending
 						</CardTitle>
 						<p className="text-sm text-muted-foreground" role="status">
 							{counts.valid} ready · {counts.existing} already invited ·{" "}

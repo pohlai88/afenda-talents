@@ -100,10 +100,12 @@ export function ItemResponsesTable({ rows }: { rows: Row[] }) {
 							tabIndex={-1}
 							className="scroll-mt-4 outline-none"
 						>
-							<h3 className="mb-2 text-sm font-medium">{g.name}</h3>
+							<h3 className="mb-2 text-sm font-medium">
+								{g.name || g.code || "Ungrouped items"}
+							</h3>
 							<Table>
 								<TableCaption className="sr-only">
-									Item responses for {g.name}
+									Item responses for {g.name || g.code || "ungrouped items"}
 								</TableCaption>
 								<TableHeader>
 									<TableRow>

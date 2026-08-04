@@ -388,15 +388,29 @@ export function AssessmentForm({
 								) : (
 									<div className="mt-3 space-y-1.5">
 										{item.helperText ? (
-											<p className="text-xs text-muted-foreground">{item.helperText}</p>
+											<p
+												id={`item-${item.id}-help`}
+												className="text-xs text-muted-foreground"
+											>
+												{item.helperText}
+											</p>
 										) : null}
 										<Textarea
+											id={`item-${item.id}-input`}
 											value={answer?.textValue ?? ""}
 											onChange={(e) => changeText(item.id, e.target.value)}
 											rows={item.type === "long_text" ? 5 : 2}
 											maxLength={item.maxLength}
+											aria-labelledby={`item-${item.id}-prompt`}
 											aria-invalid={isMissing || undefined}
-											aria-describedby={isMissing ? errorId : undefined}
+											aria-describedby={
+												[
+													item.helperText ? `item-${item.id}-help` : null,
+													isMissing ? errorId : null,
+												]
+													.filter(Boolean)
+													.join(" ") || undefined
+											}
 											className="min-h-11"
 										/>
 									</div>
