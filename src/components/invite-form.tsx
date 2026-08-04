@@ -4,14 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -119,14 +112,7 @@ export function InviteForm({
       </Dialog>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Invite candidates</CardTitle>
-          <CardDescription>
-            Each candidate receives a personal one-time link that expires. There are no
-            candidate accounts and no passwords — the link is the credential.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-6">
+        <CardContent className="flex flex-col gap-6 pt-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full name</Label>

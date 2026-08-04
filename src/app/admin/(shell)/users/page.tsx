@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-admin";
 import { UserManager } from "@/components/user-manager";
+import { PageHeader } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -20,11 +21,11 @@ export default async function UsersPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl p-6">
-      <h1 className="text-2xl font-semibold">Hiring team</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Admins can invite, revoke, export and manage this list. Viewers can open the dashboard
-        and candidate profiles, and change nothing.
-      </p>
+      <PageHeader
+        eyebrow="Workspace"
+        title="Hiring team"
+        description="Admins invite, revoke, export and manage this list. Viewers can open the dashboard and candidate profiles, and change nothing."
+      />
       <UserManager users={users} currentUserId={session.userId} />
     </div>
   );
