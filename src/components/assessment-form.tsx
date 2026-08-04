@@ -126,7 +126,7 @@ export function AssessmentForm({
                       aria-label={`Statement ${item.order}: ${LABELS[value - 1]}`}
                       aria-pressed={selected}
                       onClick={() => choose(item.id, value)}
-                      className={`h-14 rounded-md border text-base font-medium transition ${
+                      className={`h-14 touch-manipulation rounded-md border text-base font-medium transition-colors select-none focus-visible:ring-2 focus-visible:ring-slate-900/60 focus-visible:outline-none ${
                         selected
                           ? "border-slate-900 bg-slate-900 text-white"
                           : "border-slate-200 bg-white active:bg-slate-100"
@@ -147,7 +147,7 @@ export function AssessmentForm({
         })}
       </ol>
 
-      <div className="fixed inset-x-0 bottom-0 border-t bg-white/95 p-4 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 border-t bg-white/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
         <div className="mx-auto max-w-xl">
           {error && (
             <p role="alert" className="mb-2 text-sm text-red-600">

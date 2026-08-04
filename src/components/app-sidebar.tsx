@@ -83,22 +83,27 @@ export function AppSidebar({ user }: { user: ShellUser }) {
 
       <SidebarFooter>
         <div className="flex flex-col gap-2 p-2 group-data-[collapsible=icon]:hidden">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{user.name}</p>
-            <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-          </div>
           <div className="flex items-center justify-between gap-2">
-            <Badge variant={isAdmin ? "default" : "secondary"}>{user.role}</Badge>
-            <div className="flex items-center">
-              <Button size="sm" variant="ghost" render={<Link href="/admin/change-password" />}>
-                <KeyRound className="mr-1 size-3.5" />
-                Password
-              </Button>
-              <Button size="sm" variant="ghost" onClick={signOut}>
-                <LogOut className="mr-1 size-3.5" />
-                Sign out
-              </Button>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{user.name}</p>
+              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
             </div>
+            <Badge variant={isAdmin ? "default" : "secondary"}>{user.role}</Badge>
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              nativeButton={false}
+              render={<Link href="/admin/change-password" />}
+            >
+              <KeyRound className="mr-1 size-3.5" />
+              Password
+            </Button>
+            <Button size="sm" variant="ghost" onClick={signOut}>
+              <LogOut className="mr-1 size-3.5" />
+              Sign out
+            </Button>
           </div>
         </div>
       </SidebarFooter>

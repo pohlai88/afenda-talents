@@ -49,6 +49,9 @@ export function DangerZone({ retentionDays }: { retentionDays: number }) {
         <div className="flex flex-wrap items-center gap-2">
           <Input
             className="max-w-xs"
+            name="purge-confirmation"
+            autoComplete="off"
+            spellCheck={false}
             aria-label="Confirmation phrase"
             placeholder={CONFIRMATION}
             value={confirmation}

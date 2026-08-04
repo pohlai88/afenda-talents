@@ -78,7 +78,7 @@ export default async function AdminDashboardPage() {
                 consent, answer the 34 statements and submit, their profile appears here.
               </p>
               {isAdmin && (
-                <Button className="mt-2" render={<Link href="/admin/invite" />}>
+                <Button className="mt-2" nativeButton={false} render={<Link href="/admin/invite" />}>
                   Invite candidates
                 </Button>
               )}
@@ -110,12 +110,18 @@ export default async function AdminDashboardPage() {
                       c.fullName
                     )}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{c.email}</TableCell>
+                  <TableCell className="max-w-56 truncate text-muted-foreground" title={c.email}>
+                    {c.email}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANT[c.status] ?? "outline"}>{c.status}</Badge>
                   </TableCell>
-                  <TableCell>{c.sentAt?.toLocaleDateString("en-GB") ?? "—"}</TableCell>
-                  <TableCell>{c.submittedAt?.toLocaleDateString("en-GB") ?? "—"}</TableCell>
+                  <TableCell className="tabular-nums">
+                    {c.sentAt?.toLocaleDateString("en-GB") ?? "—"}
+                  </TableCell>
+                  <TableCell className="tabular-nums">
+                    {c.submittedAt?.toLocaleDateString("en-GB") ?? "—"}
+                  </TableCell>
                   <TableCell className="text-right">
                     {isAdmin && <CandidateRowActions id={c.id} status={c.status} />}
                   </TableCell>

@@ -32,8 +32,14 @@ export default async function AdminShellLayout({ children }: { children: React.R
 
   return (
     <SidebarProvider>
+      <a
+        href="#main"
+        className="sr-only z-50 rounded-md bg-background px-3 py-2 text-sm ring-1 ring-ring focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:left-2"
+      >
+        Skip to content
+      </a>
       <AppSidebar user={user} />
-      <SidebarInset>
+      <SidebarInset id="main">
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 print:hidden">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />

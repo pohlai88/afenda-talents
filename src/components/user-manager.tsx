@@ -269,6 +269,8 @@ export function UserManager({
                 <Label htmlFor="new-name">Name</Label>
                 <Input
                   id="new-name"
+                  name="member-name"
+                  autoComplete="off"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -278,7 +280,10 @@ export function UserManager({
                 <Label htmlFor="new-email">Email</Label>
                 <Input
                   id="new-email"
+                  name="member-email"
                   type="email"
+                  autoComplete="off"
+                  spellCheck={false}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

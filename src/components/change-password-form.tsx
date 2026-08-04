@@ -69,6 +69,7 @@ export function ChangePasswordForm({ email, forced }: { email: string; forced: b
             </Label>
             <Input
               id="current-password"
+              name="current-password"
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -80,6 +81,7 @@ export function ChangePasswordForm({ email, forced }: { email: string; forced: b
             <Label htmlFor="new-password">New password</Label>
             <Input
               id="new-password"
+              name="new-password"
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -93,6 +95,7 @@ export function ChangePasswordForm({ email, forced }: { email: string; forced: b
             <Label htmlFor="confirm-password">Repeat new password</Label>
             <Input
               id="confirm-password"
+              name="confirm-password"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}

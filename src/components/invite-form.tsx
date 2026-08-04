@@ -130,13 +130,22 @@ export function InviteForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full name</Label>
-              <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              <Input
+                id="fullName"
+                name="candidate-name"
+                autoComplete="off"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                name="candidate-email"
                 type="email"
+                autoComplete="off"
+                spellCheck={false}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -151,6 +160,8 @@ export function InviteForm({
             <Label htmlFor="pasted">One per line as “Name, email”</Label>
             <Textarea
               id="pasted"
+              name="pasted-candidates"
+              spellCheck={false}
               rows={8}
               value={pasted}
               onChange={(e) => setPasted(e.target.value)}
