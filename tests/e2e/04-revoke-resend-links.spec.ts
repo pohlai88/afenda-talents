@@ -20,7 +20,7 @@ async function invite(page: Page, name: string, email: string): Promise<string> 
 
 /** Reads the candidate id from the dashboard row's data attribute. */
 async function idFor(page: Page, name: string): Promise<string> {
-  await page.goto("/admin");
+  await page.goto("/admin/candidates");
   const row = page.getByRole("row", { name: new RegExp(name) });
   await expect(row).toBeVisible();
   const id = await row.getAttribute("data-candidate-id");

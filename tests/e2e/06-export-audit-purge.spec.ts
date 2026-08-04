@@ -34,7 +34,7 @@ test("a full admin round produces a complete, identity-free audit trail", async 
   await completeAssessment(page, walkLink); // candidate.consented + assessment.submitted
 
   await signIn(page);
-  await page.goto("/admin");
+  await page.goto("/admin/candidates");
   await page.getByRole("link", { name: `Walk-${stamp}` }).click();
   await expect(page).toHaveURL(/\/admin\/candidate\//); // result.viewed
 
@@ -100,7 +100,8 @@ test("the CSV export has the right shape, no overall column, and neutralises for
 
 test("purge deletes every candidate and leaves an identity-free audit trail", async ({ page }) => {
   await signIn(page);
-  await page.goto("/admin");
+  // Purge lives on its own page now — requirements §11.1 keeps it off the daily dashboard.
+  await page.goto("/admin/data");
 
   const purgeInput = page.getByLabel("Confirmation phrase");
   await purgeInput.scrollIntoViewIfNeeded();

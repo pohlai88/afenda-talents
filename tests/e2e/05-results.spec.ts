@@ -12,7 +12,7 @@ test("spec §15 step 5: the profile shows five dimensions, bands, flags, and ite
   await completeAssessment(page, link);
   await signIn(page); // submission cleared the candidate cookie; sign back in
 
-  await page.goto("/admin");
+  await page.goto("/admin/candidates");
   await page.getByRole("link", { name: new RegExp(name) }).click();
   await expect(page).toHaveURL(/\/admin\/candidate\//);
 

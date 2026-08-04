@@ -21,7 +21,8 @@ test("rejects an unauthenticated admin API call", async ({ request }) => {
 
 test("loads the dashboard after signing in with email and password", async ({ page }) => {
   await signIn(page);
-  await expect(page.getByRole("heading", { name: "Candidates" })).toBeVisible();
+  // /admin is the operational overview; the candidate registry lives at /admin/candidates.
+  await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
 });
 
 test("rejects a valid password with the wrong email", async ({ request }) => {

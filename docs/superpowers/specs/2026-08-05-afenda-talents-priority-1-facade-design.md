@@ -324,8 +324,14 @@ percentages and the compact dimension indicators.
 
 ## 10. Test impact
 
+> **Corrected during execution.** This table originally listed three specs. Five actually reach the
+> candidate table through `/admin`, and `01-admin-auth` asserts the old dashboard heading. See the
+> plan's Task 11 for the full, verified list.
+
 | Spec | Change |
 |---|---|
+| `01-admin-auth.spec.ts` | Asserted the old dashboard `h1` "Candidates"; now asserts the overview's "Welcome back…" |
+| `03`, `04`, `05` | All reach the candidate table; each moves to `/admin/candidates`, and `03` expects "Ready for review" rather than `SCORED` |
 | `02-invitations.spec.ts` | Row lookups move from `/admin` to `/admin/candidates`; `"SENT"` / `"REVOKED"` assertions become "Invitation sent" / "Invitation revoked" |
 | `06-export-audit-purge.spec.ts` | Purge is driven from `/admin/data` instead of `/admin` (line 103) |
 | `07-rbac.spec.ts` | The viewer's row assertion moves to `/admin/candidates`. Its "Delete all candidate data" absence assertion still passes — viewers cannot reach `/admin/data` at all, which strengthens rather than weakens the check |
@@ -350,9 +356,11 @@ audit exploration, dimension narrative interpretations, hiring conversation guid
 autosave redesign, submit confirmation, comparative analytics, and any additional candidate
 tracking.
 
-Readable dimension names and the "Validity flags" → "Response context" rename are safe presentation
-improvements, but the candidate profile is **not** touched by this slice, so both are deferred to
-Priority 3 where the profile work happens.
+The profile already renders readable dimension names — `src/components/dimension-bar.tsx` maps
+`WER` … `INA` to their full titles, and `tests/e2e/05-results.spec.ts` asserts them. What remains
+outstanding there is the "Validity flags" → "Response context" rename and the hard-coded
+`bg-slate-*` bars, which do not yet use the token system. Both are deferred to Priority 3, where
+the profile work happens; this slice does not touch that page.
 
 ---
 

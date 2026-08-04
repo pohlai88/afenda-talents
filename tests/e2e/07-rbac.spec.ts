@@ -42,7 +42,8 @@ test("an admin creates a viewer; the viewer can read but not act", async ({ page
   await viewer.getByRole("button", { name: "Save new password" }).click();
   await expect(viewer).toHaveURL(/\/admin$/);
 
-  // Reads work: dashboard shows the candidate…
+  // Reads work: the registry shows the candidate…
+  await viewer.goto("/admin/candidates");
   await expect(viewer.getByRole("row", { name: new RegExp(`seen\\+${stamp}`) })).toBeVisible();
   // …but every mutating control is absent.
   await expect(viewer.getByRole("button", { name: "Invite candidates" })).toHaveCount(0);
@@ -68,6 +69,10 @@ test("an admin creates a viewer; the viewer can read but not act", async ({ page
 
   // The users page bounces viewers back to the dashboard.
   await viewer.goto("/admin/users");
+  await expect(viewer).toHaveURL(/\/admin$/);
+
+  // The data page bounces viewers back to the overview too.
+  await viewer.goto("/admin/data");
   await expect(viewer).toHaveURL(/\/admin$/);
 
   await viewerContext.close();

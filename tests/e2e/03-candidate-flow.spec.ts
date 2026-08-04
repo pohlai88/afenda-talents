@@ -84,8 +84,10 @@ test("spec §15 steps 3–4: consent, answer, close browser, resume intact, subm
   await expect(resumed).toHaveURL(/\/done$/);
 
   // And the admin now sees the candidate as SCORED with a clickable profile.
-  await page.goto("/admin");
-  await expect(page.getByRole("row", { name: new RegExp(candidateName) })).toContainText("SCORED");
+  await page.goto("/admin/candidates");
+  await expect(page.getByRole("row", { name: new RegExp(candidateName) })).toContainText(
+    "Ready for review",
+  );
 });
 
 test("a garbage token lands on the completion page and reveals nothing", async ({ context }) => {

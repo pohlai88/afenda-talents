@@ -2159,9 +2159,31 @@ git commit -m "feat: add shell loading skeletons and an error boundary"
 ### Task 11: Update the end-to-end specs
 
 **Files:**
+- Modify: `tests/e2e/01-admin-auth.spec.ts:24`
 - Modify: `tests/e2e/02-invitations.spec.ts:30-35,46-51,66-76`
-- Modify: `tests/e2e/06-export-audit-purge.spec.ts:103`
+- Modify: `tests/e2e/03-candidate-flow.spec.ts:87-88`
+- Modify: `tests/e2e/04-revoke-resend-links.spec.ts:23`
+- Modify: `tests/e2e/05-results.spec.ts:15`
+- Modify: `tests/e2e/06-export-audit-purge.spec.ts:37,103`
 - Modify: `tests/e2e/07-rbac.spec.ts:36-41`
+
+> **Correction, found during execution.** This task originally listed only specs 02, 06 and 07,
+> and the design document's impact table said the same. Both were wrong: **five** specs reach the
+> candidate table through `/admin`, and spec 01 asserts the old dashboard's `h1` ("Candidates"),
+> which is now the registry's heading. The lesson for later slices — grep every spec for
+> `goto("/admin")` and `getByRole("heading"` before estimating test cost, rather than reasoning
+> from the spec filenames that sound related.
+
+Beyond the three steps below, also apply:
+
+- `01-admin-auth.spec.ts:24` — `getByRole("heading", { name: "Candidates" })` becomes
+  `getByRole("heading", { name: /welcome back/i })`, the overview's `h1`.
+- `03-candidate-flow.spec.ts:87` — `goto("/admin")` becomes `goto("/admin/candidates")` and the
+  `"SCORED"` assertion becomes `"Ready for review"`.
+- `04-revoke-resend-links.spec.ts:23` and `05-results.spec.ts:15` — `goto("/admin")` becomes
+  `goto("/admin/candidates")`; both reach the table.
+- `06-export-audit-purge.spec.ts:37` — also moves to `/admin/candidates`, because it clicks a
+  candidate link to generate the `result.viewed` audit event.
 
 **Interfaces:**
 - Consumes: the routes and labels from Tasks 2, 6, and 7.

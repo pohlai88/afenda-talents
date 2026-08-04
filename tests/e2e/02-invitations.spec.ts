@@ -27,11 +27,11 @@ test("inviting two candidates prints two distinct links and shows both as SENT",
   const [a, b] = links.slice(-2);
   expect(a).not.toBe(b);
 
-  await page.goto("/admin");
+  await page.goto("/admin/candidates");
   const amira = page.getByRole("row", { name: new RegExp(`amira\\+${stamp}`) });
   const daniel = page.getByRole("row", { name: new RegExp(`daniel\\+${stamp}`) });
-  await expect(amira).toContainText("SENT");
-  await expect(daniel).toContainText("SENT");
+  await expect(amira).toContainText("Invitation sent");
+  await expect(daniel).toContainText("Invitation sent");
 });
 
 test("revoking a candidate nulls the token and shows REVOKED", async ({ page }) => {
@@ -43,12 +43,12 @@ test("revoking a candidate nulls the token and shows REVOKED", async ({ page }) 
   await page.getByRole("button", { name: "Send invitations" }).click();
   await expect(page.getByRole("status")).toContainText("Invited 1");
 
-  await page.goto("/admin");
+  await page.goto("/admin/candidates");
   const row = page.getByRole("row", { name: new RegExp(`bilal\\+${stamp}`) });
   await row.getByRole("button", { name: "Revoke" }).click();
   // Revoking is destructive, so it sits behind a confirmation dialog.
   await page.getByRole("alertdialog").getByRole("button", { name: "Revoke invitation" }).click();
-  await expect(row).toContainText("REVOKED");
+  await expect(row).toContainText("Invitation revoked");
   // The revoked link's 404 behaviour is asserted end-to-end in the Phase 5 specs,
   // once /a/[token] exists to serve anything at all.
 });
@@ -65,7 +65,7 @@ test("resending issues a different link", async ({ page }) => {
   const linksBeforeResend = await capturedLinks();
   const original = linksBeforeResend.at(-1)!;
 
-  await page.goto("/admin");
+  await page.goto("/admin/candidates");
   const row = page.getByRole("row", { name: new RegExp(`chen\\+${stamp}`) });
   await row.getByRole("button", { name: "Resend" }).click();
   await expect
@@ -74,7 +74,7 @@ test("resending issues a different link", async ({ page }) => {
 
   const replacement = (await capturedLinks()).at(-1)!;
   expect(replacement).not.toBe(original);
-  await expect(row).toContainText("SENT");
+  await expect(row).toContainText("Invitation sent");
 });
 
 test("inviting the same email twice is skipped, not duplicated", async ({ page }) => {
