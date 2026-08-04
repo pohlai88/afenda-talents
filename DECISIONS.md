@@ -210,3 +210,34 @@ still have no accounts, invariant 7 untouched):
 - **Confirm dialogs** on Revoke invitation, Reset password, and Remove account. The purge
   keeps its stronger type-the-phrase gate. Two shell regressions fixed in passing: nested
   `<main>` landmarks, and the sidebar printing on candidate profiles (`print:hidden`).
+
+## D17 — The UI/UX requirements document becomes authoritative; §12 narrowly superseded
+
+`docs/afenda-talents-complete-ui-ux-requirements.md` is promoted from Proposed to authoritative for
+presentation, information architecture, and visual system. Where it and the MVP build spec disagree
+on how the product *looks and is organised*, it wins; the build spec continues to govern behaviour,
+data, and security.
+
+One prohibition is superseded, narrowly. Spec §12's "Analytics or dashboards beyond the status
+counts" no longer forbids **a read-only operational overview derived entirely from data the system
+already writes** — current-status distribution, an attention queue computed from `sentAt`,
+`openedAt`, `expiresAt`, `Response.updatedAt` and existing audit rows, recent completions, and a
+human-readable activity feed.
+
+D17 authorises nothing else. Still prohibited, unchanged: candidate ranking; comparative analytics
+or benchmarking; configurable or user-built dashboards; any new tracking event or schema column
+added to feed a dashboard; automated or scheduled reminders; hiring recommendations; and composite
+or overall scores. The overview may order rows by operational urgency — never by any property of a
+candidate's answers.
+
+Two further calls recorded with it:
+
+- **Palette.** The authenticated application adopts Executive Navy, Governance Teal, Registry Blue
+  and Cool Porcelain as its operational system. Compass Gold is demoted to a brand-signature accent
+  for lockups only — never the primary button, progress, status, or selection colour. The landing
+  page's scoped `.af` palette is untouched, because a poster may legitimately differ from product UI.
+- **Deferred pending approval.** Dimension narrative interpretations and the hiring conversation
+  guide are not built. The instrument was never validated to support narrative interpretation, and
+  the requirements document itself makes both contingent on explicit approval.
+
+Design: `docs/superpowers/specs/2026-08-05-afenda-talents-priority-1-facade-design.md`.
