@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
 
 /**
  * Audit rows carry identifiers, never identities or secrets.
@@ -57,7 +58,7 @@ export async function audit(
   actor: string,
   action: AuditAction,
   subjectId?: string,
-  meta?: Record<string, unknown>,
+  meta?: Prisma.InputJsonObject,
 ): Promise<void> {
   assertNoPii(meta);
   await db.auditEvent.create({
