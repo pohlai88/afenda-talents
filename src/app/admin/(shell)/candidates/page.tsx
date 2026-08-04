@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import {
 	CandidatesDatatable,
@@ -17,36 +18,43 @@ export default async function CandidatesPage() {
 	const isAdmin = session.role === "ADMIN";
 	const now = new Date();
 
-	const [candidates, responseActivity, users] = await Promise.all([
-		db.candidate.findMany({ orderBy: { createdAt: "asc" } }),
-		db.response.groupBy({ by: ["candidateId"], _max: { updatedAt: true } }),
+	// One row per assignment (D18): the same person may hold more than one assignment
+	// across hiring rounds, and status chips must reflect the assignment, not a
+	// legacy candidate-level status.
+	const [assignments, responseActivity, users] = await Promise.all([
+		db.candidateAssignment.findMany({
+			include: { candidate: true },
+			orderBy: { createdAt: "asc" },
+		}),
+		db.response.groupBy({ by: ["assignmentId"], _max: { updatedAt: true } }),
 		db.user.findMany({ select: { id: true, name: true } }),
 	]);
 
 	const lastResponseAt = new Map(
-		responseActivity.map((r) => [r.candidateId, r._max.updatedAt]),
+		responseActivity.map((r) => [r.assignmentId, r._max.updatedAt]),
 	);
 	const userNames = new Map(users.map((u) => [u.id, u.name]));
 
-	const items: CandidateTableItem[] = candidates.map((c) => {
+	const items: CandidateTableItem[] = assignments.map((a) => {
 		const lastActivityAt =
-			[lastResponseAt.get(c.id) ?? null, c.submittedAt, c.openedAt, c.sentAt]
+			[lastResponseAt.get(a.id) ?? null, a.submittedAt, a.openedAt, a.sentAt]
 				.filter((d): d is Date => d instanceof Date)
-				.sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+				.sort((a2, b2) => b2.getTime() - a2.getTime())[0] ?? null;
 
 		return {
-			id: c.id,
-			fullName: c.fullName,
-			email: c.email,
-			status: c.status,
-			sentAt: c.sentAt?.toISOString() ?? null,
-			submittedAt: c.submittedAt?.toISOString() ?? null,
+			id: a.candidateId,
+			assignmentId: a.id,
+			fullName: a.candidate.fullName,
+			email: a.candidate.email,
+			status: a.status,
+			sentAt: a.sentAt?.toISOString() ?? null,
+			submittedAt: a.submittedAt?.toISOString() ?? null,
 			lastActivityAt: lastActivityAt?.toISOString() ?? null,
 			lastActivityLabel: lastActivityAt
 				? relativeTime(lastActivityAt, now)
 				: "—",
-			invitedByName: c.invitedById
-				? (userNames.get(c.invitedById) ?? null)
+			invitedByName: a.invitedById
+				? (userNames.get(a.invitedById) ?? null)
 				: null,
 		};
 	});
@@ -78,10 +86,16 @@ export default async function CandidatesPage() {
 				}
 			/>
 
-			{candidates.length === 0 ? (
+			{assignments.length === 0 ? (
 				<NoCandidates isAdmin={isAdmin} />
 			) : (
-				<CandidatesDatatable data={items} isAdmin={isAdmin} />
+				<Suspense
+					fallback={
+						<p className="text-sm text-muted-foreground">Loading candidates…</p>
+					}
+				>
+					<CandidatesDatatable data={items} isAdmin={isAdmin} />
+				</Suspense>
 			)}
 		</div>
 	);

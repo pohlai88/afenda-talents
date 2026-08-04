@@ -1,41 +1,44 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { CANDIDATE_COOKIE, createCandidateToken, resolveToken } from "@/lib/auth-candidate";
+import {
+	CANDIDATE_COOKIE,
+	createAssignmentSession,
+	resolveAssignmentToken,
+} from "@/lib/auth-candidate";
 
 export const runtime = "nodejs";
 
 /**
- * Candidate entry point. This is a Route Handler rather than a page because Next only
- * allows cookie writes in Route Handlers and Server Actions — a Server Component render
- * that calls cookies().set() throws at runtime.
- *
- * GET /a/{token}: validate the token, stamp openedAt, set the candidate cookie, and
- * redirect — to the consent page normally, straight to the assessment if already
- * STARTED, and to the completion page for unknown/expired/revoked/finished tokens
- * (all indistinguishable from outside).
+ * Candidate entry point. Cookie claim is assignmentId (D18).
  */
-export async function GET(_request: Request, { params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params;
-  const base = env.APP_URL;
+export async function GET(
+	_request: Request,
+	{ params }: { params: Promise<{ token: string }> },
+) {
+	const { token } = await params;
+	const base = env.APP_URL;
 
-  const candidate = await resolveToken(token);
-  if (!candidate) {
-    return NextResponse.redirect(new URL(`/a/${token}/done`, base));
-  }
+	const assignment = await resolveAssignmentToken(token);
+	if (!assignment) {
+		return NextResponse.redirect(new URL(`/a/${token}/done`, base));
+	}
 
-  if (!candidate.openedAt) {
-    await db.candidate.update({ where: { id: candidate.id }, data: { openedAt: new Date() } });
-  }
+	if (!assignment.openedAt) {
+		await db.candidateAssignment.update({
+			where: { id: assignment.id },
+			data: { openedAt: new Date() },
+		});
+	}
 
-  const destination = candidate.status === "STARTED" ? "assessment" : "consent";
-  const response = NextResponse.redirect(new URL(`/a/${token}/${destination}`, base));
-  response.cookies.set(CANDIDATE_COOKIE, await createCandidateToken(candidate.id), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 4 * 60 * 60,
-  });
-  return response;
+	const destination = assignment.status === "STARTED" ? "assessment" : "consent";
+	const response = NextResponse.redirect(new URL(`/a/${token}/${destination}`, base));
+	response.cookies.set(CANDIDATE_COOKIE, await createAssignmentSession(assignment.id), {
+		httpOnly: true,
+		secure: env.APP_URL.startsWith("https"),
+		sameSite: "lax",
+		path: "/",
+		maxAge: 4 * 60 * 60,
+	});
+	return response;
 }

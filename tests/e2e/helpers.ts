@@ -93,8 +93,8 @@ export async function completeAssessment(
 	const groups = page.locator("li[id^='item-']");
 	for (let i = 0; i < 34; i++) {
 		// Alternate answers so the straight-lining flag is not triggered by the fixture.
-		const label = i % 2 === 0 ? /: Agree$/ : /: Neither agree nor disagree$/;
-		await groups.nth(i).getByRole("button", { name: label }).click();
+		const label = i % 2 === 0 ? /^Agree$/ : /^Neither agree nor disagree$/;
+		await groups.nth(i).getByRole("radio", { name: label }).check();
 	}
 	await page.waitForTimeout(1500); // let the last debounce flush
 	await page.getByRole("button", { name: "Submit" }).click();

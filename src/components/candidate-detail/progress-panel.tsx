@@ -24,6 +24,8 @@ export function CandidateProgressPanel({
 	const { label } = statusDisplay(status);
 	const explanation = STAGE_EXPLANATION[status];
 	const showCount = status === "STARTED" || status === "SUBMITTED";
+	const progressLabel = `${answeredCount} of ${TOTAL_ITEMS} items answered`;
+	const progressPct = Math.round((answeredCount / TOTAL_ITEMS) * 100);
 
 	return (
 		<Card>
@@ -42,12 +44,29 @@ export function CandidateProgressPanel({
 					<p className="text-sm text-muted-foreground">{explanation}</p>
 				)}
 				{showCount && (
-					<p className="text-sm tabular-nums">
-						<span className="font-medium">
-							{answeredCount} of {TOTAL_ITEMS}
-						</span>{" "}
-						items answered
-					</p>
+					<div className="space-y-2">
+						<div
+							role="progressbar"
+							aria-valuemin={0}
+							aria-valuemax={TOTAL_ITEMS}
+							aria-valuenow={answeredCount}
+							aria-valuetext={progressLabel}
+							aria-label="Assessment progress"
+							className="h-1.5 overflow-hidden rounded-full bg-muted"
+						>
+							<div
+								className="h-full rounded-full bg-progress transition-[width] duration-300 motion-reduce:transition-none"
+								style={{ width: `${progressPct}%` }}
+								aria-hidden
+							/>
+						</div>
+						<p className="text-sm tabular-nums">
+							<span className="font-medium">
+								{answeredCount} of {TOTAL_ITEMS}
+							</span>{" "}
+							items answered
+						</p>
+					</div>
 				)}
 				{status === "EXPIRED" || status === "REVOKED" ? (
 					<p className="text-sm text-muted-foreground">

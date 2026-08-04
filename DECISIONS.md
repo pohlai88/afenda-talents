@@ -241,3 +241,33 @@ Two further calls recorded with it:
   the requirements document itself makes both contingent on explicit approval.
 
 Design: `docs/superpowers/specs/2026-08-05-afenda-talents-priority-1-facade-design.md`.
+
+## D18 — Configurable assessments, thin hiring rounds, assignment-scoped candidates
+
+**Spec §1 / §12** assumed one seeded instrument, no item editor, and one implicit hiring round.
+That product direction is intentionally superseded.
+
+Afenda Talents uses a **document-on-version** model: `Assessment` (mutable `draftDocument`) and
+immutable `AssessmentVersion.document` snapshots; thin `HiringRound` (name + published version +
+status); and `CandidateAssignment` as the invite/completion unit. The same email may hold many
+assignments. Round assessment version is editable only while `DRAFT` and locks on `DRAFT→OPEN`.
+Invitations require an `OPEN` round. Each assignment stores its own `assessmentVersionId` (copied
+from the round at creation) so scoring and history do not depend on later round edits.
+
+Candidate sessions claim `{ assignmentId }`. The cookie name may remain `afenda_candidate`; helpers
+and claim vocabulary must not pretend the id is a person id. Scoring and response-context rules are
+**version-driven**; the former global `Item` catalog is not runtime authority. The existing 34-item
+Afenda behavioural assessment becomes a protected system template and published version 1. Migration
+is expand → backfill → cutover → contract; `prisma migrate deploy` does not read `instrument.json`.
+
+Delivery 1 ships the model, migration, version-driven scoring, thin rounds, and read-only assessment
+surfaces. Delivery 2 ships the visual builder (Likert, short/long text, information items) without
+replacing the schema.
+
+This decision does **not** authorise: public or anonymous forms; candidate ranking; composite or
+overall scores; automatic hiring recommendations; claims that organisation-authored assessments are
+psychometrically validated; choice/multi/ranking/branching through Delivery 2; a response-context
+rule editor UI through Delivery 2; an Assessment Designer role; or a separate Templates product nav
+in Delivery 1.
+
+Design: `docs/superpowers/specs/2026-08-05-configurable-assessments-design.md`.

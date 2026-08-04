@@ -1,7 +1,8 @@
-import type { Band } from "@/lib/scoring";
-import { COMPETENCY_CODES } from "@/lib/scoring";
-
 /** Full dimension names for HR-facing profile copy (UI §8.3). */
+export const COMPETENCY_CODES = ["WER", "COM", "PSL", "ADR", "INA"] as const;
+
+export type Band = "Developing" | "Effective" | "Strong";
+
 export const DIMENSION_NAMES: Record<string, string> = {
 	WER: "Work ethic and reliability",
 	COM: "Communication and collaboration",
@@ -33,11 +34,13 @@ export const RESPONSE_CONTEXT_TITLES: Record<string, string> = {
 	rushed: "Time on task",
 };
 
-/** Band region boundaries — must match `bandFor` in lib/scoring.ts. */
+/** Band region boundaries — keep in sync with `bandFor` in lib/scoring.ts. */
 export const BAND_BOUNDARIES = {
 	developingMax: 45,
 	effectiveMax: 70,
 } as const;
+
+// Compile-time reminder: scoring.bandFor uses the same cut-points (Developing < 45, Effective < 70).
 
 export function dimensionDisplayName(code: string): string {
 	return DIMENSION_NAMES[code] ?? code;

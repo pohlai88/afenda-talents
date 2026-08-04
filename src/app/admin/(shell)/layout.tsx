@@ -47,7 +47,11 @@ export default async function AdminShellLayout({
 				Skip to content
 			</a>
 			<AppSidebar user={user} />
-			<SidebarInset id="main" className="min-w-0 overflow-x-hidden">
+			<SidebarInset
+				id="main"
+				tabIndex={-1}
+				className="min-w-0 overflow-x-hidden outline-none"
+			>
 				<header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 print:hidden">
 					<SidebarTrigger className="-ml-1" />
 					<Separator orientation="vertical" className="mr-2 h-4" />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CandidateShell } from "@/components/candidate/shell";
 import {
 	AlertDialog,
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { LIKERT_LABELS } from "@/lib/instrument-labels";
+import { scrollIntoViewAware } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 type Item = { id: string; order: number; text: string };
@@ -36,6 +37,43 @@ function saveStatusLabel(status: SaveStatus): string {
 			return "Offline — reconnecting";
 		default:
 			return "";
+	}
+}
+
+/** Module-level so Date.now is not flagged as render impurity. */
+async function persistCandidateAnswer(
+	itemId: string,
+	value: number,
+	shownAt: Record<string, number>,
+	setSaveStatus: (status: SaveStatus) => void,
+	isRetry = false,
+): Promise<void> {
+	if (typeof navigator !== "undefined" && !navigator.onLine) {
+		setSaveStatus("offline");
+		return;
+	}
+
+	const startedAt = shownAt[itemId] ?? Date.now();
+	const msOnItem = Math.max(0, Date.now() - startedAt);
+	shownAt[itemId] = Date.now();
+	setSaveStatus("saving");
+
+	try {
+		const response = await fetch("/api/candidate/autosave", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ itemId, value, msOnItem }),
+			keepalive: true,
+		});
+		if (!response.ok) throw new Error("autosave failed");
+		setSaveStatus("saved");
+	} catch {
+		setSaveStatus("error");
+		if (!isRetry) {
+			window.setTimeout(() => {
+				void persistCandidateAnswer(itemId, value, shownAt, setSaveStatus, true);
+			}, 1500);
+		}
 	}
 }
 
@@ -81,8 +119,11 @@ export function AssessmentForm({
 		}
 		window.addEventListener("online", syncOnline);
 		window.addEventListener("offline", syncOffline);
-		if (!navigator.onLine) setSaveStatus("offline");
+		const onlineCheck = window.setTimeout(() => {
+			if (!navigator.onLine) setSaveStatus("offline");
+		}, 0);
 		return () => {
+			window.clearTimeout(onlineCheck);
 			window.removeEventListener("online", syncOnline);
 			window.removeEventListener("offline", syncOffline);
 		};
@@ -95,51 +136,16 @@ export function AssessmentForm({
 		const targetId = firstUnanswered?.id ?? items[0]?.id;
 		if (!targetId) return;
 		requestAnimationFrame(() => {
-			document
-				.getElementById(`item-${targetId}`)
-				?.scrollIntoView({ behavior: "smooth", block: "center" });
+			scrollIntoViewAware(document.getElementById(`item-${targetId}`));
 		});
 	}, [hadSavedAnswers, items, saved]);
-
-	const flush = useCallback(
-		async (itemId: string, value: number, isRetry = false) => {
-			if (typeof navigator !== "undefined" && !navigator.onLine) {
-				setSaveStatus("offline");
-				return;
-			}
-
-			const startedAt = shownAt.current[itemId] ?? Date.now();
-			const msOnItem = Math.max(0, Date.now() - startedAt);
-			shownAt.current[itemId] = Date.now();
-			setSaveStatus("saving");
-
-			try {
-				const response = await fetch("/api/candidate/autosave", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ itemId, value, msOnItem }),
-					keepalive: true,
-				});
-				if (!response.ok) throw new Error("autosave failed");
-				setSaveStatus("saved");
-			} catch {
-				setSaveStatus("error");
-				if (!isRetry) {
-					window.setTimeout(() => {
-						void flush(itemId, value, true);
-					}, 1500);
-				}
-			}
-		},
-		[],
-	);
 
 	function choose(itemId: string, value: number) {
 		setAnswers((prev) => ({ ...prev, [itemId]: value }));
 		setMissing((prev) => prev.filter((id) => id !== itemId));
 		clearTimeout(timers.current[itemId]);
 		timers.current[itemId] = setTimeout(() => {
-			void flush(itemId, value);
+			void persistCandidateAnswer(itemId, value, shownAt.current, setSaveStatus);
 		}, SAVE_DEBOUNCE_MS);
 	}
 
@@ -149,9 +155,7 @@ export function AssessmentForm({
 			.map((i) => i.id);
 		if (unanswered.length === 0) return;
 		setMissing(unanswered);
-		document
-			.getElementById(`item-${unanswered[0]}`)
-			?.scrollIntoView({ behavior: "smooth", block: "center" });
+		scrollIntoViewAware(document.getElementById(`item-${unanswered[0]}`));
 	}
 
 	function requestSubmit() {
@@ -160,9 +164,7 @@ export function AssessmentForm({
 			.map((i) => i.id);
 		if (unanswered.length > 0) {
 			setMissing(unanswered);
-			document
-				.getElementById(`item-${unanswered[0]}`)
-				?.scrollIntoView({ behavior: "smooth", block: "center" });
+			scrollIntoViewAware(document.getElementById(`item-${unanswered[0]}`));
 			return;
 		}
 		setConfirmOpen(true);
@@ -173,7 +175,7 @@ export function AssessmentForm({
 		setError(null);
 		for (const [itemId, value] of Object.entries(answers)) {
 			clearTimeout(timers.current[itemId]);
-			await flush(itemId, value);
+			await persistCandidateAnswer(itemId, value, shownAt.current, setSaveStatus);
 		}
 		await new Promise((resolve) => setTimeout(resolve, SUBMIT_FLUSH_WAIT_MS));
 
@@ -197,23 +199,24 @@ export function AssessmentForm({
 	const total = items.length;
 	const progressLabel = `${answered} of ${total} answered`;
 	const statusText = saveStatusLabel(saveStatus);
+	const progressPct = total === 0 ? 0 : Math.round((answered / total) * 100);
 
 	return (
 		<CandidateShell
 			progress={
 				<div className="text-right text-xs text-muted-foreground">
-					<p className="tabular-nums font-medium text-foreground">
+					<p className="tabular-nums font-medium text-foreground" aria-hidden>
 						{progressLabel}
 					</p>
 					{statusText ? (
-						<p aria-live="polite" className="text-[11px]">
+						<p className="text-[11px]" aria-hidden>
 							{statusText}
 						</p>
 					) : null}
 				</div>
 			}
 		>
-			<main className="mx-auto max-w-xl px-4 py-5 pb-40">
+			<main id="main" tabIndex={-1} className="mx-auto max-w-xl px-4 py-5 pb-40 outline-none">
 				<h1 className="text-lg font-semibold tracking-tight">
 					Your self-assessment
 				</h1>
@@ -230,7 +233,7 @@ export function AssessmentForm({
 						<p>Your previous answers were restored.</p>
 						<button
 							type="button"
-							className="mt-1 text-xs font-medium text-primary underline-offset-4 hover:underline"
+							className="mt-1 text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 							onClick={() => setShowResumeNotice(false)}
 						>
 							Dismiss
@@ -238,18 +241,30 @@ export function AssessmentForm({
 					</div>
 				)}
 
-				{/* Sticky progress strip under the brand header */}
+				{/* Sticky progress — single live region for save + progressbar for count */}
 				<div className="sticky top-[3.25rem] z-10 -mx-4 mt-4 border-b border-border/60 bg-background/95 px-4 py-2 backdrop-blur">
-					<div className="h-1.5 overflow-hidden rounded-full bg-muted">
+					<div
+						role="progressbar"
+						aria-valuemin={0}
+						aria-valuemax={total}
+						aria-valuenow={answered}
+						aria-valuetext={progressLabel}
+						aria-label="Assessment progress"
+						className="h-1.5 overflow-hidden rounded-full bg-muted"
+					>
 						<div
-							className="h-full rounded-full bg-progress transition-[width] duration-300"
-							style={{ width: `${Math.round((answered / total) * 100)}%` }}
+							className="h-full rounded-full bg-progress transition-[width] duration-300 motion-reduce:transition-none"
+							style={{ width: `${progressPct}%` }}
 							aria-hidden
 						/>
 					</div>
 					<div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-						<span className="tabular-nums">{progressLabel}</span>
-						{statusText ? <span aria-live="polite">{statusText}</span> : null}
+						<span className="tabular-nums" aria-hidden>
+							{progressLabel}
+						</span>
+						<span aria-live="polite" aria-atomic="true" className="min-h-[1em]">
+							{statusText}
+						</span>
 					</div>
 				</div>
 
@@ -257,6 +272,7 @@ export function AssessmentForm({
 					{items.map((item) => {
 						const isMissing = missing.includes(item.id);
 						const selectedValue = answers[item.id];
+						const errorId = `item-${item.id}-error`;
 						return (
 							<li
 								key={item.id}
@@ -267,45 +283,63 @@ export function AssessmentForm({
 										"rounded-md bg-destructive/5 px-3 ring-1 ring-destructive/40",
 								)}
 							>
-								<p className="text-sm font-medium leading-snug">
+								<p
+									id={`item-${item.id}-prompt`}
+									className="text-sm font-medium leading-snug"
+								>
 									<span className="mr-2 text-muted-foreground tabular-nums">
 										{item.order}.
 									</span>
 									{item.text}
 								</p>
-								<fieldset className="mt-3 m-0 min-w-0 border-0 p-0">
+								<fieldset
+									className="mt-3 m-0 min-w-0 border-0 p-0"
+									aria-invalid={isMissing || undefined}
+									aria-describedby={isMissing ? errorId : undefined}
+								>
 									<legend className="sr-only">
-										Statement {item.order} responses
+										Statement {item.order}: {item.text}
 									</legend>
 									<div className="grid grid-cols-5 gap-1.5">
 										{([1, 2, 3, 4, 5] as const).map((value) => {
 											const selected = selectedValue === value;
+											const optionId = `item-${item.id}-v${value}`;
 											return (
-												<button
+												<label
 													key={value}
-													type="button"
-													aria-label={`Statement ${item.order}: ${LIKERT_LABELS[value - 1]}`}
-													aria-pressed={selected}
-													onClick={() => choose(item.id, value)}
+													htmlFor={optionId}
 													className={cn(
-														"h-14 touch-manipulation rounded-md border text-base font-medium transition-colors select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+														"flex h-14 cursor-pointer touch-manipulation items-center justify-center rounded-md border text-base font-medium transition-colors select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
 														selected
 															? "border-primary bg-primary text-primary-foreground"
 															: "border-border bg-card active:bg-muted",
 													)}
 												>
-													{value}
-												</button>
+													<input
+														id={optionId}
+														type="radio"
+														className="sr-only"
+														name={`item-${item.id}`}
+														value={value}
+														checked={selected}
+														onChange={() => choose(item.id, value)}
+														aria-label={LIKERT_LABELS[value - 1]}
+													/>
+													<span aria-hidden="true">{value}</span>
+												</label>
 											);
 										})}
 									</div>
 								</fieldset>
-								<div className="mt-1.5 flex justify-between text-[11px] text-muted-foreground">
-									<span>Strongly disagree</span>
-									<span>Strongly agree</span>
+								<div
+									className="mt-1.5 flex justify-between text-[11px] text-muted-foreground"
+									aria-hidden="true"
+								>
+									<span>{LIKERT_LABELS[0]}</span>
+									<span>{LIKERT_LABELS[4]}</span>
 								</div>
 								{isMissing && (
-									<p className="mt-2 text-xs text-destructive">
+									<p id={errorId} role="alert" className="mt-2 text-xs text-destructive">
 										Please answer this one.
 									</p>
 								)}
@@ -317,7 +351,7 @@ export function AssessmentForm({
 				<div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
 					<div className="mx-auto max-w-xl space-y-2">
 						{error && (
-							<p role="alert" className="text-sm text-destructive">
+							<p id="submit-error" role="alert" className="text-sm text-destructive">
 								{error}
 							</p>
 						)}
@@ -331,13 +365,14 @@ export function AssessmentForm({
 								Review unanswered ({missing.length})
 							</Button>
 						)}
-						<p className="text-xs text-muted-foreground tabular-nums">
+						<p className="text-xs text-muted-foreground tabular-nums" aria-hidden>
 							{progressLabel}
 						</p>
 						<Button
 							className="w-full"
 							size="lg"
 							disabled={busy}
+							aria-describedby={error ? "submit-error" : undefined}
 							onClick={requestSubmit}
 						>
 							{busy ? "Submitting…" : "Submit"}

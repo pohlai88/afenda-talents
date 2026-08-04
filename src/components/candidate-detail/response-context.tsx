@@ -1,16 +1,15 @@
+import type { UiContextFlag } from "@/lib/result-display";
 import { RESPONSE_CONTEXT_TITLES } from "@/lib/instrument-labels";
-import type { ValidityFlag } from "@/lib/scoring";
 
 /**
  * Neutral response-context indicators (UI §8.4). Not “validity flags”.
- * Timing copy distinguishes self-reported active time from server-observed elapsed.
  */
 export function ResponseContextPanel({
 	flags,
 	totalSeconds,
 	serverWindowSeconds,
 }: {
-	flags: ValidityFlag[];
+	flags: UiContextFlag[];
 	totalSeconds: number;
 	serverWindowSeconds: number;
 }) {
@@ -21,11 +20,11 @@ export function ResponseContextPanel({
 		<div className="flex flex-col gap-4">
 			<ul className="divide-y rounded-md border">
 				{flags.map((f) => {
-					const title = RESPONSE_CONTEXT_TITLES[f.code] ?? f.code;
+					const title = RESPONSE_CONTEXT_TITLES[f.key] ?? f.label;
 					const status = f.triggered ? "Review context" : "Not observed";
 					return (
 						<li
-							key={f.code}
+							key={f.key}
 							className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-6"
 						>
 							<div className="min-w-0 sm:w-44 sm:shrink-0">

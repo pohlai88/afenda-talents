@@ -123,7 +123,7 @@ test("purge deletes every candidate and leaves an identity-free audit trail", as
 	// Purge lives on its own page now — requirements §11.1 keeps it off the daily dashboard.
 	await page.goto("/admin/data");
 
-	const purgeInput = page.getByLabel("Confirmation phrase");
+	const purgeInput = page.getByLabel(/Type DELETE ALL CANDIDATE DATA to enable deletion/i);
 	await purgeInput.scrollIntoViewIfNeeded();
 
 	// The button stays disabled until the exact phrase is typed.

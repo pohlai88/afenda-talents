@@ -111,11 +111,14 @@ export function DangerZone({
 								name="purge-confirmation"
 								autoComplete="off"
 								spellCheck={false}
-								aria-label="Confirmation phrase"
+								aria-describedby="purge-confirmation-hint"
 								placeholder={CONFIRMATION}
 								value={confirmation}
 								onChange={(e) => setConfirmation(e.target.value)}
 							/>
+							<span id="purge-confirmation-hint" className="sr-only">
+								Type the phrase {CONFIRMATION} exactly to enable deletion
+							</span>
 							<Button
 								variant="destructive"
 								disabled={busy || !phraseMatches}

@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     await createSessionToken({ userId: user.id, role: user.role as Role }),
     {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.APP_URL?.startsWith("https") ?? false,
       sameSite: "lax",
       path: "/",
       maxAge: 8 * 60 * 60,

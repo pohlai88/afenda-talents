@@ -1,7 +1,6 @@
 "use client";
 
 import type {
-	Column,
 	ColumnDef,
 	ColumnFiltersState,
 	PaginationState,
@@ -28,7 +27,7 @@ import {
 	X,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useId, useMemo, useState } from "react";
 import { CandidateCard } from "@/components/candidates/candidate-card";
 import {
@@ -65,7 +64,9 @@ import {
 } from "@/components/ui/table";
 import { usePagination } from "@/hooks/use-pagination";
 import {
+	parseCandidateQuery,
 	SHORTCUT_LABEL,
+	SHORTCUT_STATUSES,
 	SHORTCUTS,
 	type Shortcut,
 } from "@/lib/candidate-query";
@@ -83,8 +84,14 @@ declare module "@tanstack/react-table" {
 	}
 }
 
+/**
+ * One row per CandidateAssignment (D18). `id` is the candidate id (profile link
+ * target); `assignmentId` is the invite/completion unit resend/revoke act on, and
+ * `status` is the assignment's status, not any legacy candidate-level status.
+ */
 export type CandidateTableItem = {
 	id: string;
+	assignmentId: string;
 	fullName: string;
 	email: string;
 	status: string;
@@ -93,13 +100,6 @@ export type CandidateTableItem = {
 	lastActivityAt: string | null;
 	lastActivityLabel: string;
 	invitedByName: string | null;
-};
-
-const SHORTCUT_STATUSES: Record<Shortcut, string[]> = {
-	"needs-follow-up": ["SENT"],
-	"in-progress": ["STARTED", "SUBMITTED"],
-	"ready-for-review": ["SCORED"],
-	closed: [...EXCEPTION_STAGES],
 };
 
 const ALL = "all";
@@ -257,7 +257,8 @@ function buildColumns(isAdmin: boolean): ColumnDef<CandidateTableItem>[] {
 				isAdmin ? (
 					<div className="flex justify-end">
 						<CandidateRowActions
-							id={row.original.id}
+							candidateId={row.original.id}
+							assignmentId={row.original.assignmentId}
 							fullName={row.original.fullName}
 							status={row.original.status}
 						/>
@@ -276,12 +277,29 @@ export function CandidatesDatatable({
 	isAdmin: boolean;
 }) {
 	const router = useRouter();
+	const pathname = usePathname();
+	const searchParams = useSearchParams();
 	const columns = useMemo(() => buildColumns(isAdmin), [isAdmin]);
-	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+	const query = useMemo(
+		() => parseCandidateQuery(Object.fromEntries(searchParams.entries())),
+		[searchParams],
+	);
+
+	const columnFilters = useMemo((): ColumnFiltersState => {
+		const filters: ColumnFiltersState = [];
+		if (query.search) filters.push({ id: "fullName", value: query.search });
+		if (query.status) {
+			filters.push({ id: "status", value: query.status });
+		} else if (query.shortcut) {
+			filters.push({ id: "status", value: SHORTCUT_STATUSES[query.shortcut] });
+		}
+		return filters;
+	}, [query]);
+
 	const [sorting, setSorting] = useState<SortingState>([
 		{ id: "sentAt", desc: true },
 	]);
-	const [shortcut, setShortcut] = useState<Shortcut | null>(null);
 	const [pagination, setPagination] = useState<PaginationState>({
 		pageIndex: 0,
 		pageSize: 25,
@@ -291,9 +309,8 @@ export function CandidatesDatatable({
 		data,
 		columns,
 		state: { columnFilters, pagination, sorting },
-		onColumnFiltersChange: (updater) => {
-			setColumnFilters(updater);
-			setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+		onColumnFiltersChange: () => {
+			/* Filters are owned by the URL (requirements §7). */
 		},
 		onSortingChange: setSorting,
 		onPaginationChange: setPagination,
@@ -314,31 +331,49 @@ export function CandidatesDatatable({
 		paginationItemsToDisplay: 2,
 	});
 
-	const searchValue =
-		(table.getColumn("fullName")?.getFilterValue() as string | undefined) ?? "";
-	const statusFilter = table.getColumn("status")?.getFilterValue();
-	const activeFilters =
-		(searchValue.trim() ? 1 : 0) +
-		(statusFilter != null && statusFilter !== "" ? 1 : 0) +
-		(shortcut ? 1 : 0);
-	const filteredCount = table.getFilteredRowModel().rows.length;
-	const pageRows = table.getRowModel().rows;
+	function writeParams(mutate: (params: URLSearchParams) => void) {
+		const params = new URLSearchParams(searchParams.toString());
+		mutate(params);
+		const qs = params.toString();
+		router.push(qs ? `${pathname}?${qs}` : pathname);
+		setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+	}
+
+	function applySearch(term: string) {
+		writeParams((params) => {
+			if (term) params.set("q", term);
+			else params.delete("q");
+		});
+	}
 
 	function applyShortcut(next: Shortcut | null) {
-		setShortcut(next);
-		table.setPageIndex(0);
-		if (next) {
-			table.getColumn("status")?.setFilterValue(SHORTCUT_STATUSES[next]);
-		} else if (Array.isArray(table.getColumn("status")?.getFilterValue())) {
-			table.getColumn("status")?.setFilterValue(undefined);
-		}
+		writeParams((params) => {
+			params.delete("status");
+			if (next) params.set("view", next);
+			else params.delete("view");
+		});
+	}
+
+	function applyStatus(status: string | null) {
+		writeParams((params) => {
+			params.delete("view");
+			if (status) params.set("status", status);
+			else params.delete("status");
+		});
 	}
 
 	function clearFilters() {
-		setShortcut(null);
-		setColumnFilters([]);
-		table.setPageIndex(0);
+		router.push(pathname);
+		setPagination((prev) => ({ ...prev, pageIndex: 0 }));
 	}
+
+	const searchValue = query.search;
+	const activeFilters =
+		(query.search ? 1 : 0) +
+		(query.status ? 1 : 0) +
+		(query.shortcut ? 1 : 0);
+	const filteredCount = table.getFilteredRowModel().rows.length;
+	const pageRows = table.getRowModel().rows;
 
 	const emptyBody =
 		filteredCount === 0 ? (
@@ -356,11 +391,15 @@ export function CandidatesDatatable({
 					<div className="flex min-w-0 flex-col gap-4 p-6">
 						<div className="flex min-w-0 flex-wrap items-end gap-4 lg:justify-between">
 							<div className="flex min-w-0 flex-wrap items-end gap-4">
-								<NameSearchFilter column={table.getColumn("fullName")} />
+								<NameSearchFilter
+									key={query.search}
+									initialQ={query.search}
+									onSearch={applySearch}
+								/>
 								<StatusFilter
-									column={table.getColumn("status")}
-									shortcut={shortcut}
-									onClearShortcut={() => setShortcut(null)}
+									status={query.status}
+									shortcut={query.shortcut}
+									onStatusChange={applyStatus}
 								/>
 								<div className="flex items-center gap-2">
 									<Label
@@ -405,7 +444,7 @@ export function CandidatesDatatable({
 
 						<div className="flex flex-wrap items-center gap-2">
 							{SHORTCUTS.map((key) => {
-								const on = shortcut === key;
+								const on = query.shortcut === key;
 								return (
 									<Button
 										key={key}
@@ -525,6 +564,7 @@ export function CandidatesDatatable({
 										key={row.id}
 										item={{
 											id: row.original.id,
+											assignmentId: row.original.assignmentId,
 											fullName: row.original.fullName,
 											email: row.original.email,
 											status: row.original.status,
@@ -636,60 +676,70 @@ export function CandidatesDatatable({
 }
 
 function NameSearchFilter({
-	column,
+	initialQ,
+	onSearch,
 }: {
-	column: Column<CandidateTableItem, unknown> | undefined;
+	initialQ: string;
+	onSearch: (term: string) => void;
 }) {
 	const id = useId();
-	if (!column) return null;
-	const columnFilterValue = column.getFilterValue();
+	const [draft, setDraft] = useState(initialQ);
 
 	return (
-		<div className="w-full max-w-xs space-y-2">
-			<Label htmlFor={`${id}-input`}>Search</Label>
-			<div className="relative">
-				<Input
-					id={`${id}-input`}
-					className="peer pl-9"
-					value={(columnFilterValue ?? "") as string}
-					onChange={(event) => column.setFilterValue(event.target.value)}
-					placeholder="Name or email…"
-					type="search"
-					autoComplete="off"
-					spellCheck={false}
-				/>
-				<div className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-center pl-3 text-muted-foreground/80 peer-disabled:opacity-50">
-					<SearchIcon size={16} />
+		<form
+			className="flex w-full max-w-md flex-wrap items-end gap-2"
+			onSubmit={(event) => {
+				event.preventDefault();
+				onSearch(draft.trim());
+			}}
+		>
+			<div className="min-w-0 flex-1 space-y-2">
+				<Label htmlFor={`${id}-input`}>Search</Label>
+				<div className="relative">
+					<Input
+						id={`${id}-input`}
+						className="peer pl-9"
+						value={draft}
+						onChange={(event) => setDraft(event.target.value)}
+						placeholder="Name or email…"
+						type="search"
+						autoComplete="off"
+						spellCheck={false}
+					/>
+					<div
+						className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-center pl-3 text-muted-foreground/80 peer-disabled:opacity-50"
+						aria-hidden="true"
+					>
+						<SearchIcon size={16} />
+					</div>
 				</div>
 			</div>
-		</div>
+			<Button type="submit">Search</Button>
+		</form>
 	);
 }
 
 function StatusFilter({
-	column,
+	status,
 	shortcut,
-	onClearShortcut,
+	onStatusChange,
 }: {
-	column: Column<CandidateTableItem, unknown> | undefined;
+	status: string | null;
 	shortcut: Shortcut | null;
-	onClearShortcut: () => void;
+	onStatusChange: (status: string | null) => void;
 }) {
 	const id = useId();
-	if (!column) return null;
-	const raw = column.getFilterValue();
-	const selectValue = typeof raw === "string" ? raw : ALL;
 	const statuses = [...WORKFLOW_STAGES, ...EXCEPTION_STAGES];
+	const selectValue = shortcut ? ALL : (status ?? ALL);
 
 	return (
 		<div className="w-full max-w-xs space-y-2">
 			<Label htmlFor={`${id}-select`}>Status</Label>
 			<Select
-				value={shortcut ? ALL : selectValue}
+				value={selectValue}
 				onValueChange={(value) => {
 					if (!value) return;
-					onClearShortcut();
-					column.setFilterValue(value === ALL ? undefined : value);
+					onStatusChange(value === ALL ? null : value);
 				}}
 			>
 				<SelectTrigger id={`${id}-select`} className="w-full">
@@ -697,9 +747,9 @@ function StatusFilter({
 				</SelectTrigger>
 				<SelectContent>
 					<SelectItem value={ALL}>Any status</SelectItem>
-					{statuses.map((status) => (
-						<SelectItem key={status} value={status}>
-							{statusDisplay(status).label}
+					{statuses.map((code) => (
+						<SelectItem key={code} value={code}>
+							{statusDisplay(code).label}
 						</SelectItem>
 					))}
 				</SelectContent>

@@ -19,7 +19,12 @@ export type AuditAction =
   | "result.viewed"
   | "export.downloaded"
   | "candidate.deleted"
-  | "data.purged";
+  | "data.purged"
+  | "assessment.seeded"
+  | "round.created"
+  | "round.opened"
+  | "round.closed"
+  | "round.archived";
 
 const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 // A 32-byte base64url token is 43 chars of this alphabet. A sha256 hex digest (the stored,

@@ -27,7 +27,8 @@ export const SHORTCUT_LABEL: Record<Shortcut, string> = {
   closed: "Closed",
 };
 
-const SHORTCUT_STATUSES: Record<Shortcut, string[]> = {
+/** Status sets for registry shortcuts — shared by URL parsing and the datatable. */
+export const SHORTCUT_STATUSES: Record<Shortcut, string[]> = {
   "needs-follow-up": ["SENT"],
   "in-progress": ["STARTED", "SUBMITTED"],
   "ready-for-review": ["SCORED"],

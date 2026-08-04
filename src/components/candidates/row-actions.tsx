@@ -31,13 +31,17 @@ type Confirm = "revoke" | "delete";
  * "Remove" or "Delete" on their own (§18.4).
  */
 export function CandidateRowActions({
-	id,
+	candidateId,
+	assignmentId,
 	fullName,
 	status,
 	showPrimary = true,
 }: {
-	id: string;
+	candidateId: string;
+	/** CandidateAssignment id (D18) — resend/revoke act on the assignment, not the person. */
+	assignmentId: string;
 	fullName: string;
+	/** Assignment status. */
 	status: string;
 	/** Hide the primary nav button when already on the candidate detail page. */
 	showPrimary?: boolean;
@@ -53,14 +57,14 @@ export function CandidateRowActions({
 
 	async function post(action: "resend" | "revoke") {
 		setBusy(true);
-		await fetch(`/api/admin/invite/${id}/${action}`, { method: "POST" });
+		await fetch(`/api/admin/invite/${assignmentId}/${action}`, { method: "POST" });
 		setBusy(false);
 		router.refresh();
 	}
 
 	async function remove() {
 		setBusy(true);
-		await fetch(`/api/admin/candidate/${id}`, { method: "DELETE" });
+		await fetch(`/api/admin/candidate/${candidateId}`, { method: "DELETE" });
 		setBusy(false);
 		// Leave the detail route — the record is gone.
 		router.push("/admin/candidates");
@@ -74,7 +78,7 @@ export function CandidateRowActions({
 					size="sm"
 					variant="outline"
 					nativeButton={false}
-					render={<Link href={`/admin/candidate/${id}`} />}
+					render={<Link href={`/admin/candidate/${candidateId}`} />}
 				>
 					{isScored ? "Review profile" : "View progress"}
 				</Button>
@@ -90,7 +94,7 @@ export function CandidateRowActions({
 						/>
 					}
 				>
-					<MoreHorizontal />
+					<MoreHorizontal aria-hidden="true" />
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" className="w-60">
 					{canResend && (

@@ -25,7 +25,7 @@ test("search, filter, and shortcut state all live in the URL", async ({ page }) 
   await page.getByLabel("Search").fill(`nobody-${stamp}`);
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page.getByText(/nothing matches/i)).toBeVisible();
-  await page.getByRole("link", { name: "Show all candidates" }).click();
+  await page.getByRole("button", { name: "Show all candidates" }).click();
   await expect(page).toHaveURL(/\/admin\/candidates$/);
 
   // A shortcut is a pressed toggle that writes to the URL.

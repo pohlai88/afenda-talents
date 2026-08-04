@@ -1,6 +1,7 @@
 "use client";
 
 import { Eye, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useMemo, useState } from "react";
 import {
@@ -32,8 +33,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
 	Table,
 	TableBody,
+	TableCaption,
 	TableCell,
 	TableHead,
 	TableHeader,
@@ -52,21 +61,44 @@ import { cn } from "@/lib/utils";
 
 type SendResult = { invited: number; skipped: number };
 
+export type OpenRoundOption = {
+	id: string;
+	name: string;
+	/** Assessment title + version, e.g. "Afenda Core Behavioural Profile · v1". */
+	versionTitle: string;
+};
+
 export function InviteForm({
 	invitationPreviewHtml,
 	receiptPreviewHtml,
-	existingEmails,
+	openRounds,
+	roundExistingEmails,
 	ttlDays,
 }: {
 	invitationPreviewHtml: string;
 	receiptPreviewHtml: string;
-	existingEmails: string[];
+	/** Only OPEN rounds — invitations require one (D18). */
+	openRounds: OpenRoundOption[];
+	/** Emails already holding an assignment in each round, keyed by round id. */
+	roundExistingEmails: Record<string, string[]>;
 	ttlDays: number;
 }) {
 	const router = useRouter();
+	const roundSelectId = useId();
+
+	const [roundId, setRoundId] = useState<string | null>(
+		openRounds[0]?.id ?? null,
+	);
+	const selectedRound = openRounds.find((r) => r.id === roundId) ?? null;
+
 	const existingSet = useMemo(
-		() => new Set(existingEmails.map((e) => e.trim().toLowerCase())),
-		[existingEmails],
+		() =>
+			new Set(
+				(roundId ? roundExistingEmails[roundId] ?? [] : []).map((e) =>
+					e.trim().toLowerCase(),
+				),
+			),
+		[roundExistingEmails, roundId],
 	);
 
 	const [mode, setMode] = useState<"single" | "many">("single");
@@ -85,6 +117,13 @@ export function InviteForm({
 
 	const counts = inviteRowCounts(rows);
 	const toSend = validInviteEntries(rows);
+
+	function changeRound(next: string) {
+		setRoundId(next);
+		setRows([]);
+		setResult(null);
+		setError(null);
+	}
 
 	function reviewSingle() {
 		setResult(null);
@@ -109,13 +148,13 @@ export function InviteForm({
 	}
 
 	async function send() {
-		if (toSend.length === 0) return;
+		if (toSend.length === 0 || !roundId) return;
 		setBusy(true);
 		setError(null);
 		const response = await fetch("/api/admin/invite", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ candidates: toSend }),
+			body: JSON.stringify({ hiringRoundId: roundId, candidates: toSend }),
 		});
 		const body = await response.json().catch(() => ({}));
 		setBusy(false);
@@ -139,6 +178,32 @@ export function InviteForm({
 		setEmail("");
 		setPasted("");
 		router.refresh();
+	}
+
+	if (openRounds.length === 0) {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-base">No open hiring round</CardTitle>
+				</CardHeader>
+				<CardContent className="flex flex-col gap-4">
+					<p className="text-sm text-muted-foreground">
+						Invitations require an open hiring round — it determines which
+						assessment candidates receive. Open a round under Hiring rounds,
+						then return here.
+					</p>
+					<div>
+						<Button
+							variant="outline"
+							nativeButton={false}
+							render={<Link href="/admin/rounds" />}
+						>
+							Go to hiring rounds
+						</Button>
+					</div>
+				</CardContent>
+			</Card>
+		);
 	}
 
 	return (
@@ -184,8 +249,8 @@ export function InviteForm({
 						</AlertDialogTitle>
 						<AlertDialogDescription>
 							{toSend.length} personal link{toSend.length === 1 ? "" : "s"} will
-							be emailed. Links expire after {ttlDays} day
-							{ttlDays === 1 ? "" : "s"}.{" "}
+							be emailed for {selectedRound?.name ?? "this round"}. Links
+							expire after {ttlDays} day{ttlDays === 1 ? "" : "s"}.{" "}
 							{counts.existing + counts.duplicate + counts.invalid > 0
 								? `${counts.existing} already invited, ${counts.duplicate} duplicate, and ${counts.invalid} invalid row${counts.invalid === 1 ? "" : "s"} will not be sent.`
 								: "Every row in the review list is ready to send."}
@@ -204,6 +269,41 @@ export function InviteForm({
 			</AlertDialog>
 
 			<Card>
+				<CardHeader>
+					<CardTitle className="text-base">Hiring round</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-2">
+					<Label htmlFor={roundSelectId}>Open round</Label>
+					<Select
+						value={roundId ?? undefined}
+						onValueChange={(value) => {
+							if (value) changeRound(value);
+						}}
+					>
+						<SelectTrigger id={roundSelectId} className="w-full sm:w-96">
+							<SelectValue placeholder="Choose an open round" />
+						</SelectTrigger>
+						<SelectContent>
+							{openRounds.map((round) => (
+								<SelectItem key={round.id} value={round.id}>
+									{round.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					{selectedRound && (
+						<p className="text-sm text-muted-foreground">
+							Candidates will receive{" "}
+							<span className="font-medium text-foreground">
+								{selectedRound.versionTitle}
+							</span>
+							.
+						</p>
+					)}
+				</CardContent>
+			</Card>
+
+			<Card>
 				<CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
 					<CardTitle className="text-base">Add candidates</CardTitle>
 					<Button
@@ -212,7 +312,7 @@ export function InviteForm({
 						size="sm"
 						onClick={() => setPreviewOpen(true)}
 					>
-						<Eye className="size-3.5" />
+						<Eye aria-hidden="true" className="size-3.5" />
 						Preview the email
 					</Button>
 				</CardHeader>
@@ -223,7 +323,7 @@ export function InviteForm({
 							if (value === "single" || value === "many") setMode(value);
 						}}
 					>
-						<TabsList>
+						<TabsList aria-label="How to add candidates">
 							<TabsTrigger value="single">Single candidate</TabsTrigger>
 							<TabsTrigger value="many">Add many</TabsTrigger>
 						</TabsList>
@@ -257,7 +357,7 @@ export function InviteForm({
 								<Button
 									type="button"
 									variant="secondary"
-									disabled={!fullName.trim() || !email.trim()}
+									disabled={!fullName.trim() || !email.trim() || !roundId}
 									onClick={reviewSingle}
 								>
 									Review invitation
@@ -284,7 +384,7 @@ export function InviteForm({
 								<Button
 									type="button"
 									variant="secondary"
-									disabled={!pasted.trim()}
+									disabled={!pasted.trim() || !roundId}
 									onClick={reviewPaste}
 								>
 									Parse and review
@@ -299,7 +399,7 @@ export function InviteForm({
 				<Card className="min-w-0 overflow-hidden">
 					<CardHeader>
 						<CardTitle className="text-base">Review before sending</CardTitle>
-						<p className="text-sm text-muted-foreground">
+						<p className="text-sm text-muted-foreground" role="status">
 							{counts.valid} ready · {counts.existing} already invited ·{" "}
 							{counts.duplicate} duplicate · {counts.invalid} invalid
 						</p>
@@ -307,6 +407,9 @@ export function InviteForm({
 					<CardContent className="min-w-0 px-0 sm:px-6">
 						<div className="min-w-0 overflow-x-auto">
 							<Table className="min-w-[36rem]">
+								<TableCaption className="sr-only">
+									Candidates ready for invitation review
+								</TableCaption>
 								<TableHeader>
 									<TableRow>
 										<TableHead>Name</TableHead>
@@ -340,7 +443,7 @@ export function InviteForm({
 													aria-label={`Remove ${row.fullName || row.email || "row"}`}
 													onClick={() => removeRow(row.id)}
 												>
-													<Trash2 className="size-3.5" />
+													<Trash2 aria-hidden="true" className="size-3.5" />
 												</Button>
 											</TableCell>
 										</TableRow>
@@ -355,7 +458,8 @@ export function InviteForm({
 						</Button>
 						<Button
 							type="button"
-							disabled={toSend.length === 0 || busy}
+							disabled={toSend.length === 0 || busy || !roundId}
+							aria-describedby={error ? "invite-error" : undefined}
 							onClick={() => setConfirmOpen(true)}
 						>
 							Send {toSend.length} invitation{toSend.length === 1 ? "" : "s"}
@@ -365,7 +469,7 @@ export function InviteForm({
 			)}
 
 			{error && (
-				<p role="alert" className="text-sm text-destructive">
+				<p id="invite-error" role="alert" className="text-sm text-destructive">
 					{error}
 				</p>
 			)}

@@ -11,58 +11,99 @@ import { sendInvitation } from "@/lib/email";
 export const runtime = "nodejs";
 
 const bodySchema = z.object({
-  candidates: z
-    .array(z.object({ fullName: z.string().min(1).max(120), email: z.email() }))
-    .min(1)
-    .max(200),
+	hiringRoundId: z.string().min(1),
+	candidates: z
+		.array(z.object({ fullName: z.string().min(1).max(120), email: z.email() }))
+		.min(1)
+		.max(200),
 });
 
 export async function POST(request: Request) {
-  let session;
-  try {
-    session = await requireAdmin();
-  } catch {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-  }
+	let session;
+	try {
+		session = await requireAdmin();
+	} catch {
+		return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+	}
 
-  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Provide a name and a valid email for each candidate" },
-      { status: 400 },
-    );
-  }
+	const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+	if (!parsed.success) {
+		return NextResponse.json(
+			{ error: "Provide a hiring round and a name and valid email for each candidate" },
+			{ status: 400 },
+		);
+	}
 
-  let invited = 0;
-  let skipped = 0;
+	const round = await db.hiringRound.findUnique({
+		where: { id: parsed.data.hiringRoundId },
+		include: { assessmentVersion: true },
+	});
+	if (!round) {
+		return NextResponse.json({ error: "Hiring round not found" }, { status: 404 });
+	}
+	if (round.status !== "OPEN") {
+		return NextResponse.json(
+			{ error: "Invitations require an open hiring round" },
+			{ status: 400 },
+		);
+	}
 
-  for (const entry of parsed.data.candidates) {
-    const email = entry.email.trim().toLowerCase();
-    if (await db.candidate.findUnique({ where: { email } })) {
-      skipped++;
-      continue;
-    }
+	let invited = 0;
+	let skipped = 0;
 
-    // The raw token exists only long enough to build the URL. It is never stored,
-    // logged, audited, or returned. Build-skill invariant 2.
-    const token = generateToken();
-    const expiresAt = expiryFromNow(env.INVITE_TTL_DAYS);
+	for (const entry of parsed.data.candidates) {
+		const email = entry.email.trim().toLowerCase();
 
-    const candidate = await db.candidate.create({
-      data: {
-        email,
-        fullName: entry.fullName.trim(),
-        tokenHash: hashToken(token),
-        expiresAt,
-        invitedById: session.userId,
-      },
-    });
+		let candidate = await db.candidate.findUnique({ where: { email } });
+		if (!candidate) {
+			candidate = await db.candidate.create({
+				data: {
+					email,
+					fullName: entry.fullName.trim(),
+				},
+			});
+		}
 
-    await applyStatus(candidate.id, "SENT", { sentAt: new Date() });
-    await sendInvitation(email, candidate.fullName, inviteUrl(env.APP_URL, token), expiresAt);
-    await audit(session.userId, "invite.created", candidate.id);
-    invited++;
-  }
+		const existingAssignment = await db.candidateAssignment.findUnique({
+			where: {
+				candidateId_hiringRoundId: {
+					candidateId: candidate.id,
+					hiringRoundId: round.id,
+				},
+			},
+		});
+		if (existingAssignment) {
+			skipped++;
+			continue;
+		}
 
-  return NextResponse.json({ invited, skipped });
+		const token = generateToken();
+		const expiresAt = expiryFromNow(env.INVITE_TTL_DAYS);
+
+		const assignment = await db.candidateAssignment.create({
+			data: {
+				candidateId: candidate.id,
+				hiringRoundId: round.id,
+				assessmentVersionId: round.assessmentVersionId,
+				invitedById: session.userId,
+				tokenHash: hashToken(token),
+				expiresAt,
+			},
+		});
+
+		await applyStatus(assignment.id, "SENT", { sentAt: new Date() });
+		await sendInvitation(
+			email,
+			candidate.fullName,
+			inviteUrl(env.APP_URL, token),
+			expiresAt,
+		);
+		await audit(session.userId, "invite.created", assignment.id, {
+			roundId: round.id,
+			versionId: round.assessmentVersionId,
+		});
+		invited++;
+	}
+
+	return NextResponse.json({ invited, skipped });
 }

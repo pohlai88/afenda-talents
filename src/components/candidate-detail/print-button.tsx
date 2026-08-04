@@ -12,7 +12,7 @@ export function PrintProfileButton() {
 			className="print:hidden"
 			onClick={() => window.print()}
 		>
-			<Printer className="size-4" />
+			<Printer aria-hidden="true" className="size-4" />
 			Print profile
 		</Button>
 	);

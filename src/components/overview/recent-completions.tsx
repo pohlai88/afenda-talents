@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { DimensionScore } from "@/lib/scoring";
+import type { UiDimension } from "@/lib/result-display";
 
 export type CompletedProfile = {
   id: string;
   fullName: string;
   submittedAt: Date | null;
-  dimensions: DimensionScore[];
+  dimensions: UiDimension[];
   contextCount: number;
 };
 
@@ -17,7 +17,7 @@ export type CompletedProfile = {
  * tone, and the value and band are text, so the meaning survives greyscale printing
  * and colour-blind readers alike.
  */
-function DimensionPips({ dimensions }: { dimensions: DimensionScore[] }) {
+function DimensionPips({ dimensions }: { dimensions: UiDimension[] }) {
   return (
     <ul className="flex flex-wrap gap-3">
       {dimensions.map((d) => (

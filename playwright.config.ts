@@ -19,18 +19,18 @@ export default defineConfig({
 	use: { baseURL: "http://localhost:3100", trace: "on-first-retry" },
 	// Spec §13.6 makes the CANDIDATE UI mobile-first — those specs run on a phone profile.
 	// The admin is one HR manager on a laptop, so admin specs run on desktop.
-	projects: [
-		{
-			name: "admin-desktop",
-			use: { ...devices["Desktop Chrome"] },
-			testMatch: /0[1267]-.*\.spec\.ts|10-.*\.spec\.ts/,
-		},
-		{
-			name: "candidate-mobile",
-			use: { ...devices["Pixel 5"] },
-			testIgnore: /0[1267]-.*\.spec\.ts|10-.*\.spec\.ts/,
-		},
-	],
+  projects: [
+    {
+      name: "admin-desktop",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: /0[12678]-.*\.spec\.ts|1[01]-.*\.spec\.ts/,
+    },
+    {
+      name: "candidate-mobile",
+      use: { ...devices["Pixel 5"] },
+      testIgnore: /0[12678]-.*\.spec\.ts|1[01]-.*\.spec\.ts/,
+    },
+  ],
 	webServer: {
 		command: "pnpm build && pnpm start --port 3100 > server.log 2>&1",
 		url: "http://localhost:3100",

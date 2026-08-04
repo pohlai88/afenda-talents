@@ -75,10 +75,7 @@ test("spec §15 steps 3–4: consent, answer, close browser, resume intact, subm
 	// Answer the first 17 items, then abandon the tab entirely.
 	const groups = candidate.locator("li[id^='item-']");
 	for (let i = 0; i < 17; i++) {
-		await groups
-			.nth(i)
-			.getByRole("button", { name: /: Agree$/ })
-			.click();
+		await groups.nth(i).getByRole("radio", { name: /^Agree$/ }).check();
 	}
 	await candidate.waitForTimeout(1500); // let the debounce flush
 	await candidate.close();
@@ -105,10 +102,7 @@ test("spec §15 steps 3–4: consent, answer, close browser, resume intact, subm
 
 	const remaining = resumed.locator("li[id^='item-']");
 	for (let i = 17; i < 34; i++) {
-		await remaining
-			.nth(i)
-			.getByRole("button", { name: /: Disagree$/ })
-			.click();
+		await remaining.nth(i).getByRole("radio", { name: /^Disagree$/ }).check();
 	}
 	await resumed.waitForTimeout(1500);
 	await resumed.getByRole("button", { name: "Submit" }).click();

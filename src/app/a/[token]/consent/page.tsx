@@ -8,13 +8,17 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { resolveToken } from "@/lib/auth-candidate";
+import { currentAssignmentId, resolveAssignmentToken } from "@/lib/auth-candidate";
 import { env } from "@/lib/env";
+import { orderedAnswerableItems } from "@/lib/instrument-document";
+import { loadVersionDocument } from "@/lib/version-document";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Consent page — render only, no cookie writes (those happen in /a/[token]/route.ts).
+ * Copy is version-driven (D18): intro, consent text, and estimated time come from the
+ * assignment's frozen assessment version document, not hardcoded Core v1 copy.
  * PDPA 2010: names what is collected, who sees it, retention (spec §13.7 / UI §12.2).
  */
 export default async function ConsentPage({
@@ -23,18 +27,30 @@ export default async function ConsentPage({
 	params: Promise<{ token: string }>;
 }) {
 	const { token } = await params;
-	const candidate = await resolveToken(token);
-	if (!candidate) redirect(`/a/${token}/done`);
-	if (candidate.status === "STARTED") redirect(`/a/${token}/assessment`);
+	const assignment = await resolveAssignmentToken(token);
+	if (!assignment) redirect(`/a/${token}/done`);
+
+	// D8: the token and the cookie must agree on which assignment this browser holds.
+	const cookieAssignmentId = await currentAssignmentId();
+	if (cookieAssignmentId !== assignment.id) redirect(`/a/${token}/done`);
+
+	if (assignment.status === "STARTED") redirect(`/a/${token}/assessment`);
+
+	const doc = await loadVersionDocument(assignment.assessmentVersionId);
+	const itemCount = orderedAnswerableItems(doc).length;
+	const retention = doc.consent.retention.replace(
+		"{RETENTION_DAYS}",
+		String(env.RETENTION_DAYS),
+	);
 
 	return (
 		<CandidateShell>
-			<main className="mx-auto max-w-xl px-4 py-6 pb-24">
+			<main id="main" tabIndex={-1} className="mx-auto max-w-xl px-4 py-6 pb-24 outline-none">
 				<h1 className="text-xl font-semibold tracking-tight">
 					Before you begin
 				</h1>
 				<p className="mt-2 text-sm text-muted-foreground">
-					Hello {candidate.fullName},
+					Hello {assignment.candidate.fullName},
 				</p>
 
 				<Card className="mt-5 border-border/80 shadow-none">
@@ -44,8 +60,12 @@ export default async function ConsentPage({
 					</CardHeader>
 					<CardContent>
 						<ul className="list-inside list-disc space-y-1.5 text-sm text-muted-foreground">
-							<li>34 short statements about how you work</li>
-							<li>About 12 minutes</li>
+							<li>{doc.candidateIntroduction}</li>
+							<li>
+								{itemCount} short statement{itemCount === 1 ? "" : "s"} about
+								how you work
+							</li>
+							<li>About {doc.estimatedMinutes} minutes</li>
 							<li>
 								<strong className="font-medium text-foreground">
 									No right or wrong answers
@@ -60,36 +80,24 @@ export default async function ConsentPage({
 				<div className="mt-6 space-y-5 text-sm leading-relaxed">
 					<section>
 						<h2 className="font-medium text-foreground">Purpose</h2>
-						<p className="mt-1.5 text-muted-foreground">
-							This is a short self-assessment about how you work. Hiring teams
-							use it as one structured input alongside the rest of your
-							application.
-						</p>
+						<p className="mt-1.5 text-muted-foreground">{doc.consent.purpose}</p>
 					</section>
 
 					<section>
 						<h2 className="font-medium text-foreground">What we collect</h2>
 						<p className="mt-1.5 text-muted-foreground">
-							Your name and email address, your answer to each of the 34
-							statements, and how long you spend on each one.
+							{doc.consent.whatWeCollect}
 						</p>
 					</section>
 
 					<section>
 						<h2 className="font-medium text-foreground">Who sees it</h2>
-						<p className="mt-1.5 text-muted-foreground">
-							Only the hiring team for this role. Your answers are not shared
-							outside this organisation.
-						</p>
+						<p className="mt-1.5 text-muted-foreground">{doc.consent.whoSeesIt}</p>
 					</section>
 
 					<section>
 						<h2 className="font-medium text-foreground">How long we keep it</h2>
-						<p className="mt-1.5 text-muted-foreground">
-							Responses are kept for {env.RETENTION_DAYS} days from the date you
-							submit them, then deleted. You may ask us to delete them sooner by
-							replying to the invitation email.
-						</p>
+						<p className="mt-1.5 text-muted-foreground">{retention}</p>
 					</section>
 				</div>
 

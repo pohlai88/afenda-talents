@@ -17,6 +17,11 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
 	"export.downloaded": "Results exported",
 	"candidate.deleted": "Candidate deleted",
 	"data.purged": "Candidate data purged",
+	"assessment.seeded": "Assessment seeded",
+	"round.created": "Hiring round created",
+	"round.opened": "Hiring round opened",
+	"round.closed": "Hiring round closed",
+	"round.archived": "Hiring round archived",
 };
 
 export const AUDIT_ACTION_OPTIONS = Object.keys(

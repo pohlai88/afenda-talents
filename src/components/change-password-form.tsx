@@ -75,6 +75,8 @@ export function ChangePasswordForm({ email, forced }: { email: string; forced: b
               onChange={(e) => setCurrentPassword(e.target.value)}
               autoComplete="current-password"
               required
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "password-error" : undefined}
             />
           </div>
           <div className="space-y-2">
@@ -88,8 +90,14 @@ export function ChangePasswordForm({ email, forced }: { email: string; forced: b
               autoComplete="new-password"
               minLength={12}
               required
+              aria-invalid={error ? true : undefined}
+              aria-describedby={
+                error ? "new-password-hint password-error" : "new-password-hint"
+              }
             />
-            <p className="text-xs text-muted-foreground">At least 12 characters.</p>
+            <p id="new-password-hint" className="text-xs text-muted-foreground">
+              At least 12 characters.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirm-password">Repeat new password</Label>
@@ -102,10 +110,12 @@ export function ChangePasswordForm({ email, forced }: { email: string; forced: b
               autoComplete="new-password"
               minLength={12}
               required
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "password-error" : undefined}
             />
           </div>
           {error && (
-            <p role="alert" className="text-sm text-destructive">
+            <p id="password-error" role="alert" className="text-sm text-destructive">
               {error}
             </p>
           )}

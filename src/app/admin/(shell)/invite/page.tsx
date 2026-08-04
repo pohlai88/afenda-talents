@@ -12,7 +12,10 @@ export const dynamic = "force-dynamic";
 /**
  * Server component so the email preview is rendered from the same builders the sender
  * uses. The sample link is a plain placeholder — no token, real or fake, is minted here.
- * Existing emails power the review table's "already invited" classification.
+ *
+ * Invitations require an OPEN hiring round (D18) — the round implies the assessment
+ * version, so it is selected first. "Already invited" is scoped per round: the same
+ * person may hold a separate assignment in a different round.
  */
 export default async function InvitePage() {
 	try {
@@ -21,9 +24,28 @@ export default async function InvitePage() {
 		redirect("/admin");
 	}
 
-	const existing = await db.candidate.findMany({ select: { email: true } });
-	// eslint-disable-next-line react-hooks/purity -- sample expiry is request-time; page is force-dynamic
+	const [openRounds, assignments] = await Promise.all([
+		db.hiringRound.findMany({
+			where: { status: "OPEN" },
+			include: {
+				assessmentVersion: { include: { assessment: { select: { title: true } } } },
+			},
+			orderBy: { createdAt: "desc" },
+		}),
+		db.candidateAssignment.findMany({
+			select: { hiringRoundId: true, candidate: { select: { email: true } } },
+		}),
+	]);
+
+	const roundExistingEmails: Record<string, string[]> = {};
+	for (const a of assignments) {
+		const emails = roundExistingEmails[a.hiringRoundId] ?? [];
+		emails.push(a.candidate.email);
+		roundExistingEmails[a.hiringRoundId] = emails;
+	}
+
 	const sampleExpiry = new Date(
+		// eslint-disable-next-line react-hooks/purity -- force-dynamic; preview expiry is request-time only
 		Date.now() + env.INVITE_TTL_DAYS * 24 * 60 * 60 * 1000,
 	);
 
@@ -37,7 +59,12 @@ export default async function InvitePage() {
 			<InviteWorkflow ttlDays={env.INVITE_TTL_DAYS} />
 			<InviteForm
 				ttlDays={env.INVITE_TTL_DAYS}
-				existingEmails={existing.map((c) => c.email)}
+				openRounds={openRounds.map((round) => ({
+					id: round.id,
+					name: round.name,
+					versionTitle: `${round.assessmentVersion.assessment.title} · v${round.assessmentVersion.versionNumber}`,
+				}))}
+				roundExistingEmails={roundExistingEmails}
 				invitationPreviewHtml={invitationHtml(
 					"Jane Candidate",
 					"#personal-one-time-link",

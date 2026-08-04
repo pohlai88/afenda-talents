@@ -2,7 +2,7 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { CandidateRowActions } from "@/components/candidates/row-actions";
 import { relativeTime } from "@/components/overview/round-summary";
-import type { CandidateListItem } from "@/components/candidates/candidate-row";
+import type { CandidateListItem } from "@/components/candidates/types";
 
 /**
  * The mobile equivalent of a row (requirements §7.5, §17.1). A horizontally scrolling
@@ -52,7 +52,14 @@ export function CandidateCard({
         </div>
       </dl>
 
-      {isAdmin && <CandidateRowActions id={item.id} fullName={item.fullName} status={item.status} />}
+      {isAdmin && (
+        <CandidateRowActions
+          candidateId={item.id}
+          assignmentId={item.assignmentId}
+          fullName={item.fullName}
+          status={item.status}
+        />
+      )}
     </li>
   );
 }

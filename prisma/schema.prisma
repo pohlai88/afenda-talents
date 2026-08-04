@@ -1,5 +1,5 @@
 // Afenda Talents data model.
-// See docs/superpowers/specs/2026-08-04-afenda-talents-architecture-design.md
+// See docs/superpowers/specs/2026-08-05-configurable-assessments-design.md (D18).
 //
 // Prisma 7: connection URLs live in prisma.config.ts, not here. The CLI (migrate, db pull)
 // uses Neon's DIRECT endpoint; the running app uses the POOLED endpoint. See DECISIONS.md D1.
@@ -16,36 +16,109 @@ datasource db {
 // Hiring-side login accounts. Candidates are NOT users — their emailed token is their
 // credential. Roles: ADMIN (full control) or VIEWER (read-only). See DECISIONS.md D15.
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  passwordHash String
-  role         String   @default("VIEWER")
-  // Set when the password was issued by someone else (account creation, admin reset).
-  // The shell refuses to render until the holder replaces it with their own.
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  name               String
+  passwordHash       String
+  role               String   @default("VIEWER")
   mustChangePassword Boolean  @default(false)
   createdAt          DateTime @default(now())
+
+  publishedVersions AssessmentVersion[] @relation("PublishedBy")
 }
 
+/// Identity only after D18 cutover. Lifecycle fields remain during expand/backfill.
 model Candidate {
-  id          String     @id @default(cuid())
-  email       String     @unique
+  id          String                @id @default(cuid())
+  email       String                @unique
   fullName    String
-  status      String     @default("DRAFT")
-  // Who sent the invitation — makes per-manager scoping a WHERE clause later.
+  // Legacy invite lifecycle — copied onto CandidateAssignment during backfill; removed in contract.
+  status      String                @default("DRAFT")
   invitedById String?
-  tokenHash   String?    @unique
+  tokenHash   String?               @unique
   expiresAt   DateTime?
   sentAt      DateTime?
   openedAt    DateTime?
   consentedAt DateTime?
   startedAt   DateTime?
   submittedAt DateTime?
-  createdAt   DateTime   @default(now())
+  createdAt   DateTime              @default(now())
   responses   Response[]
-  result      Result?
+  results     Result[]
+  assignments CandidateAssignment[]
 }
 
+model Assessment {
+  id                 String              @id @default(cuid())
+  /// Stable product key for system templates, e.g. afenda-core-behavioural-profile
+  key                String?             @unique
+  title              String
+  /// SYSTEM | ORGANISATION | TEMPLATE
+  kind               String              @default("ORGANISATION")
+  isSystem           Boolean             @default(false)
+  /// DRAFT | PUBLISHED | ARCHIVED (template lifecycle — not round status)
+  status             String              @default("DRAFT")
+  draftDocument      Json?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  versions           AssessmentVersion[]
+}
+
+model AssessmentVersion {
+  id             String                @id @default(cuid())
+  assessmentId   String
+  versionNumber  Int
+  document       Json
+  publishedAt    DateTime              @default(now())
+  publishedById  String?
+  assessment     Assessment            @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  publishedBy    User?                 @relation("PublishedBy", fields: [publishedById], references: [id])
+  rounds         HiringRound[]
+  assignments    CandidateAssignment[]
+  results        Result[]
+
+  @@unique([assessmentId, versionNumber])
+}
+
+model HiringRound {
+  id                  String                @id @default(cuid())
+  name                String
+  /// DRAFT | OPEN | CLOSED | ARCHIVED
+  status              String                @default("DRAFT")
+  assessmentVersionId String
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  assessmentVersion   AssessmentVersion     @relation(fields: [assessmentVersionId], references: [id])
+  assignments         CandidateAssignment[]
+}
+
+/// One invite/completion unit. Token and status live here (D18).
+model CandidateAssignment {
+  id                  String            @id @default(cuid())
+  candidateId         String
+  hiringRoundId       String
+  /// Copied from round at creation; immutable thereafter.
+  assessmentVersionId String
+  status              String            @default("DRAFT")
+  invitedById         String?
+  tokenHash           String?           @unique
+  expiresAt           DateTime?
+  sentAt              DateTime?
+  openedAt            DateTime?
+  consentedAt         DateTime?
+  startedAt           DateTime?
+  submittedAt         DateTime?
+  createdAt           DateTime          @default(now())
+  candidate           Candidate         @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  hiringRound         HiringRound       @relation(fields: [hiringRoundId], references: [id])
+  assessmentVersion   AssessmentVersion @relation(fields: [assessmentVersionId], references: [id])
+  responses           Response[]        @relation("AssignmentResponses")
+  result              Result?           @relation("AssignmentResult")
+
+  @@unique([candidateId, hiringRoundId])
+}
+
+/// Legacy global catalog — retained until contract migration drops it (D18 expand).
 model Item {
   id            String     @id
   dimension     String
@@ -57,45 +130,49 @@ model Item {
 }
 
 model Response {
-  id          String    @id @default(cuid())
-  candidateId String
-  itemId      String
-  value       Int
-  msOnItem    Int       @default(0)
-  updatedAt   DateTime  @updatedAt
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  item        Item      @relation(fields: [itemId], references: [id])
+  id           String               @id @default(cuid())
+  candidateId  String
+  itemId       String
+  value        Int
+  msOnItem     Int                  @default(0)
+  updatedAt    DateTime             @updatedAt
+  /// Expand bridge — populated by backfill; required after contract.
+  assignmentId String?
+  /// Frozen item id from version document (same as itemId for Core v1).
+  questionId   String?
+  candidate    Candidate            @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  item         Item                 @relation(fields: [itemId], references: [id])
+  assignment   CandidateAssignment? @relation("AssignmentResponses", fields: [assignmentId], references: [id], onDelete: Cascade)
 
   @@unique([candidateId, itemId])
+  @@index([assignmentId])
 }
 
 model Result {
-  id          String @id @default(cuid())
-  candidateId String @unique
-
-  // Postgres has real JSON, so these are not stringified. See DECISIONS.md D2.
-  dimensionScores Json
-  validityFlags   Json
-
-  // Sum of per-item times, each clamped at 60s. Client-reported. See DECISIONS.md D5 and D6.
-  totalSeconds Int
-
-  // max(Response.updatedAt) - min(Response.updatedAt). Server-observed.
+  id                  String               @id @default(cuid())
+  /// Legacy person link — no longer unique once multi-assignment is live (D18).
+  candidateId         String
+  dimensionScores     Json
+  /// Stores responseContext outcomes after cutover (legacy column name).
+  validityFlags       Json
+  totalSeconds        Int
   serverWindowSeconds Int
+  computedAt          DateTime             @default(now())
+  assignmentId        String?              @unique
+  assessmentVersionId String?
+  candidate           Candidate            @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  assignment          CandidateAssignment? @relation("AssignmentResult", fields: [assignmentId], references: [id], onDelete: Cascade)
+  assessmentVersion   AssessmentVersion?   @relation(fields: [assessmentVersionId], references: [id])
 
-  computedAt DateTime  @default(now())
-  candidate  Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  @@index([candidateId])
 }
 
 model AuditEvent {
-  id     String @id @default(cuid())
-  actor  String
-  action String
-
-  // Identifiers only. Never a name, an email, or a raw token. See DECISIONS.md D9.
+  id        String   @id @default(cuid())
+  actor     String
+  action    String
   subjectId String?
   meta      Json?
-
   createdAt DateTime @default(now())
 }
 

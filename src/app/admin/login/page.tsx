@@ -51,7 +51,9 @@ export default function AdminLoginPage() {
                 AFENDA TALENTS
               </span>
             </div>
-            <CardTitle>Hiring team sign in</CardTitle>
+            <CardTitle>
+              <h1 className="text-base leading-none font-semibold">Hiring team sign in</h1>
+            </CardTitle>
             <CardDescription>Candidates don’t sign in — their emailed link is their access.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -66,6 +68,8 @@ export default function AdminLoginPage() {
                 autoComplete="username"
                 spellCheck={false}
                 required
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? "login-error" : undefined}
               />
             </div>
             <div className="space-y-2">
@@ -78,10 +82,12 @@ export default function AdminLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
                 required
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? "login-error" : undefined}
               />
             </div>
             {error && (
-              <p role="alert" className="text-sm text-destructive">
+              <p id="login-error" role="alert" className="text-sm text-destructive">
                 {error}
               </p>
             )}

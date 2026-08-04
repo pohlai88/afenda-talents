@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronsUpDown,
+  ClipboardList,
   Database,
+  FileStack,
   KeyRound,
   LayoutDashboard,
   LogOut,
@@ -51,6 +53,8 @@ export function AppSidebar({ user }: { user: ShellUser }) {
   const items = [
     { title: "Overview", href: "/admin", icon: LayoutDashboard, show: true },
     { title: "Candidates", href: "/admin/candidates", icon: UsersRound, show: true },
+    { title: "Hiring rounds", href: "/admin/rounds", icon: ClipboardList, show: true },
+    { title: "Assessments", href: "/admin/assessments", icon: FileStack, show: true },
     { title: "Invite", href: "/admin/invite", icon: UserPlus, show: isAdmin },
     { title: "Team", href: "/admin/users", icon: Users, show: isAdmin },
     { title: "Data & audit", href: "/admin/data", icon: Database, show: isAdmin },
@@ -94,7 +98,7 @@ export function AppSidebar({ user }: { user: ShellUser }) {
                           <Link href={item.href} aria-current={active ? "page" : undefined} />
                         }
                       >
-                        <item.icon />
+                        <item.icon aria-hidden="true" />
                         <span>{item.title}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -125,16 +129,16 @@ export function AppSidebar({ user }: { user: ShellUser }) {
                 <Badge variant={isAdmin ? "default" : "secondary"}>
                   {isAdmin ? "Admin" : "Viewer"}
                 </Badge>
-                <ChevronsUpDown className="ml-1 opacity-60" />
+                <ChevronsUpDown aria-hidden="true" className="ml-1 opacity-60" />
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-56">
                 <DropdownMenuItem render={<Link href="/admin/change-password" />}>
-                  <KeyRound />
+                  <KeyRound aria-hidden="true" />
                   Change password
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut}>
-                  <LogOut />
+                  <LogOut aria-hidden="true" />
                   Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>

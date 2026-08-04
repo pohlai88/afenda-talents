@@ -1,37 +1,46 @@
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
-import { currentCandidateId, resolveToken } from "@/lib/auth-candidate";
+import { currentAssignmentId, resolveAssignmentToken } from "@/lib/auth-candidate";
 import { AssessmentForm } from "@/components/assessment-form";
+import { loadVersionDocument } from "@/lib/version-document";
+import { orderedAnswerableItems } from "@/lib/instrument-document";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export default async function AssessmentPage({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params;
+export default async function AssessmentPage({
+	params,
+}: {
+	params: Promise<{ token: string }>;
+}) {
+	const { token } = await params;
 
-  // The path token authenticates this page render.
-  const candidate = await resolveToken(token);
-  if (!candidate) redirect(`/a/${token}/done`);
+	const assignment = await resolveAssignmentToken(token);
+	if (!assignment) redirect(`/a/${token}/done`);
 
-  // The cookie authenticates the API calls this page will make. They must agree —
-  // otherwise a stale cookie on a shared phone could answer for the wrong person.
-  // DECISIONS.md D8; build-skill invariant 8.
-  const cookieCandidateId = await currentCandidateId();
-  if (cookieCandidateId !== candidate.id) redirect(`/a/${token}/done`);
+	const cookieAssignmentId = await currentAssignmentId();
+	if (cookieAssignmentId !== assignment.id) redirect(`/a/${token}/done`);
 
-  if (candidate.status !== "STARTED") redirect(`/a/${token}`);
+	if (assignment.status !== "STARTED") redirect(`/a/${token}`);
 
-  const [items, responses] = await Promise.all([
-    db.item.findMany({ orderBy: { order: "asc" } }),
-    db.response.findMany({ where: { candidateId: candidate.id } }),
-  ]);
+	const doc = await loadVersionDocument(assignment.assessmentVersionId);
+	const items = orderedAnswerableItems(doc).filter((i) => i.type === "likert");
 
-  const saved = Object.fromEntries(responses.map((r) => [r.itemId, r.value]));
+	const responses = await db.response.findMany({
+		where: { assignmentId: assignment.id },
+	});
+	const saved = Object.fromEntries(
+		responses.map((r) => [r.questionId ?? r.itemId, r.value]),
+	);
 
-  return (
-    <AssessmentForm
-      token={token}
-      items={items.map((i) => ({ id: i.id, order: i.order, text: i.text }))}
-      saved={saved}
-    />
-  );
+	return (
+		<AssessmentForm
+			token={token}
+			items={items.map((i, order) => ({
+				id: i.id,
+				order: order + 1,
+				text: i.text,
+			}))}
+			saved={saved}
+		/>
+	);
 }

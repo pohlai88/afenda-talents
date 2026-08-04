@@ -21,12 +21,23 @@ import { audit } from "@/lib/audit";
 import { requireHiringUser } from "@/lib/auth-admin";
 import { buildCandidateTimeline } from "@/lib/candidate-timeline";
 import { db } from "@/lib/db";
-import type { Band, DimensionScore, ValidityFlag } from "@/lib/scoring";
+import {
+	normalizeContextFlags,
+	normalizeDimensions,
+	type UiContextFlag,
+	type UiDimension,
+} from "@/lib/result-display";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Candidate detail: progress for open statuses, full profile when SCORED.
+ *
+ * `id` in the URL is still the candidate (person) id — assignment-scoped URLs are a
+ * later delivery (D18). A person may hold more than one assignment across hiring
+ * rounds; this page shows the most recently created one, and its status, timing,
+ * responses, and result — never a mix of two assignments.
+ *
  * Framing rules (spec §13.8 / UI §8): one input into a hiring decision — no pass/fail,
  * no ranking, no overall number. Timing is self-reported (D6). Narratives deferred (D17).
  */
@@ -39,22 +50,26 @@ export default async function CandidateDetailPage({
 	const isAdmin = session.role === "ADMIN";
 	const { id } = await params;
 
-	const candidate = await db.candidate.findUnique({
-		where: { id },
-		include: { result: true, responses: { include: { item: true } } },
-	});
+	const candidate = await db.candidate.findUnique({ where: { id } });
 	if (!candidate) notFound();
 
+	const assignment = await db.candidateAssignment.findFirst({
+		where: { candidateId: id },
+		include: { result: true, responses: { include: { item: true } } },
+		orderBy: { createdAt: "desc" },
+	});
+	if (!assignment) notFound();
+
 	const [inviter, auditRows] = await Promise.all([
-		candidate.invitedById
+		assignment.invitedById
 			? db.user.findUnique({
-					where: { id: candidate.invitedById },
+					where: { id: assignment.invitedById },
 					select: { name: true },
 				})
 			: Promise.resolve(null),
 		db.auditEvent.findMany({
 			where: {
-				subjectId: id,
+				subjectId: assignment.id,
 				action: { in: ["invite.resent", "invite.revoked"] },
 			},
 			orderBy: { createdAt: "asc" },
@@ -62,24 +77,24 @@ export default async function CandidateDetailPage({
 		}),
 	]);
 
-	if (candidate.result) {
-		await audit(session.userId, "result.viewed", id);
+	if (assignment.result) {
+		await audit(session.userId, "result.viewed", assignment.id);
 	}
 
 	const timeline = buildCandidateTimeline(
 		{
-			sentAt: candidate.sentAt,
-			openedAt: candidate.openedAt,
-			consentedAt: candidate.consentedAt,
-			startedAt: candidate.startedAt,
-			submittedAt: candidate.submittedAt,
-			scoredAt: candidate.result?.computedAt ?? null,
+			sentAt: assignment.sentAt,
+			openedAt: assignment.openedAt,
+			consentedAt: assignment.consentedAt,
+			startedAt: assignment.startedAt,
+			submittedAt: assignment.submittedAt,
+			scoredAt: assignment.result?.computedAt ?? null,
 		},
 		auditRows,
 	);
 
-	const answeredCount = candidate.responses.length;
-	const scored = Boolean(candidate.result);
+	const answeredCount = assignment.responses.length;
+	const scored = Boolean(assignment.result);
 
 	return (
 		<div className="mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-6 p-6 print:max-w-none print:p-0">
@@ -91,7 +106,7 @@ export default async function CandidateDetailPage({
 					nativeButton={false}
 					render={<Link href="/admin/candidates" />}
 				>
-					← Candidates
+					← Back to candidates
 				</Button>
 			</div>
 
@@ -101,18 +116,18 @@ export default async function CandidateDetailPage({
 				description={candidate.email}
 				meta={
 					<>
-						<StatusBadge status={candidate.status} />
+						<StatusBadge status={assignment.status} />
 						<span className="text-muted-foreground">
 							Invited{" "}
 							<span className="tabular-nums">
-								{candidate.sentAt?.toLocaleDateString("en-GB") ?? "—"}
+								{assignment.sentAt?.toLocaleDateString("en-GB") ?? "—"}
 							</span>
 						</span>
-						{candidate.submittedAt && (
+						{assignment.submittedAt && (
 							<span className="text-muted-foreground">
 								Submitted{" "}
 								<span className="tabular-nums">
-									{candidate.submittedAt.toLocaleDateString("en-GB")}
+									{assignment.submittedAt.toLocaleDateString("en-GB")}
 								</span>
 							</span>
 						)}
@@ -128,9 +143,10 @@ export default async function CandidateDetailPage({
 						{scored && <PrintProfileButton />}
 						{isAdmin && (
 							<CandidateRowActions
-								id={candidate.id}
+								candidateId={candidate.id}
+								assignmentId={assignment.id}
 								fullName={candidate.fullName}
-								status={candidate.status}
+								status={assignment.status}
 								showPrimary={false}
 							/>
 						)}
@@ -138,7 +154,7 @@ export default async function CandidateDetailPage({
 				}
 			/>
 
-			{scored && candidate.result ? (
+			{scored && assignment.result ? (
 				<>
 					<p className="rounded-md bg-muted p-3 text-xs leading-relaxed text-muted-foreground print:bg-transparent print:p-0">
 						This profile is a self-report and is one input into a hiring
@@ -146,13 +162,11 @@ export default async function CandidateDetailPage({
 					</p>
 
 					<ScoredProfile
-						dimensions={
-							candidate.result.dimensionScores as unknown as DimensionScore[]
-						}
-						flags={candidate.result.validityFlags as unknown as ValidityFlag[]}
-						totalSeconds={candidate.result.totalSeconds}
-						serverWindowSeconds={candidate.result.serverWindowSeconds}
-						rows={candidate.responses
+						dimensions={normalizeDimensions(assignment.result.dimensionScores)}
+						flags={normalizeContextFlags(assignment.result.validityFlags)}
+						totalSeconds={assignment.result.totalSeconds}
+						serverWindowSeconds={assignment.result.serverWindowSeconds}
+						rows={assignment.responses
 							.map((r) => ({
 								order: r.item.order,
 								text: r.item.text,
@@ -164,7 +178,7 @@ export default async function CandidateDetailPage({
 				</>
 			) : (
 				<CandidateProgressPanel
-					status={candidate.status}
+					status={assignment.status}
 					answeredCount={answeredCount}
 				/>
 			)}
@@ -191,8 +205,8 @@ function ScoredProfile({
 	serverWindowSeconds,
 	rows,
 }: {
-	dimensions: DimensionScore[];
-	flags: ValidityFlag[];
+	dimensions: UiDimension[];
+	flags: UiContextFlag[];
 	totalSeconds: number;
 	serverWindowSeconds: number;
 	rows: { order: number; text: string; value: number; dimension: string }[];
@@ -213,7 +227,7 @@ function ScoredProfile({
 							key={d.code}
 							code={d.code}
 							scaled={d.scaled}
-							band={d.band as Band}
+							band={d.band}
 						/>
 					))}
 				</CardContent>

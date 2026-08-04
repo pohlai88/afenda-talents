@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-admin";
+import { requireAdmin, type HiringSession } from "@/lib/auth-admin";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { audit } from "@/lib/audit";
@@ -9,8 +9,12 @@ import { sendInvitation } from "@/lib/email";
 
 export const runtime = "nodejs";
 
+/**
+ * `id` is the CandidateAssignment id (D18) — the invite/completion unit, not the
+ * candidate. Token and status live on the assignment.
+ */
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  let session;
+  let session: HiringSession;
   try {
     session = await requireAdmin();
   } catch {
@@ -18,10 +22,13 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
-  const candidate = await db.candidate.findUnique({ where: { id } });
-  if (!candidate) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const assignment = await db.candidateAssignment.findUnique({
+    where: { id },
+    include: { candidate: true },
+  });
+  if (!assignment) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const from = candidate.status as Status;
+  const from = assignment.status as Status;
   // From SENT this is a fresh token with no status change (the table has no SENT -> SENT
   // edge, and calling applyStatus there would rightly throw). From EXPIRED or REVOKED it
   // is the table's resend edge. Anything else cannot be resent.
@@ -33,14 +40,19 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   const expiresAt = expiryFromNow(env.INVITE_TTL_DAYS);
 
   // Storing the new hash invalidates the previous link immediately.
-  await db.candidate.update({
+  await db.candidateAssignment.update({
     where: { id },
     data: { tokenHash: hashToken(token), expiresAt, sentAt: new Date(), openedAt: null },
   });
   if (from !== "SENT") await applyStatus(id, "SENT");
 
-  await sendInvitation(candidate.email, candidate.fullName, inviteUrl(env.APP_URL, token), expiresAt);
-  await audit(session.userId, "invite.resent", id);
+  await sendInvitation(
+    assignment.candidate.email,
+    assignment.candidate.fullName,
+    inviteUrl(env.APP_URL, token),
+    expiresAt,
+  );
+  await audit(session.userId, "invite.resent", assignment.id);
 
   return NextResponse.json({ ok: true });
 }
