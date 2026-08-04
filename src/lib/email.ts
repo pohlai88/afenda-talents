@@ -41,16 +41,11 @@ async function send(message: Message): Promise<void> {
 const formatDate = (date: Date) =>
   date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
-export async function sendInvitation(
-  to: string,
-  fullName: string,
-  url: string,
-  expiresAt: Date,
-): Promise<void> {
-  await send({
-    to,
-    subject: "Your Afenda Talents self-assessment",
-    html: shell(`
+// The HTML builders are exported so the admin preview renders the exact markup that is
+// sent — one source of truth, no copy drift. They never see a real token: the sender
+// passes the invitation URL in, the preview passes a placeholder.
+export function invitationHtml(fullName: string, url: string, expiresAt: Date): string {
+  return shell(`
       <p>Hello ${fullName},</p>
       <p>As part of our hiring process, we would like you to complete a short self-assessment.
          It covers how you work — reliability, communication, problem solving, adaptability and
@@ -60,7 +55,28 @@ export async function sendInvitation(
       <p><a href="${url}">Start the assessment</a></p>
       <p>This link is personal to you and expires on ${formatDate(expiresAt)}.</p>
       <p>If you have received this message before, use the link above — it is the current one.</p>
-    `),
+    `);
+}
+
+export function receiptHtml(fullName: string): string {
+  return shell(`
+      <p>Hello ${fullName},</p>
+      <p>Thank you — your self-assessment has been received. No further action is needed from you.</p>
+      <p>Your responses form one input into our hiring decision and will be reviewed alongside the
+         rest of your application.</p>
+    `);
+}
+
+export async function sendInvitation(
+  to: string,
+  fullName: string,
+  url: string,
+  expiresAt: Date,
+): Promise<void> {
+  await send({
+    to,
+    subject: "Your Afenda Talents self-assessment",
+    html: invitationHtml(fullName, url, expiresAt),
   });
 }
 
@@ -68,11 +84,6 @@ export async function sendReceipt(to: string, fullName: string): Promise<void> {
   await send({
     to,
     subject: "We have received your Afenda Talents self-assessment",
-    html: shell(`
-      <p>Hello ${fullName},</p>
-      <p>Thank you — your self-assessment has been received. No further action is needed from you.</p>
-      <p>Your responses form one input into our hiring decision and will be reviewed alongside the
-         rest of your application.</p>
-    `),
+    html: receiptHtml(fullName),
   });
 }

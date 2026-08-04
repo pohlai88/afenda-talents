@@ -191,3 +191,22 @@ candidate scoping yet, but `Candidate.invitedById` records the inviter so scopin
 WHERE clause, not a migration. The env `ADMIN_EMAIL`/`ADMIN_PASSWORD` now bootstrap the first
 ADMIN account at seed time instead of being the login credential themselves. Audit `actor`
 holds the user id — never an email (invariant 6).
+
+## D16 — Forced first-sign-in password change, email preview, confirm dialogs
+
+Three UX gaps surfaced by review, all inside D15's boundaries (hiring users only — candidates
+still have no accounts, invariant 7 untouched):
+
+- **`User.mustChangePassword`** is set whenever a password was issued by someone else
+  (account creation, admin reset). The admin shell layout redirects to
+  `/admin/change-password` (outside the `(shell)` route group, like login) until the holder
+  replaces it via `POST /api/admin/password` — current password proven, new one ≥ 12 chars,
+  same IP rate limit as login, audited as `user.password_changed` (id only). A voluntary
+  change lives behind the same page from the sidebar footer. This is not the spec's excluded
+  "candidate password reset"; it hardens D15's temp-password hand-over.
+- **Email preview**: `lib/email.ts` exports its HTML builders; `/admin/invite` renders both
+  templates with sample data in a dialog. The preview and the sender share one source of
+  truth, and no token — real or fake — is minted for it.
+- **Confirm dialogs** on Revoke invitation, Reset password, and Remove account. The purge
+  keeps its stronger type-the-phrase gate. Two shell regressions fixed in passing: nested
+  `<main>` landmarks, and the sidebar printing on candidate profiles (`print:hidden`).

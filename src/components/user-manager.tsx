@@ -2,6 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +64,7 @@ export function UserManager({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [secret, setSecret] = useState<{ email: string; password: string } | null>(null);
+  const [confirm, setConfirm] = useState<{ kind: "reset" | "remove"; user: UserRow } | null>(null);
 
   async function createUser(event: React.FormEvent) {
     event.preventDefault();
@@ -136,6 +147,41 @@ export function UserManager({
         </DialogContent>
       </Dialog>
 
+      {/* One confirm dialog for both destructive account actions. Both invalidate
+          someone's access, so neither fires on a single click. */}
+      <AlertDialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirm?.kind === "reset" ? "Reset this password?" : "Remove this account?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirm?.kind === "reset"
+                ? `${confirm.user.name}'s current password stops working. A new temporary password is shown once, and they must set their own at next sign-in.`
+                : `${confirm?.user.name} loses access immediately. Their past actions stay in the audit log.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant={confirm?.kind === "remove" ? "destructive" : "default"}
+              disabled={busy}
+              onClick={async () => {
+                if (!confirm) return;
+                if (confirm.kind === "reset") {
+                  await patch(confirm.user.id, { resetPassword: true }, confirm.user.email);
+                } else {
+                  await remove(confirm.user.id);
+                }
+                setConfirm(null);
+              }}
+            >
+              {confirm?.kind === "reset" ? "Reset password" : "Remove account"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Card>
         <CardHeader>
           <CardTitle>Accounts</CardTitle>
@@ -186,7 +232,7 @@ export function UserManager({
                         size="sm"
                         variant="outline"
                         disabled={busy}
-                        onClick={() => patch(user.id, { resetPassword: true }, user.email)}
+                        onClick={() => setConfirm({ kind: "reset", user })}
                       >
                         Reset password
                       </Button>
@@ -195,7 +241,7 @@ export function UserManager({
                           size="sm"
                           variant="destructive"
                           disabled={busy}
-                          onClick={() => remove(user.id)}
+                          onClick={() => setConfirm({ kind: "remove", user })}
                         >
                           Remove
                         </Button>

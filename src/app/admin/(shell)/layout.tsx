@@ -23,9 +23,12 @@ export default async function AdminShellLayout({ children }: { children: React.R
 
   const user = await db.user.findUnique({
     where: { id: session.userId },
-    select: { name: true, email: true, role: true },
+    select: { name: true, email: true, role: true, mustChangePassword: true },
   });
   if (!user) redirect("/admin/login");
+
+  // An admin-issued password authenticates exactly one page: the one that replaces it.
+  if (user.mustChangePassword) redirect("/admin/change-password");
 
   return (
     <SidebarProvider>

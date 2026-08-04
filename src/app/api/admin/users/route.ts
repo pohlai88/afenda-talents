@@ -51,6 +51,8 @@ export async function POST(request: Request) {
       name: parsed.data.name.trim(),
       role: parsed.data.role,
       passwordHash: hashPassword(temporaryPassword),
+      // A password issued by someone else must be replaced on first sign-in.
+      mustChangePassword: true,
     },
     select: { id: true, email: true, name: true, role: true },
   });

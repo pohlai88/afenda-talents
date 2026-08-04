@@ -55,7 +55,7 @@ export default async function CandidateResultPage({
   const serverMinutes = Math.round(candidate.result.serverWindowSeconds / 60);
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6 print:p-0">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6 print:p-0">
       <header>
         <h1 className="text-2xl font-semibold">{candidate.fullName}</h1>
         <p className="text-sm text-muted-foreground">
@@ -111,6 +111,6 @@ export default async function CandidateResultPage({
           <ItemResponsesTable rows={rows} />
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

@@ -10,6 +10,7 @@ import type { Prisma } from "@/generated/prisma/client";
  */
 export type AuditAction =
   | "admin.login"
+  | "user.password_changed"
   | "invite.created"
   | "invite.resent"
   | "invite.revoked"

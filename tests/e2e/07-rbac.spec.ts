@@ -31,6 +31,15 @@ test("an admin creates a viewer; the viewer can read but not act", async ({ page
   await viewer.getByLabel("Email", { exact: true }).fill(`viewer+${stamp}@example.com`);
   await viewer.getByLabel("Password").fill(tempPassword);
   await viewer.getByRole("button", { name: "Sign in" }).click();
+
+  // An admin-issued password authenticates exactly one page: the forced change.
+  // Login pushes /admin; the shell layout bounces to the change page.
+  await expect(viewer).toHaveURL(/\/admin\/change-password$/, { timeout: 10_000 });
+  const ownPassword = `viewer-own-${stamp}`;
+  await viewer.getByLabel("Temporary password").fill(tempPassword);
+  await viewer.getByLabel("New password", { exact: true }).fill(ownPassword);
+  await viewer.getByLabel("Repeat new password").fill(ownPassword);
+  await viewer.getByRole("button", { name: "Save new password" }).click();
   await expect(viewer).toHaveURL(/\/admin$/);
 
   // Reads work: dashboard shows the candidate…

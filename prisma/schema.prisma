@@ -21,7 +21,10 @@ model User {
   name         String
   passwordHash String
   role         String   @default("VIEWER")
-  createdAt    DateTime @default(now())
+  // Set when the password was issued by someone else (account creation, admin reset).
+  // The shell refuses to render until the holder replaces it with their own.
+  mustChangePassword Boolean  @default(false)
+  createdAt          DateTime @default(now())
 }
 
 model Candidate {

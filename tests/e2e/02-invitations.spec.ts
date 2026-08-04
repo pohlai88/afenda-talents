@@ -46,6 +46,8 @@ test("revoking a candidate nulls the token and shows REVOKED", async ({ page }) 
   await page.goto("/admin");
   const row = page.getByRole("row", { name: new RegExp(`bilal\\+${stamp}`) });
   await row.getByRole("button", { name: "Revoke" }).click();
+  // Revoking is destructive, so it sits behind a confirmation dialog.
+  await page.getByRole("alertdialog").getByRole("button", { name: "Revoke invitation" }).click();
   await expect(row).toContainText("REVOKED");
   // The revoked link's 404 behaviour is asserted end-to-end in the Phase 5 specs,
   // once /a/[token] exists to serve anything at all.

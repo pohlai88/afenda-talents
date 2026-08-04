@@ -19,13 +19,13 @@ export default async function UsersPage() {
   });
 
   return (
-    <main className="mx-auto w-full max-w-3xl p-6">
+    <div className="mx-auto w-full max-w-3xl p-6">
       <h1 className="text-2xl font-semibold">Hiring team</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Admins can invite, revoke, export and manage this list. Viewers can open the dashboard
         and candidate profiles, and change nothing.
       </p>
       <UserManager users={users} currentUserId={session.userId} />
-    </main>
+    </div>
   );
 }

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { requireHiringUser } from "@/lib/auth-admin";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -38,7 +39,7 @@ export default async function AdminDashboardPage() {
   );
 
   return (
-    <main className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-6">
       <div>
         <h1 className="text-2xl font-semibold">Candidates</h1>
         <p className="text-sm text-muted-foreground">
@@ -69,6 +70,20 @@ export default async function AdminDashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {candidates.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-12 text-center">
+              <p className="text-sm font-medium">No candidates invited yet</p>
+              <p className="max-w-sm text-sm text-muted-foreground">
+                Invite candidates by email. Each receives a personal one-time link; once they
+                consent, answer the 34 statements and submit, their profile appears here.
+              </p>
+              {isAdmin && (
+                <Button className="mt-2" render={<Link href="/admin/invite" />}>
+                  Invite candidates
+                </Button>
+              )}
+            </div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -106,27 +121,13 @@ export default async function AdminDashboardPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {candidates.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                    No candidates invited yet.
-                    {isAdmin && (
-                      <>
-                        {" "}
-                        <Link className="underline underline-offset-4" href="/admin/invite">
-                          Invite the first one.
-                        </Link>
-                      </>
-                    )}
-                  </TableCell>
-                </TableRow>
-              )}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
 
       {isAdmin && <DangerZone retentionDays={env.RETENTION_DAYS} />}
-    </main>
+    </div>
   );
 }

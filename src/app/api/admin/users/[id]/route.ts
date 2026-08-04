@@ -37,6 +37,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (parsed.data.resetPassword) {
     temporaryPassword = generatePassword();
     data.passwordHash = hashPassword(temporaryPassword);
+    // Same rule as creation: an admin-issued password must be replaced on first sign-in.
+    data.mustChangePassword = true;
   }
 
   await db.user.update({ where: { id }, data });
