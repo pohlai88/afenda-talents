@@ -109,9 +109,16 @@ export default function HomePage() {
             <span className="font-mono text-[10px] tracking-[0.28em]">AFENDA</span>
             <span className="font-mono text-[10px] tracking-[0.28em] text-[#6E6E78]">TALENTS</span>
           </span>
-          <span className="font-mono text-[8.5px] tracking-[0.24em] text-[#4E4E58]">
-            GUARDED CANDIDATE ASSESSMENT
-          </span>
+          <a
+            href="/admin/login"
+            className="group flex items-center gap-[9px] border border-[#C8A96A]/40 px-4 py-[9px] font-mono text-[9.5px] tracking-[0.22em] text-[#C8A96A] transition-colors hover:border-[#C8A96A] hover:bg-[#C8A96A] hover:text-[#07070A] focus-visible:border-[#C8A96A] focus-visible:bg-[#C8A96A] focus-visible:text-[#07070A] focus-visible:outline-none"
+          >
+            <span
+              aria-hidden="true"
+              className="h-[5px] w-[5px] rotate-45 bg-[#C8A96A] transition-colors group-hover:bg-[#07070A] group-focus-visible:bg-[#07070A]"
+            />
+            HIRING TEAM SIGN IN
+          </a>
         </div>
 
         <div className="flex flex-1 flex-col justify-center py-16">
@@ -163,19 +170,9 @@ export default function HomePage() {
               Your link is in your invitation email.
             </span>
           </span>
-          <span className="flex items-center gap-3 font-mono text-[8.5px] tracking-[0.2em] text-[#43434C]">
-            <span>
-              HIRING TEAM ONLY <span className="text-[#7A6437]">·</span> DELETED AFTER THE ROUND
-            </span>
-            <span aria-hidden="true" className="text-[#7A6437]">
-              ·
-            </span>
-            <a
-              href="/admin/login"
-              className="text-[#7A6437] underline-offset-4 transition-colors hover:text-[#C8A96A] hover:underline focus-visible:text-[#C8A96A] focus-visible:underline focus-visible:outline-none"
-            >
-              HIRING TEAM SIGN IN
-            </a>
+          <span className="font-mono text-[8.5px] tracking-[0.2em] text-[#43434C]">
+            GUARDED CANDIDATE ASSESSMENT <span className="text-[#7A6437]">·</span> DELETED AFTER
+            THE ROUND
           </span>
         </div>
       </div>
