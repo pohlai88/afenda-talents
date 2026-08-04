@@ -128,3 +128,20 @@
     @apply font-sans;
   }
 }
+@media print {
+  nav,
+  .print\:hidden {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    font-size: 11pt;
+  }
+  main {
+    max-width: none;
+    padding: 0;
+  }
+  @page {
+    margin: 14mm;
+  }
+}
