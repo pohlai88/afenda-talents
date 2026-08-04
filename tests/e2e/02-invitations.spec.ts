@@ -1,13 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import fs from "node:fs/promises";
-import { clearLoginAttempts } from "./helpers";
-
 const PASSWORD = process.env.ADMIN_PASSWORD!;
-
-// The auth spec deliberately leaves the shared client IP rate-limited; clear it.
-test.beforeAll(async () => {
-  await clearLoginAttempts();
-});
 
 async function signIn(page: Page) {
   await page.goto("/admin/login");

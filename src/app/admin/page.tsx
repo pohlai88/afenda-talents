@@ -46,7 +46,7 @@ export default async function AdminDashboardPage() {
           </thead>
           <tbody>
             {candidates.map((c) => (
-              <tr key={c.id} className="border-b">
+              <tr key={c.id} data-candidate-id={c.id} className="border-b">
                 <td className="py-2 pr-3">
                   {c.status === "SCORED" ? (
                     <Link className="underline" href={`/admin/candidate/${c.id}`}>

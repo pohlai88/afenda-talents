@@ -3,8 +3,9 @@ import { clearLoginAttempts } from "./helpers";
 
 const PASSWORD = process.env.ADMIN_PASSWORD!;
 
-// Rate-limit state persists in the database between runs; start each run clean.
-test.beforeAll(async () => {
+// This file's 429 test deliberately exhausts the shared client IP. The polluter cleans
+// up so later spec files can sign in — global setup only guarantees a clean RUN start.
+test.afterAll(async () => {
   await clearLoginAttempts();
 });
 
