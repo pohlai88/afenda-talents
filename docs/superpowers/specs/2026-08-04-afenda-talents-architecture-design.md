@@ -118,21 +118,27 @@ future version has the data without a migration.
 
 ## 4. Authentication and authorisation
 
-### 4.1 Middleware is a coarse gate, not the decision
+### 4.1 The request gate is coarse by choice, not by constraint
 
-Next 15 middleware runs on the edge runtime and cannot reach Prisma over a TCP connection.
-Middleware therefore verifies **only the JWT signature and expiry**. It cannot know whether a
-candidate has since been revoked, has already submitted, or has passed `expiresAt`.
+Next 16 replaces `middleware.ts` with `proxy.ts` and an exported `proxy()` function. Unlike
+Next 15 middleware, **`proxy` runs on the Node.js runtime** — the runtime is fixed and cannot
+be set to edge — so it *could* reach Prisma and make a full authorisation decision.
+
+It does not. `proxy()` verifies **only the JWT signature and expiry**. It does not know whether
+a candidate has since been revoked, has already submitted, or has passed `expiresAt`.
+
+Two reasons, and neither is a platform limitation:
+
+1. **The handler must check anyway.** A gate that ran the full check would duplicate a query
+   the handler still has to perform, on every matched request, for no added safety.
+2. **An authoritative-looking gate invites handlers to trust it.** The failure mode this
+   design most needs to avoid is a handler that skips its own status check because "the gate
+   already handled it." A gate that is visibly partial cannot be leaned on.
 
 **Consequence, and it is not optional:** every `/api/candidate/*` handler and every
 `/a/[token]/*` page re-reads the candidate row and re-checks status and expiry before acting.
 A valid unexpired cookie proves only that this browser passed the token check at some point in
 the last four hours. It does not prove the candidate is still permitted to proceed.
-
-Prisma *can* run on the edge via `@prisma/adapter-neon`. We are choosing not to use it. The
-handler-level re-check is required whatever the middleware can do, so moving Prisma to the edge
-would add a driver adapter and a second connection path while removing no work. This is a
-deliberate choice, recorded in `DECISIONS.md` so that it is not later "fixed."
 
 Route handlers in the App Router already default to the Node runtime. The explicit
 `export const runtime = 'nodejs'` in Prisma-touching handlers is documentation of intent, not
@@ -242,7 +248,7 @@ where noted.
 |---|---|---|
 | 1 | Scaffold, Prisma schema, `data/instrument.json`, idempotent seed | Neon project + `test` branch; `DATABASE_URL`/`DIRECT_URL` split; Playwright config scaffolded but empty |
 | 2 | `lib/scoring.ts` + tests | Unit tests widen to `status.ts` and `tokens.ts` |
-| 3 | Admin auth, login page, middleware, rate limiting | `LoginAttempt` table; failures-only limiter; 24-char `ADMIN_PASSWORD` floor |
+| 3 | Admin auth, login page, proxy gate, rate limiting | `LoginAttempt` table; failures-only limiter; 24-char `ADMIN_PASSWORD` floor |
 | 4 | Tokens, status, email console transport, invite/resend/revoke, dashboard | unchanged |
 | 5 | Candidate flow: token validation, consent, 34-item form, autosave, submit | Adds the token/cookie agreement check on every `/a/[token]/*` render |
 | 6 | Results view: five bars, bands, flag chips, item table, print stylesheet | Flag copy names self-reported timing; shows `serverWindowSeconds` |

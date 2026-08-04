@@ -45,7 +45,7 @@ Every task's requirements implicitly include this section. Values are copied ver
 | `src/lib/auth-candidate.ts` | Candidate JWT mint/verify, token→candidate resolution. Candidate only. |
 | `src/lib/audit.ts` | `AuditEvent` writer, with a PII guard |
 | `src/lib/email.ts` | Three templates + Resend/console transports |
-| `middleware.ts` | Coarse signature gate for `/admin/*`, `/api/admin/*`, `/api/candidate/*` |
+| `proxy.ts` | Coarse signature gate for `/admin/*`, `/api/admin/*`, `/api/candidate/*` |
 | `src/app/api/**` | Route handlers, one per spec §7 row |
 | `src/app/admin/**` | Admin pages |
 | `src/app/a/[token]/**` | Candidate pages |
@@ -1290,7 +1290,7 @@ git commit -m "feat: add audit log with a PII and token guard"
 ## Task 8: Admin authentication and rate limiting
 
 **Files:**
-- Create: `src/lib/auth-admin.ts`, `src/lib/rate-limit.ts`, `src/app/api/admin/login/route.ts`, `src/app/admin/login/page.tsx`, `middleware.ts`
+- Create: `src/lib/auth-admin.ts`, `src/lib/rate-limit.ts`, `src/app/api/admin/login/route.ts`, `src/app/admin/login/page.tsx`, `proxy.ts`
 - Test: `tests/unit/auth-admin.test.ts`
 
 **Interfaces:**
@@ -1479,11 +1479,14 @@ export async function POST(request: Request) {
 }
 ```
 
-- [ ] **Step 6: Write `middleware.ts` at the repository root**
+- [ ] **Step 6: Write `proxy.ts` at the repository root**
 
-Middleware runs on the edge and cannot reach Prisma. It reads `process.env.APP_SECRET`
-directly rather than importing `@/lib/env`, so the Node-only env module is not pulled into the
-edge bundle.
+Next 16 renames the `middleware` file convention to `proxy` and the exported function to
+`proxy()`. It runs on the Node.js runtime, which is fixed and cannot be configured.
+
+It could therefore query Prisma — and deliberately does not. It checks the JWT signature and
+expiry, nothing more. Per D7, a gate that looked authoritative would invite handlers to skip
+their own status checks, and the handler must check regardless.
 
 ```ts
 import { NextResponse, type NextRequest } from "next/server";
@@ -1504,7 +1507,7 @@ async function claims(token: string | undefined) {
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/api/candidate")) {
@@ -1533,7 +1536,7 @@ export const config = {
 };
 ```
 
-Then exclude the login routes, which must stay reachable. Add at the top of `middleware`:
+Then exclude the login routes, which must stay reachable. Add at the top of `proxy`:
 
 ```ts
   if (pathname === "/admin/login" || pathname === "/api/admin/login") {
@@ -1541,8 +1544,8 @@ Then exclude the login routes, which must stay reachable. Add at the top of `mid
   }
 ```
 
-This is a coarse gate. It proves the cookie's signature has not expired; it cannot know
-whether a candidate has been revoked or has already submitted. Every handler re-checks.
+This is a coarse gate by choice. It proves the cookie's signature has not expired; it does not
+check whether a candidate has been revoked or has already submitted. Every handler re-checks.
 
 - [ ] **Step 7: Write `src/app/admin/login/page.tsx`**
 
@@ -1673,8 +1676,8 @@ Expected: 4 passed. This is the spec §11 Phase 3 "Done when" gate. Paste the ou
 - [ ] **Step 12: Commit**
 
 ```bash
-git add src/lib/auth-admin.ts src/lib/rate-limit.ts src/app/api/admin/login src/app/admin middleware.ts tests
-git commit -m "feat: add admin auth, database-backed rate limiting, and middleware gate"
+git add src/lib/auth-admin.ts src/lib/rate-limit.ts src/app/api/admin/login src/app/admin proxy.ts tests
+git commit -m "feat: add admin auth, database-backed rate limiting, and the proxy gate"
 ```
 
 ---
@@ -2256,7 +2259,7 @@ export async function currentCandidateId(): Promise<string | null> {
 
 /**
  * For /api/candidate/* handlers. Middleware has already checked the signature;
- * this re-reads the row because middleware cannot see a revocation or a submission.
+ * this re-reads the row because the proxy gate deliberately does not check status.
  */
 export async function requireCandidate(): Promise<Candidate> {
   const id = await currentCandidateId();
@@ -3572,7 +3575,7 @@ git tag -a v1.0.0 -m "Afenda Talents MVP"
 | §3 data model, status values, transitions | Tasks 2, 5 |
 | §4 the instrument, fixed order | Task 3 |
 | §5 scoring, bands, four flags | Task 4 |
-| §6 admin auth, candidate tokens, middleware | Tasks 8, 11 |
+| §6 admin auth, candidate tokens, proxy gate | Tasks 8, 11 |
 | §7 every route | Tasks 8, 10, 11, 12, 13, 14 |
 | §8 email templates, console transport | Task 9; reminder dropped per D12 (Task 10 step 7) |
 | §9 environment, fail fast | Task 6 |

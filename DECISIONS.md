@@ -71,18 +71,22 @@ not imply the server observed it. The `rushed` chip reads "self-reported time on
 server-truthed figure shown beside it. Nothing reads it in the MVP; it exists so both numbers
 are visible and so a later version has the history without a migration.
 
-## D7 — Prisma stays off the edge (deliberate, not a limitation)
+## D7 — The request gate stays coarse (deliberate, not a limitation)
 
-Middleware verifies the JWT signature and expiry only, and every handler re-reads the candidate
-row to check status and expiry.
+`proxy()` verifies the JWT signature and expiry only. Every handler re-reads the candidate row
+to check status and expiry.
 
-`@prisma/adapter-neon` **would** let Prisma run in edge middleware. We are not using it. The
-handler-level re-check is required whatever middleware can do — a cookie proves only that this
-browser passed the token check within the last four hours, not that the candidate is still
-permitted to proceed. Moving Prisma to the edge would add a driver adapter and a second
-connection path while removing no work.
+**This is not because the gate cannot reach the database.** On Next 16, `proxy` runs on the
+Node.js runtime, so it could query Prisma directly. Two reasons it does not:
 
-This is a choice, not a platform constraint. Do not "fix" it.
+1. The handler must re-check regardless — a cookie proves only that this browser passed the
+   token check within the last four hours, not that the candidate is still permitted to
+   proceed. A full check in the gate would duplicate that query on every matched request.
+2. A gate that looks authoritative invites handlers to skip their own checks. A visibly
+   partial gate cannot be leaned on. That is the point.
+
+This is a choice, not a platform constraint. Do not "fix" it by moving authorisation into
+`proxy.ts`.
 
 Relatedly: App Router route handlers already default to the Node runtime. The explicit
 `export const runtime = 'nodejs'` in Prisma-touching handlers is documentation of intent.
@@ -129,3 +133,32 @@ Neon's free tier autosuspends after inactivity, so the first candidate to open a
 quiet period waits on a cold start — on a phone, on mobile data, looking at a blank screen.
 Phase 8 measures it. If it is bad, the choice is a paid Neon tier or knowing acceptance. It
 should not be discovered by a candidate.
+
+## D12 — No separate reminder email
+
+**Spec §8** lists a manually-sent reminder as a third template. Because only `sha256(token)` is
+stored, the server cannot reconstruct a candidate's original link, so any reminder containing a
+usable link *is* a resend with a new token.
+
+Rather than ship two buttons that do the same thing while one pretends not to, "Resend" is the
+single action, and its email says the link may have changed. The reminder template is not built.
+
+## D13 — Next.js 16.3, not the spec's Next.js 15
+
+**Spec §2** pins Next.js 15. `create-next-app@latest` installs 16.3, which is current stable,
+is what Vercel optimises for, and has the longer security-support horizon. Staying on it was a
+deliberate choice made when the scaffold surfaced the mismatch.
+
+Consequences already absorbed:
+
+- `middleware.ts` becomes `proxy.ts`, exporting `proxy()` instead of `middleware()`. The
+  runtime is Node and is not configurable — see D7, whose reasoning changed as a result.
+- `next lint` is removed; the `lint` script calls `eslint` directly, and `next build` no longer
+  lints. The `eslint` key in `next.config.ts` is no longer supported.
+- Turbopack is the default bundler.
+- Async request APIs (`params`, `searchParams`, `cookies()`, `headers()`) are Promise-based.
+  The plan was already written this way, so no change was needed.
+
+`AGENTS.md` carries a managed block, rewritten by `next dev`, pointing at version-matched docs
+in `node_modules/next/dist/docs/`. Read those before writing Next-specific code rather than
+relying on recall — this version diverges from training data in ways that are easy to miss.

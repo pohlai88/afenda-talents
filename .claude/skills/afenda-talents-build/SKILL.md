@@ -43,7 +43,7 @@ No exceptions:
 | 5 | `lib/scoring.ts` imports nothing from Prisma and never writes | A `Result` must always be recomputable from `Response` rows alone |
 | 6 | `AuditEvent` stores no name and no email | Audit rows survive the purge; PII in them makes the retention promise false |
 | 7 | `auth-admin.ts` and `auth-candidate.ts` share no code and no importer | A shared helper is how an admin cookie ends up authorising a candidate route |
-| 8 | Middleware is a coarse gate; every handler re-reads the candidate row | Edge middleware cannot see a revocation or a submission |
+| 8 | `proxy.ts` is a coarse gate; every handler re-reads the candidate row | A gate that looked authoritative would invite handlers to skip their own checks |
 | 9 | No pass/fail, no ranking, no single overall number | A self-report presented as a score gets used as one |
 
 Run `bash .claude/skills/afenda-talents-build/check-invariants.sh` before any commit. It
@@ -64,7 +64,7 @@ If a feature seems necessary anyway, write it in `DECISIONS.md` and move on. Do 
 | "I'll just log the token to debug this" | That log is retained. Log the `tokenHash` or the candidate id. |
 | "Returning the token in the response makes the test easier" | The test reads `server.log`. That is why the console transport exists. |
 | "One direct `status:` update, the transition is obviously legal" | Then `applyStatus` will allow it. Call it. |
-| "Middleware already checked the cookie" | Middleware checked a signature. It cannot see that this candidate was revoked ten minutes ago. |
+| "The proxy gate already checked the cookie" | It checked a signature, by design. It does not know this candidate was revoked ten minutes ago. |
 | "Scoring needs the items, so it needs Prisma" | Items are passed in as an argument. That is the whole point. |
 | "The email in the audit row helps trace what happened" | `subjectId` traces it. The email survives purge and breaks the retention promise. |
 | "An average across the five dimensions is genuinely useful" | It is the single number the spec forbids, and it is what turns a self-report into a rank. |

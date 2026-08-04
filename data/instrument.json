@@ -1,0 +1,43 @@
+{
+  "items": [
+    { "id": "WER-1", "dimension": "WER", "order": 1, "text": "I complete tasks by the deadline I commit to.", "reverseScored": false, "isValidity": false },
+    { "id": "WER-2", "dimension": "WER", "order": 2, "text": "I keep track of my responsibilities without being reminded.", "reverseScored": false, "isValidity": false },
+    { "id": "WER-3", "dimension": "WER", "order": 3, "text": "I often leave tasks unfinished when they become tedious.", "reverseScored": true, "isValidity": false },
+    { "id": "WER-4", "dimension": "WER", "order": 4, "text": "I arrive prepared for meetings and work sessions.", "reverseScored": false, "isValidity": false },
+    { "id": "WER-5", "dimension": "WER", "order": 5, "text": "I follow through on commitments even when no one is checking.", "reverseScored": false, "isValidity": false },
+    { "id": "WER-6", "dimension": "WER", "order": 6, "text": "I let small tasks pile up before dealing with them.", "reverseScored": true, "isValidity": false },
+
+    { "id": "COM-1", "dimension": "COM", "order": 7, "text": "I check that others have understood what I meant.", "reverseScored": false, "isValidity": false },
+    { "id": "COM-2", "dimension": "COM", "order": 8, "text": "I ask questions when instructions are unclear.", "reverseScored": false, "isValidity": false },
+    { "id": "COM-3", "dimension": "COM", "order": 9, "text": "I find it difficult to give feedback to colleagues.", "reverseScored": true, "isValidity": false },
+    { "id": "COM-4", "dimension": "COM", "order": 10, "text": "I adjust how I explain things depending on who I am talking to.", "reverseScored": false, "isValidity": false },
+    { "id": "COM-5", "dimension": "COM", "order": 11, "text": "I listen fully before forming a response.", "reverseScored": false, "isValidity": false },
+    { "id": "COM-6", "dimension": "COM", "order": 12, "text": "I avoid raising concerns in group settings.", "reverseScored": true, "isValidity": false },
+
+    { "id": "PSL-1", "dimension": "PSL", "order": 13, "text": "I break unfamiliar problems into smaller parts.", "reverseScored": false, "isValidity": false },
+    { "id": "PSL-2", "dimension": "PSL", "order": 14, "text": "I look for the underlying cause rather than the quick fix.", "reverseScored": false, "isValidity": false },
+    { "id": "PSL-3", "dimension": "PSL", "order": 15, "text": "I wait for someone else to suggest an approach.", "reverseScored": true, "isValidity": false },
+    { "id": "PSL-4", "dimension": "PSL", "order": 16, "text": "I seek out skills I do not yet have.", "reverseScored": false, "isValidity": false },
+    { "id": "PSL-5", "dimension": "PSL", "order": 17, "text": "I test my assumptions before committing to a solution.", "reverseScored": false, "isValidity": false },
+    { "id": "PSL-6", "dimension": "PSL", "order": 18, "text": "I find it hard to change my approach once I have started.", "reverseScored": true, "isValidity": false },
+
+    { "id": "ADR-1", "dimension": "ADR", "order": 19, "text": "I stay effective when priorities change at short notice.", "reverseScored": false, "isValidity": false },
+    { "id": "ADR-2", "dimension": "ADR", "order": 20, "text": "I recover quickly after setbacks at work.", "reverseScored": false, "isValidity": false },
+    { "id": "ADR-3", "dimension": "ADR", "order": 21, "text": "Unexpected changes leave me unsettled for a long time.", "reverseScored": true, "isValidity": false },
+    { "id": "ADR-4", "dimension": "ADR", "order": 22, "text": "I look for what I can control in difficult situations.", "reverseScored": false, "isValidity": false },
+    { "id": "ADR-5", "dimension": "ADR", "order": 23, "text": "I am comfortable working without complete information.", "reverseScored": false, "isValidity": false },
+    { "id": "ADR-6", "dimension": "ADR", "order": 24, "text": "I struggle to perform when under time pressure.", "reverseScored": true, "isValidity": false },
+
+    { "id": "INA-1", "dimension": "INA", "order": 25, "text": "I admit mistakes as soon as I notice them.", "reverseScored": false, "isValidity": false },
+    { "id": "INA-2", "dimension": "INA", "order": 26, "text": "I raise problems even when it is uncomfortable.", "reverseScored": false, "isValidity": false },
+    { "id": "INA-3", "dimension": "INA", "order": 27, "text": "I look for reasons outside myself when things go wrong.", "reverseScored": true, "isValidity": false },
+    { "id": "INA-4", "dimension": "INA", "order": 28, "text": "I keep confidential information confidential.", "reverseScored": false, "isValidity": false },
+    { "id": "INA-5", "dimension": "INA", "order": 29, "text": "I take responsibility for outcomes in my area of work.", "reverseScored": false, "isValidity": false },
+    { "id": "INA-6", "dimension": "INA", "order": 30, "text": "I bend rules when it makes the work easier.", "reverseScored": true, "isValidity": false },
+
+    { "id": "VAL-1", "dimension": "VAL", "order": 31, "text": "I have never been irritated by a colleague.", "reverseScored": false, "isValidity": true },
+    { "id": "VAL-2", "dimension": "VAL", "order": 32, "text": "I have never made a mistake I regretted at work.", "reverseScored": false, "isValidity": true },
+    { "id": "VAL-3", "dimension": "VAL", "order": 33, "text": "I meet the deadlines I agree to.", "reverseScored": false, "isValidity": true },
+    { "id": "VAL-4", "dimension": "VAL", "order": 34, "text": "I own up to my errors quickly.", "reverseScored": false, "isValidity": true }
+  ]
+}

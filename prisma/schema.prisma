@@ -1,0 +1,92 @@
+// Afenda Talents data model.
+// See docs/superpowers/specs/2026-08-04-afenda-talents-architecture-design.md
+//
+// Prisma 7: connection URLs live in prisma.config.ts, not here. The CLI (migrate, db pull)
+// uses Neon's DIRECT endpoint; the running app uses the POOLED endpoint. See DECISIONS.md D1.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Candidate {
+  id          String     @id @default(cuid())
+  email       String     @unique
+  fullName    String
+  status      String     @default("DRAFT")
+  tokenHash   String?    @unique
+  expiresAt   DateTime?
+  sentAt      DateTime?
+  openedAt    DateTime?
+  consentedAt DateTime?
+  startedAt   DateTime?
+  submittedAt DateTime?
+  createdAt   DateTime   @default(now())
+  responses   Response[]
+  result      Result?
+}
+
+model Item {
+  id            String     @id
+  dimension     String
+  order         Int
+  text          String
+  reverseScored Boolean    @default(false)
+  isValidity    Boolean    @default(false)
+  responses     Response[]
+}
+
+model Response {
+  id          String    @id @default(cuid())
+  candidateId String
+  itemId      String
+  value       Int
+  msOnItem    Int       @default(0)
+  updatedAt   DateTime  @updatedAt
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  item        Item      @relation(fields: [itemId], references: [id])
+
+  @@unique([candidateId, itemId])
+}
+
+model Result {
+  id          String @id @default(cuid())
+  candidateId String @unique
+
+  // Postgres has real JSON, so these are not stringified. See DECISIONS.md D2.
+  dimensionScores Json
+  validityFlags   Json
+
+  // Sum of per-item times, each clamped at 60s. Client-reported. See DECISIONS.md D5 and D6.
+  totalSeconds Int
+
+  // max(Response.updatedAt) - min(Response.updatedAt). Server-observed.
+  serverWindowSeconds Int
+
+  computedAt DateTime  @default(now())
+  candidate  Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+model AuditEvent {
+  id     String @id @default(cuid())
+  actor  String
+  action String
+
+  // Identifiers only. Never a name, an email, or a raw token. See DECISIONS.md D9.
+  subjectId String?
+  meta      Json?
+
+  createdAt DateTime @default(now())
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  ip        String
+  createdAt DateTime @default(now())
+
+  @@index([ip, createdAt])
+}
