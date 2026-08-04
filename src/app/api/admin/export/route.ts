@@ -2,21 +2,10 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-admin";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
-import { COMPETENCY_CODES } from "@/lib/scoring";
+import { COMPETENCY_CODES, orderedDimensionCodes } from "@/lib/instrument-labels";
 import { normalizeContextFlags, normalizeDimensions } from "@/lib/result-display";
 
 export const runtime = "nodejs";
-
-const FLAG_KEYS = [
-	"impressionManagement",
-	"inconsistentResponding",
-	"straightLining",
-	"rushed",
-	"rule-social-desirability",
-	"rule-consistency",
-	"rule-straight-line",
-	"rule-rushed",
-] as const;
 
 function cell(value: string | number | null | undefined): string {
 	const text = value === null || value === undefined ? "" : String(value);
@@ -41,33 +30,41 @@ export async function GET() {
 		},
 	});
 
+	const codesSeen = new Set<string>();
+	const normalized = assignments.map((a) => {
+		const dimensions = normalizeDimensions(a.result?.dimensionScores);
+		for (const d of dimensions) codesSeen.add(d.code);
+		return {
+			a,
+			dimensions,
+			flags: normalizeContextFlags(a.result?.validityFlags),
+		};
+	});
+
+	// Prefer codes present in results; fall back to Core competencies when export is empty.
+	const dimCodes = orderedDimensionCodes(
+		codesSeen.size > 0 ? [...codesSeen] : [...COMPETENCY_CODES],
+	);
+
 	const header = [
 		"email",
 		"full_name",
 		"hiring_round",
 		"status",
 		"submitted_at",
-		...COMPETENCY_CODES.map((c) => `${c.toLowerCase()}_scaled`),
+		...dimCodes.map((c) => `${c.toLowerCase()}_scaled`),
 		"context_triggered_count",
 	];
 
-	const rows = assignments.map((a) => {
-		const dimensions = normalizeDimensions(a.result?.dimensionScores);
-		const flags = normalizeContextFlags(a.result?.validityFlags);
-		return [
-			a.candidate.email,
-			a.candidate.fullName,
-			a.hiringRound.name,
-			a.status,
-			a.submittedAt?.toISOString() ?? "",
-			...COMPETENCY_CODES.map(
-				(code) => dimensions.find((d) => d.code === code)?.scaled ?? "",
-			),
-			flags.filter((f) => f.triggered).length,
-		];
-	});
-
-	void FLAG_KEYS;
+	const rows = normalized.map(({ a, dimensions, flags }) => [
+		a.candidate.email,
+		a.candidate.fullName,
+		a.hiringRound.name,
+		a.status,
+		a.submittedAt?.toISOString() ?? "",
+		...dimCodes.map((code) => dimensions.find((d) => d.code === code)?.scaled ?? ""),
+		flags.filter((f) => f.triggered).length,
+	]);
 
 	await audit(session.userId, "export.downloaded", undefined, {
 		rowCount: rows.length,

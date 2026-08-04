@@ -281,7 +281,9 @@ export function InviteForm({
 						}}
 					>
 						<SelectTrigger id={roundSelectId} className="w-full sm:w-96">
-							<SelectValue placeholder="Choose an open round" />
+							<SelectValue placeholder="Choose an open round">
+								{selectedRound?.name}
+							</SelectValue>
 						</SelectTrigger>
 						<SelectContent>
 							{openRounds.map((round) => (

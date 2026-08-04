@@ -12,8 +12,11 @@ import {
 	CORE_V1_DOCUMENT,
 } from "../src/lib/core-v1-document";
 import { parseInstrumentDocument } from "../src/lib/instrument-document";
+import { stabilizePgUrl } from "../src/lib/pg-url";
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+const adapter = new PrismaPg({
+	connectionString: stabilizePgUrl(process.env.DATABASE_URL!),
+});
 const db = new PrismaClient({ adapter });
 
 function cuidLike(): string {

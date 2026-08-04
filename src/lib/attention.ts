@@ -15,6 +15,7 @@ export const EXPIRING_WITHIN_HOURS = 72;
 export type AttentionKind = "expiring" | "unopened" | "stalled" | "awaiting-review";
 
 export type CandidateFacts = {
+  /** CandidateAssignment id — the invite/completion unit (D18). */
   id: string;
   fullName: string;
   status: string;
@@ -22,17 +23,18 @@ export type CandidateFacts = {
   openedAt: Date | null;
   startedAt: Date | null;
   expiresAt: Date | null;
-  /** max(Response.updatedAt) for this candidate, or null when nothing is saved yet. */
+  /** max(Response.updatedAt) for this assignment, or null when nothing is saved yet. */
   lastResponseAt: Date | null;
   /** Result.computedAt, or null when unscored. */
   computedAt: Date | null;
-  /** Newest result.viewed audit event for this candidate, or null. */
+  /** Newest result.viewed audit event for this assignment, or null. */
   lastViewedAt: Date | null;
 };
 
 export type AttentionItem = {
   kind: AttentionKind;
-  candidateId: string;
+  /** Assignment id for profile links. */
+  assignmentId: string;
   fullName: string;
   reason: string;
   /** The moment the row's age is measured from. */
@@ -58,7 +60,7 @@ export function hiringAttention(facts: CandidateFacts[], now: Date): AttentionIt
     ) {
       items.push({
         kind: "unopened",
-        candidateId: c.id,
+        assignmentId: c.id,
         fullName: c.fullName,
         reason: "Invitation sent but never opened",
         since: c.sentAt,
@@ -72,7 +74,7 @@ export function hiringAttention(facts: CandidateFacts[], now: Date): AttentionIt
       if (lastActivity && now.getTime() - lastActivity.getTime() > STALLED_AFTER_HOURS * HOUR) {
         items.push({
           kind: "stalled",
-          candidateId: c.id,
+          assignmentId: c.id,
           fullName: c.fullName,
           reason: "Started the assessment, nothing saved since",
           since: lastActivity,
@@ -85,7 +87,7 @@ export function hiringAttention(facts: CandidateFacts[], now: Date): AttentionIt
       if (remaining > 0 && remaining < EXPIRING_WITHIN_HOURS * HOUR) {
         items.push({
           kind: "expiring",
-          candidateId: c.id,
+          assignmentId: c.id,
           fullName: c.fullName,
           reason: "Invitation expires soon",
           since: c.expiresAt,
@@ -98,7 +100,7 @@ export function hiringAttention(facts: CandidateFacts[], now: Date): AttentionIt
       if (!reviewed) {
         items.push({
           kind: "awaiting-review",
-          candidateId: c.id,
+          assignmentId: c.id,
           fullName: c.fullName,
           reason: "Profile ready, not opened by anyone yet",
           since: c.computedAt,

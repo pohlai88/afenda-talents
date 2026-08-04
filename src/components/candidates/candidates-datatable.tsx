@@ -137,7 +137,7 @@ function buildColumns(isAdmin: boolean): ColumnDef<CandidateTableItem>[] {
 					</Avatar>
 					<div className="flex min-w-0 flex-col">
 						<Link
-							href={`/admin/candidate/${row.original.id}`}
+							href={`/admin/candidate/${row.original.assignmentId}`}
 							className="truncate font-medium underline-offset-4 hover:underline"
 							onClick={(event) => event.stopPropagation()}
 						>
@@ -308,6 +308,8 @@ export function CandidatesDatatable({
 	const table = useReactTable({
 		data,
 		columns,
+		// Assignment is the list unit (D18) — never key rows by person id alone.
+		getRowId: (row) => row.assignmentId,
 		state: { columnFilters, pagination, sorting },
 		onColumnFiltersChange: () => {
 			/* Filters are owned by the URL (requirements §7). */
@@ -540,7 +542,9 @@ export function CandidatesDatatable({
 													) {
 														return;
 													}
-													router.push(`/admin/candidate/${row.original.id}`);
+													router.push(
+														`/admin/candidate/${row.original.assignmentId}`,
+													);
 												}}
 											>
 												{row.getVisibleCells().map((cell) => (

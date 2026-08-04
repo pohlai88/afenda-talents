@@ -369,7 +369,9 @@ export function AssessmentForm({
 																onChange={() => chooseLikert(item.id, value)}
 																aria-label={LIKERT_LABELS[value - 1]}
 															/>
-															<span aria-hidden="true">{value}</span>
+															<span aria-hidden="true" className="pointer-events-none">
+																{value}
+															</span>
 														</label>
 													);
 												})}

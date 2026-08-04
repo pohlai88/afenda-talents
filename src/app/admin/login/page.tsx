@@ -25,19 +25,26 @@ export default function AdminLoginPage() {
     event.preventDefault();
     setBusy(true);
     setError(null);
-    const response = await fetch("/api/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    setBusy(false);
-    if (response.ok) {
-      router.push("/admin");
-      router.refresh();
-      return;
+    try {
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (response.ok) {
+        router.push("/admin");
+        router.refresh();
+        return;
+      }
+      const body = await response.json().catch(() => ({}));
+      setError(
+        typeof body.error === "string" ? body.error : "Sign in failed",
+      );
+    } catch {
+      setError("Could not reach the server. Check your connection and try again.");
+    } finally {
+      setBusy(false);
     }
-    const body = await response.json().catch(() => ({}));
-    setError(body.error ?? "Sign in failed");
   }
 
   return (

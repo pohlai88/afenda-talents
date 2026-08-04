@@ -27,7 +27,8 @@ pnpm prisma db seed
 pnpm test          # vitest, pure modules
 pnpm test:e2e      # playwright against the Neon test branch
 pnpm lint && pnpm typecheck
-bash .claude/skills/afenda-talents-build/check-invariants.sh
+pnpm exec node scripts/check-invariants.mjs
+# or: bash .claude/skills/afenda-talents-build/check-invariants.sh
 ```
 
 ## Rules
@@ -37,8 +38,8 @@ bash .claude/skills/afenda-talents-build/check-invariants.sh
   helper, no handler importing both.
 - Every request-level gate is coarse. Every handler and every `/a/[token]/*` page re-reads the
   candidate row and re-checks status and expiry before acting.
-- On `/a/[token]/*`, the candidate resolved from the token hash must equal the cookie's
-  `candidateId`. Mismatch 404s.
+- On `/a/[token]/*`, the assignment resolved from the token hash must equal the cookie's
+  `assignmentId`. Mismatch re-enters `/a/[token]` to re-mint the cookie (not `/done`).
 - Status changes only via `lib/status.ts`.
 - Zod-validate every API body.
 - Never log, store, or audit a raw invitation token.

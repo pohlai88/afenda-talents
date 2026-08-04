@@ -43,19 +43,32 @@ function isLegacyFlag(value: unknown): value is ValidityFlag {
 	);
 }
 
+const BANDS = new Set<Band>(["Developing", "Effective", "Strong"]);
+
+function asBand(value: unknown): Band {
+	if (typeof value === "string" && BANDS.has(value as Band)) return value as Band;
+	if (value && typeof value === "object" && "name" in value) {
+		const name = (value as { name: unknown }).name;
+		if (typeof name === "string" && BANDS.has(name as Band)) return name as Band;
+	}
+	return "Effective";
+}
+
 export function normalizeDimensions(raw: unknown): UiDimension[] {
 	if (!Array.isArray(raw)) return [];
-	return raw.map((d) => {
-		const row = d as DimensionScore & { band: Band | { name: string } };
-		const bandName =
-			typeof row.band === "string" ? row.band : (row.band?.name ?? "Effective");
-		return {
-			id: row.id,
-			code: row.code,
-			raw: row.raw,
-			scaled: row.scaled,
-			band: bandName as Band,
-		};
+	return raw.flatMap((d) => {
+		if (!d || typeof d !== "object") return [];
+		const row = d as Partial<DimensionScore> & { band?: Band | { name: string } };
+		if (typeof row.code !== "string") return [];
+		return [
+			{
+				id: typeof row.id === "string" ? row.id : undefined,
+				code: row.code,
+				raw: typeof row.raw === "number" ? row.raw : 0,
+				scaled: typeof row.scaled === "number" ? row.scaled : 0,
+				band: asBand(row.band),
+			},
+		];
 	});
 }
 

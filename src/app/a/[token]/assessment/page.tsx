@@ -21,7 +21,8 @@ export default async function AssessmentPage({
 	if (!assignment) redirect(`/a/${token}/done`);
 
 	const cookieAssignmentId = await currentAssignmentId();
-	if (cookieAssignmentId !== assignment.id) redirect(`/a/${token}/done`);
+	// Re-enter the token gate so a missing/stale cookie is re-minted (not /done).
+	if (cookieAssignmentId !== assignment.id) redirect(`/a/${token}`);
 
 	if (assignment.status !== "STARTED") redirect(`/a/${token}`);
 

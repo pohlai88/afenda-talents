@@ -33,12 +33,11 @@ import { orderedAnswerableItems } from "@/lib/instrument-document";
 export const dynamic = "force-dynamic";
 
 /**
- * Candidate detail: progress for open statuses, full profile when SCORED.
+ * Assignment detail: progress for open statuses, full profile when SCORED.
  *
- * `id` in the URL is still the candidate (person) id — assignment-scoped URLs are a
- * later delivery (D18). A person may hold more than one assignment across hiring
- * rounds; this page shows the most recently created one, and its status, timing,
- * responses, and result — never a mix of two assignments.
+ * `id` in the URL is the CandidateAssignment id (D18 invite/completion unit).
+ * List and overview links must use assignmentId — never the person id alone —
+ * so multi-round rows open the matching profile.
  *
  * Framing rules (spec §13.8 / UI §8): one input into a hiring decision — no pass/fail,
  * no ranking, no overall number. Timing is self-reported (D6). Narratives deferred (D17).
@@ -52,25 +51,28 @@ export default async function CandidateDetailPage({
 	const isAdmin = session.role === "ADMIN";
 	const { id } = await params;
 
-	const candidate = await db.candidate.findUnique({ where: { id } });
-	if (!candidate) notFound();
-
-	const assignment = await db.candidateAssignment.findFirst({
-		where: { candidateId: id },
-		include: { result: true, responses: true },
-		orderBy: { createdAt: "desc" },
+	const assignment = await db.candidateAssignment.findUnique({
+		where: { id },
+		include: {
+			candidate: true,
+			result: true,
+			responses: true,
+		},
 	});
 	if (!assignment) notFound();
+	const candidate = assignment.candidate;
 
 	const versionDoc = await loadVersionDocument(assignment.assessmentVersionId);
 	const answerable = orderedAnswerableItems(versionDoc);
 	const itemMeta = new Map(
 		answerable.map((item, index) => {
-			const dimension =
-				item.type === "likert" && item.dimensionId
+			let dimension = "";
+			if (item.type === "likert") {
+				dimension = item.dimensionId
 					? (versionDoc.dimensions.find((d) => d.id === item.dimensionId)?.code ??
-						"")
-					: "";
+						"VAL")
+					: "VAL";
+			}
 			return [
 				item.id,
 				{

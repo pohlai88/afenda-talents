@@ -87,11 +87,13 @@ test.describe("accessibility — WCAG AA smoke", () => {
 		await expect(page.getByRole("heading", { name: scoredName })).toBeVisible();
 
 		const disclose = page.getByRole("button", {
-			name: /Show item-level responses/,
+			name: /item-level responses/,
 		});
+		await expect(disclose).toHaveAttribute("aria-expanded", "false");
 		await disclose.focus();
 		await page.keyboard.press("Enter");
 		await expect(disclose).toHaveAttribute("aria-expanded", "true");
+		await expect(disclose).toHaveAccessibleName(/Hide item-level responses/);
 		await expect(
 			page.getByRole("navigation", { name: "Jump to dimension" }),
 		).toBeVisible();

@@ -36,15 +36,22 @@ $(scan 'afenda_candidate|candidateId' src/lib/auth-admin.ts)
 $(scan 'afenda_admin|role.*admin' src/lib/auth-candidate.ts)"
 check "7: admin and candidate auth stay separate" "$(echo "$auth_mix" | grep -v '^$' || true)"
 
-# --- Invariant 3: status is written in exactly one place ----------------------
+# --- Invariant 3: assignment status is written in exactly one place (D18) ------
+# Candidate.status is gone; lifecycle lives on CandidateAssignment via applyStatus.
 status_writes=""
 while IFS= read -r file; do
   [ -z "$file" ] && continue
+  file="${file//\\//}"
   [ "$file" = "src/lib/status.ts" ] && continue
-  hit="$(grep -nE '^\s*status:\s*"?(DRAFT|SENT|STARTED|SUBMITTED|SCORED|EXPIRED|REVOKED)' "$file" || true)"
-  [ -n "$hit" ] && status_writes+="$file:$hit"$'\n'
-done < <(scan 'candidate\.update' src | cut -d: -f1 | sort -u)
-check "3: status is written only via lib/status.ts (use applyStatus)" "$status_writes"
+  # Flag CandidateAssignment updates that set status outside applyStatus callers.
+  if grep -qE 'candidateAssignment\.update' "$file" 2>/dev/null \
+    && grep -qE 'status:\s*"?(DRAFT|SENT|STARTED|SUBMITTED|SCORED|EXPIRED|REVOKED)' "$file" 2>/dev/null \
+    && ! grep -qE 'applyStatus\(' "$file" 2>/dev/null; then
+    hit="$(grep -nE 'status:\s*"?(DRAFT|SENT|STARTED|SUBMITTED|SCORED|EXPIRED|REVOKED)' "$file" || true)"
+    [ -n "$hit" ] && status_writes+="$file:$hit"$'\n'
+  fi
+done < <(scan 'candidateAssignment\.update' src | cut -d: -f1 | sort -u)
+check "3: assignment status is written only via lib/status.ts (use applyStatus)" "$status_writes"
 
 # --- Invariant 2: raw tokens are never logged or returned ---------------------
 # `hashToken(token)` and `tokenHash` are the safe forms, so they are scrubbed from a copy

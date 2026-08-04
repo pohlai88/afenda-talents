@@ -6,8 +6,11 @@ import {
 	CORE_V1_DOCUMENT,
 } from "../src/lib/core-v1-document";
 import { parseInstrumentDocument } from "../src/lib/instrument-document";
+import { stabilizePgUrl } from "../src/lib/pg-url";
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+const adapter = new PrismaPg({
+	connectionString: stabilizePgUrl(process.env.DATABASE_URL!),
+});
 const db = new PrismaClient({ adapter });
 
 async function main() {
@@ -15,13 +18,14 @@ async function main() {
 	const adminPassword = process.env.ADMIN_PASSWORD;
 	if (adminEmail && adminPassword) {
 		const { hashPassword } = await import("../src/lib/passwords");
+		const passwordHash = hashPassword(adminPassword);
 		await db.user.upsert({
 			where: { email: adminEmail },
-			update: { role: "ADMIN" },
+			update: { role: "ADMIN", passwordHash },
 			create: {
 				email: adminEmail,
 				name: "Administrator",
-				passwordHash: hashPassword(adminPassword),
+				passwordHash,
 				role: "ADMIN",
 			},
 		});

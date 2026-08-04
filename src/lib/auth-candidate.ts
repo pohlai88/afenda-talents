@@ -3,6 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import type { CandidateAssignment } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import { allowsAnswerWrites } from "@/lib/assignment-gates";
 import { hashToken } from "@/lib/tokens";
 
 /**
@@ -14,11 +15,22 @@ export const CANDIDATE_COOKIE = "afenda_candidate";
 
 const secret = () => new TextEncoder().encode(env.APP_SECRET);
 
+/** Token entry + consent: invitation still open. */
 const OPEN_STATUSES = new Set(["SENT", "STARTED"]);
 
 export type AssignmentWithCandidate = CandidateAssignment & {
 	candidate: { id: string; email: string; fullName: string };
 };
+
+export function candidateCookieOptions(maxAge: number) {
+	return {
+		httpOnly: true,
+		secure: env.APP_URL.startsWith("https"),
+		sameSite: "lax" as const,
+		path: "/",
+		maxAge,
+	};
+}
 
 /**
  * Resolves a raw path token to an assignment, or null.
@@ -37,20 +49,12 @@ export async function resolveAssignmentToken(
 	return assignment;
 }
 
-/** @deprecated Use resolveAssignmentToken */
-export const resolveToken = resolveAssignmentToken;
-
 export async function createAssignmentSession(assignmentId: string): Promise<string> {
 	return new SignJWT({ assignmentId })
 		.setProtectedHeader({ alg: "HS256" })
 		.setIssuedAt()
 		.setExpirationTime("4h")
 		.sign(secret());
-}
-
-/** @deprecated Use createAssignmentSession */
-export async function createCandidateToken(assignmentId: string): Promise<string> {
-	return createAssignmentSession(assignmentId);
 }
 
 export async function currentAssignmentId(): Promise<string | null> {
@@ -64,12 +68,7 @@ export async function currentAssignmentId(): Promise<string | null> {
 	}
 }
 
-/**
- * For /api/candidate/* handlers. Re-reads the assignment row (D7).
- */
-export async function requireAssignment(): Promise<AssignmentWithCandidate> {
-	const id = await currentAssignmentId();
-	if (!id) throw new Error("No assignment session");
+async function loadOpenAssignment(id: string): Promise<AssignmentWithCandidate> {
 	const assignment = await db.candidateAssignment.findUnique({
 		where: { id },
 		include: { candidate: { select: { id: true, email: true, fullName: true } } },
@@ -82,7 +81,23 @@ export async function requireAssignment(): Promise<AssignmentWithCandidate> {
 	return assignment;
 }
 
-/** @deprecated Use requireAssignment */
-export async function requireCandidate(): Promise<AssignmentWithCandidate> {
-	return requireAssignment();
+/**
+ * Consent handler: SENT or STARTED (idempotent re-start).
+ * Re-reads the assignment row (D7).
+ */
+export async function requireAssignment(): Promise<AssignmentWithCandidate> {
+	const id = await currentAssignmentId();
+	if (!id) throw new Error("No assignment session");
+	return loadOpenAssignment(id);
+}
+
+/**
+ * Autosave + submit: consent must already have moved status to STARTED (spec §13.7).
+ */
+export async function requireStartedAssignment(): Promise<AssignmentWithCandidate> {
+	const assignment = await requireAssignment();
+	if (!allowsAnswerWrites(assignment.status)) {
+		throw new Error("Consent required");
+	}
+	return assignment;
 }

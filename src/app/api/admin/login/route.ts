@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { ADMIN_COOKIE, createSessionToken, type Role } from "@/lib/auth-admin";
-import { verifyPassword, hashPassword } from "@/lib/passwords";
+import {
+	ADMIN_COOKIE,
+	adminCookieOptions,
+	createSessionToken,
+	type Role,
+} from "@/lib/auth-admin";
+import { verifyPassword } from "@/lib/passwords";
 import { isRateLimited, recordFailure, clearFailures } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 
@@ -10,8 +15,10 @@ export const runtime = "nodejs";
 
 const bodySchema = z.object({ email: z.email(), password: z.string().min(1) });
 
-// A fixed dummy hash keeps timing comparable when the email is unknown.
-const DUMMY_HASH = hashPassword("timing-equalisation-only");
+// Fixed dummy hash (scrypt$salt$hash) so unknown emails take a verify pass without
+// hashing a fresh salt on every cold start of this module.
+const DUMMY_HASH =
+	"scrypt$0123456789abcdef0123456789abcdef$0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 function clientIp(request: Request): string {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -43,13 +50,7 @@ export async function POST(request: Request) {
   response.cookies.set(
     ADMIN_COOKIE,
     await createSessionToken({ userId: user.id, role: user.role as Role }),
-    {
-      httpOnly: true,
-      secure: process.env.APP_URL?.startsWith("https") ?? false,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 8 * 60 * 60,
-    },
+    adminCookieOptions(8 * 60 * 60),
   );
   return response;
 }

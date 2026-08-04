@@ -23,7 +23,7 @@ export function CandidateCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Link
-            href={`/admin/candidate/${item.id}`}
+            href={`/admin/candidate/${item.assignmentId}`}
             className="block truncate font-medium underline-offset-4 hover:underline"
           >
             {item.fullName}

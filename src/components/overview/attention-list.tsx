@@ -26,7 +26,7 @@ export function HiringAttention({ items, now }: { items: AttentionItem[]; now: D
           <ul className="divide-y">
             {items.map((item) => (
               <li
-                key={`${item.kind}-${item.candidateId}`}
+                key={`${item.kind}-${item.assignmentId}`}
                 className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
               >
                 <div className="min-w-0">
@@ -47,7 +47,7 @@ export function HiringAttention({ items, now }: { items: AttentionItem[]; now: D
                     <Link
                       href={
                         item.kind === "awaiting-review"
-                          ? `/admin/candidate/${item.candidateId}`
+                          ? `/admin/candidate/${item.assignmentId}`
                           : "/admin/candidates"
                       }
                     />

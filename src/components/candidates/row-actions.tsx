@@ -78,7 +78,7 @@ export function CandidateRowActions({
 					size="sm"
 					variant="outline"
 					nativeButton={false}
-					render={<Link href={`/admin/candidate/${candidateId}`} />}
+					render={<Link href={`/admin/candidate/${assignmentId}`} />}
 				>
 					{isScored ? "Review profile" : "View progress"}
 				</Button>

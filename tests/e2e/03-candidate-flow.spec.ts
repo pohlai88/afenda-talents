@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
-import { fillSingleInvite, signIn } from "./helpers";
+import { answerLikert, fillSingleInvite, signIn } from "./helpers";
 
 async function inviteAndGetLink(
 	page: Page,
@@ -74,7 +74,7 @@ test("spec §15 steps 3–4: consent, answer, close browser, resume intact, subm
 	// Answer the first 17 items, then abandon the tab entirely.
 	const groups = candidate.locator("li[id^='item-']");
 	for (let i = 0; i < 17; i++) {
-		await groups.nth(i).getByRole("radio", { name: /^Agree$/ }).check();
+		await answerLikert(groups.nth(i), 4);
 	}
 	await candidate.waitForTimeout(1500); // let the debounce flush
 	await candidate.close();
@@ -101,7 +101,7 @@ test("spec §15 steps 3–4: consent, answer, close browser, resume intact, subm
 
 	const remaining = resumed.locator("li[id^='item-']");
 	for (let i = 17; i < 34; i++) {
-		await remaining.nth(i).getByRole("radio", { name: /^Disagree$/ }).check();
+		await answerLikert(remaining.nth(i), 2);
 	}
 	await resumed.waitForTimeout(1500);
 	await resumed.getByRole("button", { name: "Submit" }).click();
@@ -121,10 +121,12 @@ test("spec §15 steps 3–4: consent, answer, close browser, resume intact, subm
 	// And the admin now sees the candidate as SCORED with a clickable profile.
 	// This spec runs on the mobile project; the registry shows cards, not table rows.
 	await page.goto("/admin/candidates");
-	await page.getByLabel("Search").fill(candidateName);
-	await expect(page.getByRole("link", { name: candidateName })).toBeVisible();
+	// Base UI / responsive shells can leave a second (hidden) search control in the DOM.
+	await page.getByRole("searchbox", { name: "Search" }).first().fill(candidateName);
+	await page.getByRole("button", { name: "Search", exact: true }).first().click();
+	await expect(page.getByRole("link", { name: candidateName }).first()).toBeVisible();
 	await expect(
-		page.locator("li").filter({ hasText: candidateName }),
+		page.locator("li").filter({ hasText: candidateName }).first(),
 	).toContainText("Ready for review");
 });
 

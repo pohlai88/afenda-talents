@@ -72,15 +72,17 @@ export function ItemResponsesTable({ rows }: { rows: Row[] }) {
 						aria-label="Jump to dimension"
 						className="mb-4 flex flex-wrap gap-2 print:hidden"
 					>
-						{groups.map((g) => (
-							<a
-								key={g.code}
-								href={`#responses-${g.code}`}
-								className="rounded-sm text-xs text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-							>
-								{g.name}
-							</a>
-						))}
+						{groups
+							.filter((g) => g.code.length > 0)
+							.map((g) => (
+								<a
+									key={g.code}
+									href={`#responses-${g.code}`}
+									className="rounded-sm text-xs text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+								>
+									{g.name || g.code}
+								</a>
+							))}
 					</nav>
 				)}
 

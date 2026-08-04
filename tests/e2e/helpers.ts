@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { Client } from "pg";
 
 const PASSWORD = process.env.ADMIN_PASSWORD!;
@@ -46,11 +46,13 @@ export async function signIn(
 	email: string = ADMIN_EMAIL,
 	password: string = PASSWORD,
 ): Promise<void> {
+	await clearLoginAttempts();
 	await page.goto("/admin/login");
 	await page.getByLabel("Email", { exact: true }).fill(email);
 	await page.getByLabel("Password").fill(password);
 	await page.getByRole("button", { name: "Sign in" }).click();
-	await expect(page).toHaveURL(/\/admin$/);
+	// Neon pooler cold starts can push the first login past Playwright's 5s default.
+	await expect(page).toHaveURL(/\/admin$/, { timeout: 30_000 });
 }
 
 export async function allLinks(): Promise<string[]> {
@@ -91,6 +93,14 @@ export async function invite(
 	return (await allLinks()).at(-1)!;
 }
 
+/** Likert 1–5 numeral on the candidate form (visible label, not the sr-only radio). */
+export async function answerLikert(
+	item: Locator,
+	value: 1 | 2 | 3 | 4 | 5,
+): Promise<void> {
+	await item.locator("label").filter({ hasText: new RegExp(`^${value}$`) }).click();
+}
+
 /** Walks an invited candidate through consent and all 34 items to submission. */
 export async function completeAssessment(
 	page: Page,
@@ -110,8 +120,7 @@ export async function completeAssessment(
 	expect(count).toBeGreaterThan(0);
 	for (let i = 0; i < count; i++) {
 		// Alternate answers so the straight-lining flag is not triggered by the fixture.
-		const label = i % 2 === 0 ? /^Agree$/ : /^Neither agree nor disagree$/;
-		await groups.nth(i).getByRole("radio", { name: label }).check({ timeout: 10_000 });
+		await answerLikert(groups.nth(i), i % 2 === 0 ? 4 : 3);
 	}
 	await page.waitForTimeout(1500); // let the last debounce flush
 	await page.getByRole("button", { name: "Submit" }).click();

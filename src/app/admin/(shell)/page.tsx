@@ -62,7 +62,7 @@ export default async function AdminOverviewPage() {
 	}
 
 	const facts: CandidateFacts[] = assignments.map((a) => ({
-		id: a.candidate.id,
+		id: a.id,
 		fullName: a.candidate.fullName,
 		status: a.status,
 		sentAt: a.sentAt,
@@ -71,7 +71,7 @@ export default async function AdminOverviewPage() {
 		expiresAt: a.expiresAt,
 		lastResponseAt: lastResponseAt.get(a.id) ?? null,
 		computedAt: a.result?.computedAt ?? null,
-		lastViewedAt: lastViewedAt.get(a.id) ?? lastViewedAt.get(a.candidate.id) ?? null,
+		lastViewedAt: lastViewedAt.get(a.id) ?? null,
 	}));
 
 	const attention = hiringAttention(facts, now);
@@ -93,7 +93,7 @@ export default async function AdminOverviewPage() {
 		.map((a) => {
 			const result = a.result!;
 			return {
-				id: a.candidate.id,
+				id: a.id,
 				fullName: a.candidate.fullName,
 				submittedAt: a.submittedAt,
 				dimensions: normalizeDimensions(result.dimensionScores),

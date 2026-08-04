@@ -242,7 +242,8 @@ export type ItemDef = {
 	isValidity: boolean;
 };
 
-export const COMPETENCY_CODES = ["WER", "COM", "PSL", "ADR", "INA"] as const;
+/** Re-export — single source lives in instrument-labels (UI + export). */
+export { COMPETENCY_CODES } from "@/lib/instrument-labels";
 export const STRAIGHT_LINE_RUN = 12;
 export const RUSHED_SECONDS = 240;
 

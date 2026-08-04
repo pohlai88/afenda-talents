@@ -4,6 +4,7 @@ import {
 	CORE_V1_ASSESSMENT_KEY,
 	CORE_V1_DOCUMENT,
 } from "../../src/lib/core-v1-document";
+import { hashPassword } from "../../src/lib/passwords";
 
 /**
  * Runs once per test run, before the web server accepts traffic. Resets all mutable
@@ -12,6 +13,8 @@ import {
  *
  * Item rows are deliberately left alone. When the D18 Assessment/HiringRound tables
  * exist, an OPEN Core round is re-ensured so invites keep working.
+ * Admin credentials are re-hashed from .env.test every run so password drift cannot
+ * lock the suite out.
  */
 async function globalSetup(): Promise<void> {
 	const client = new Client({ connectionString: process.env.DATABASE_URL });
@@ -21,6 +24,21 @@ async function globalSetup(): Promise<void> {
 	await client.query('DELETE FROM "Candidate"');
 	await client.query('DELETE FROM "LoginAttempt"');
 	await client.query('DELETE FROM "AuditEvent"');
+
+	const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+	const adminPassword = process.env.ADMIN_PASSWORD;
+	if (adminEmail && adminPassword) {
+		const passwordHash = hashPassword(adminPassword);
+		await client.query(
+			`INSERT INTO "User" (id, email, name, "passwordHash", role, "mustChangePassword", "createdAt")
+       VALUES ($1, $2, 'Administrator', $3, 'ADMIN', false, NOW())
+       ON CONFLICT (email) DO UPDATE SET
+         "passwordHash" = EXCLUDED."passwordHash",
+         role = 'ADMIN',
+         "mustChangePassword" = false`,
+			[`c${randomBytes(12).toString("hex")}`, adminEmail, passwordHash],
+		);
+	}
 
 	const tables = await client.query<{ exists: boolean }>(
 		`SELECT EXISTS (

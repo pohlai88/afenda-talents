@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import {
 	CANDIDATE_COOKIE,
+	candidateCookieOptions,
 	createAssignmentSession,
 	resolveAssignmentToken,
 } from "@/lib/auth-candidate";
@@ -33,12 +34,10 @@ export async function GET(
 
 	const destination = assignment.status === "STARTED" ? "assessment" : "consent";
 	const response = NextResponse.redirect(new URL(`/a/${token}/${destination}`, base));
-	response.cookies.set(CANDIDATE_COOKIE, await createAssignmentSession(assignment.id), {
-		httpOnly: true,
-		secure: env.APP_URL.startsWith("https"),
-		sameSite: "lax",
-		path: "/",
-		maxAge: 4 * 60 * 60,
-	});
+	response.cookies.set(
+		CANDIDATE_COOKIE,
+		await createAssignmentSession(assignment.id),
+		candidateCookieOptions(4 * 60 * 60),
+	);
 	return response;
 }

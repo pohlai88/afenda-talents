@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { requireAssignment } from "@/lib/auth-candidate";
+import { requireStartedAssignment } from "@/lib/auth-candidate";
 import { loadVersionDocument } from "@/lib/version-document";
 import { orderedAnswerableItems } from "@/lib/instrument-document";
 
@@ -21,7 +21,7 @@ const bodySchema = z
 export async function POST(request: Request) {
 	let assignment;
 	try {
-		assignment = await requireAssignment();
+		assignment = await requireStartedAssignment();
 	} catch {
 		return NextResponse.json({ error: "Assessment is not available" }, { status: 403 });
 	}

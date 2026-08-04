@@ -3,7 +3,7 @@ import { EXCEPTION_STAGES, WORKFLOW_STAGES } from "@/lib/status-display";
 /**
  * The registry's list state, parsed out of the URL.
  *
- * Pure: no Prisma. queryToWhere targets CandidateAssignment (D18).
+ * Pure: no Prisma. Filters apply client-side on assignment-shaped table rows (D18).
  */
 export const SORT_KEYS = ["name", "invited", "submitted", "activity"] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
@@ -62,26 +62,4 @@ export function activeFilterCount(query: CandidateQuery): number {
 	return [query.search !== "", query.status !== null, query.shortcut !== null].filter(
 		Boolean,
 	).length;
-}
-
-/** Prisma where for CandidateAssignment rows (D18). */
-export function queryToWhere(query: CandidateQuery): Record<string, unknown> {
-	const where: Record<string, unknown> = {};
-
-	if (query.search) {
-		where.candidate = {
-			OR: [
-				{ fullName: { contains: query.search, mode: "insensitive" } },
-				{ email: { contains: query.search, mode: "insensitive" } },
-			],
-		};
-	}
-
-	if (query.status) {
-		where.status = query.status;
-	} else if (query.shortcut) {
-		where.status = { in: SHORTCUT_STATUSES[query.shortcut] };
-	}
-
-	return where;
 }

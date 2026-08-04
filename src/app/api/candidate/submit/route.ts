@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { CANDIDATE_COOKIE, requireAssignment } from "@/lib/auth-candidate";
+import {
+	CANDIDATE_COOKIE,
+	candidateCookieOptions,
+	requireStartedAssignment,
+} from "@/lib/auth-candidate";
 import { applyStatus } from "@/lib/status";
 import { audit } from "@/lib/audit";
 import { scoreAssessment } from "@/lib/scoring";
@@ -13,7 +17,7 @@ export const runtime = "nodejs";
 export async function POST() {
 	let assignment;
 	try {
-		assignment = await requireAssignment();
+		assignment = await requireStartedAssignment();
 	} catch {
 		return NextResponse.json({ error: "Assessment is not available" }, { status: 403 });
 	}
@@ -91,6 +95,6 @@ export async function POST() {
 	await sendReceipt(assignment.candidate.email, assignment.candidate.fullName);
 
 	const response = NextResponse.json({ ok: true });
-	response.cookies.set(CANDIDATE_COOKIE, "", { path: "/", maxAge: 0 });
+	response.cookies.set(CANDIDATE_COOKIE, "", candidateCookieOptions(0));
 	return response;
 }

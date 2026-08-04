@@ -18,6 +18,17 @@ export type HiringSession = { userId: string; role: Role };
 
 const secret = () => new TextEncoder().encode(env.APP_SECRET);
 
+/** Cookie attrs for set/clear — keep Secure in sync with APP_URL scheme. */
+export function adminCookieOptions(maxAge: number) {
+	return {
+		httpOnly: true,
+		secure: env.APP_URL.startsWith("https"),
+		sameSite: "lax" as const,
+		path: "/",
+		maxAge,
+	};
+}
+
 export async function createSessionToken(session: HiringSession): Promise<string> {
   return new SignJWT({ userId: session.userId, role: session.role })
     .setProtectedHeader({ alg: "HS256" })
