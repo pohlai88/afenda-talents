@@ -15,7 +15,8 @@ export default defineConfig({
   // On Windows, rebinding :3000 immediately after the previous run leaves lingering
   // sockets that RST the first connections. Retries absorb that transient class.
   retries: 2,
-  use: { baseURL: "http://localhost:3000", trace: "on-first-retry" },
+  // Port 3100: e2e runs its own production build without contending with `pnpm dev` on 3000.
+  use: { baseURL: "http://localhost:3100", trace: "on-first-retry" },
   // Spec §13.6 makes the CANDIDATE UI mobile-first — those specs run on a phone profile.
   // The admin is one HR manager on a laptop, so admin specs run on desktop.
   projects: [
@@ -31,8 +32,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm build && pnpm start > server.log 2>&1",
-    url: "http://localhost:3000",
+    command: "pnpm build && pnpm start --port 3100 > server.log 2>&1",
+    url: "http://localhost:3100",
     reuseExistingServer: false,
     timeout: 240_000,
   },

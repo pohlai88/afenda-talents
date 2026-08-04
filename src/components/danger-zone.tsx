@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 const CONFIRMATION = "DELETE ALL CANDIDATE DATA";
@@ -28,35 +35,39 @@ export function DangerZone({ retentionDays }: { retentionDays: number }) {
   }
 
   return (
-    <section className="mt-12 rounded-lg border border-red-200 p-4 print:hidden">
-      <h2 className="text-sm font-medium text-red-800">Delete candidate data</h2>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Candidates were told their responses are kept for {retentionDays} days from submission.
-        Honouring that is a manual step — this is how you do it. Names, emails, answers and
-        results are removed permanently. The audit log keeps a record that the deletion
-        happened, with no personal data in it.
-      </p>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Input
-          className="max-w-xs"
-          aria-label="Confirmation phrase"
-          placeholder={CONFIRMATION}
-          value={confirmation}
-          onChange={(e) => setConfirmation(e.target.value)}
-        />
-        <Button
-          variant="destructive"
-          disabled={busy || confirmation !== CONFIRMATION}
-          onClick={purge}
-        >
-          {busy ? "Deleting…" : "Delete all candidate data"}
-        </Button>
-      </div>
-      {message && (
-        <p role="status" className="mt-2 text-xs">
-          {message}
-        </p>
-      )}
-    </section>
+    <Card className="border-destructive/40 print:hidden">
+      <CardHeader>
+        <CardTitle className="text-destructive">Delete candidate data</CardTitle>
+        <CardDescription>
+          Candidates were told their responses are kept for {retentionDays} days from
+          submission. Honouring that is a manual step — this is how you do it. Names, emails,
+          answers and results are removed permanently. The audit log keeps a record that the
+          deletion happened, with no personal data in it.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            className="max-w-xs"
+            aria-label="Confirmation phrase"
+            placeholder={CONFIRMATION}
+            value={confirmation}
+            onChange={(e) => setConfirmation(e.target.value)}
+          />
+          <Button
+            variant="destructive"
+            disabled={busy || confirmation !== CONFIRMATION}
+            onClick={purge}
+          >
+            {busy ? "Deleting…" : "Delete all candidate data"}
+          </Button>
+        </div>
+        {message && (
+          <p role="status" className="mt-3 text-sm">
+            {message}
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

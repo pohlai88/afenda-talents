@@ -4,7 +4,7 @@ import { signIn } from "./helpers";
 
 async function allLinks(): Promise<string[]> {
   const log = await fs.readFile("server.log", "utf8").catch(() => "");
-  return log.match(/http:\/\/localhost:3000\/a\/[A-Za-z0-9_-]+/g) ?? [];
+  return log.match(/http:\/\/localhost:\d+\/a\/[A-Za-z0-9_-]+/g) ?? [];
 }
 
 async function invite(page: Page, name: string, email: string): Promise<string> {

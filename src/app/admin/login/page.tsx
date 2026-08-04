@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -33,40 +41,54 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center p-6">
-      <h1 className="text-2xl font-semibold">Afenda Talents</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Hiring team sign in</p>
-      <form onSubmit={submit} className="mt-6 space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="username"
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-          />
-        </div>
-        {error && (
-          <p role="alert" className="text-sm text-red-600">
-            {error}
-          </p>
-        )}
-        <Button type="submit" className="w-full" size="lg" disabled={busy}>
-          {busy ? "Signing in…" : "Sign in"}
-        </Button>
+    <main className="flex min-h-screen items-center justify-center p-6">
+      <form onSubmit={submit} className="w-full max-w-sm">
+        <Card>
+          <CardHeader>
+            <div className="mb-1 flex items-center gap-2">
+              <span aria-hidden="true" className="h-[6px] w-[6px] rotate-45 bg-[#C8A96A]" />
+              <span className="font-mono text-[10px] tracking-[0.28em] text-muted-foreground">
+                AFENDA TALENTS
+              </span>
+            </div>
+            <CardTitle>Hiring team sign in</CardTitle>
+            <CardDescription>Candidates don’t sign in — their emailed link is their access.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="username"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </div>
+            {error && (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            )}
+          </CardContent>
+          <CardFooter>
+            <Button type="submit" className="w-full" size="lg" disabled={busy}>
+              {busy ? "Signing in…" : "Sign in"}
+            </Button>
+          </CardFooter>
+        </Card>
       </form>
     </main>
   );

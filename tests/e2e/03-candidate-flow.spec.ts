@@ -4,7 +4,7 @@ import { signIn } from "./helpers";
 
 async function inviteAndGetLink(page: Page, name: string, email: string): Promise<string> {
   const before = ((await fs.readFile("server.log", "utf8").catch(() => "")).match(
-    /http:\/\/localhost:3000\/a\/[A-Za-z0-9_-]+/g,
+    /http:\/\/localhost:\d+\/a\/[A-Za-z0-9_-]+/g,
   ) ?? []).length;
 
   await signIn(page);
@@ -20,7 +20,7 @@ async function inviteAndGetLink(page: Page, name: string, email: string): Promis
     .poll(async () => {
       links =
         (await fs.readFile("server.log", "utf8").catch(() => "")).match(
-          /http:\/\/localhost:3000\/a\/[A-Za-z0-9_-]+/g,
+          /http:\/\/localhost:\d+\/a\/[A-Za-z0-9_-]+/g,
         ) ?? [];
       return links.length;
     })

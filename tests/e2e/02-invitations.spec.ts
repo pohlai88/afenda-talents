@@ -5,7 +5,7 @@ import { signIn } from "./helpers";
 /** The console transport prints every email to the server's stdout, captured in server.log. */
 async function capturedLinks(): Promise<string[]> {
   const log = await fs.readFile("server.log", "utf8").catch(() => "");
-  return log.match(/http:\/\/localhost:3000\/a\/[A-Za-z0-9_-]+/g) ?? [];
+  return log.match(/http:\/\/localhost:\d+\/a\/[A-Za-z0-9_-]+/g) ?? [];
 }
 
 test("inviting two candidates prints two distinct links and shows both as SENT", async ({
@@ -17,7 +17,7 @@ test("inviting two candidates prints two distinct links and shows both as SENT",
   await signIn(page);
   await page.goto("/admin/invite");
   await page
-    .getByLabel(/paste many/i)
+    .getByLabel(/one per line/i)
     .fill(`Amira Yusof, amira+${stamp}@example.com\nDaniel Tan, daniel+${stamp}@example.com`);
   await page.getByRole("button", { name: "Send invitations" }).click();
   await expect(page.getByRole("status")).toContainText("Invited 2");

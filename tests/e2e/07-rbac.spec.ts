@@ -15,7 +15,8 @@ test("an admin creates a viewer; the viewer can read but not act", async ({ page
   await page.goto("/admin/users");
   await page.getByLabel("Name").fill(`Viewer-${stamp}`);
   await page.getByLabel("Email", { exact: true }).fill(`viewer+${stamp}@example.com`);
-  await page.getByLabel("Role").selectOption("VIEWER");
+  // Role is a shadcn Select; VIEWER is the default. Assert it rather than driving it.
+  await expect(page.getByLabel("Role")).toContainText(/viewer/i);
   await page.getByRole("button", { name: "Create account" }).click();
   const notice = await page.getByRole("status").textContent();
   const tempPassword = notice!.match(/Temporary password for [^:]+: ([A-Za-z0-9_-]+)/)![1];
