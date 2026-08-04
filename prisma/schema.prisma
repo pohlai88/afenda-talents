@@ -1,8 +1,7 @@
-// Afenda Talents data model.
-// See docs/superpowers/specs/2026-08-05-configurable-assessments-design.md (D18).
+// Afenda Talents data model — post-contract (D18).
+// See docs/superpowers/specs/2026-08-05-configurable-assessments-design.md
 //
-// Prisma 7: connection URLs live in prisma.config.ts, not here. The CLI (migrate, db pull)
-// uses Neon's DIRECT endpoint; the running app uses the POOLED endpoint. See DECISIONS.md D1.
+// Prisma 7: connection URLs live in prisma.config.ts, not here.
 
 generator client {
   provider = "prisma-client"
@@ -13,8 +12,6 @@ datasource db {
   provider = "postgresql"
 }
 
-// Hiring-side login accounts. Candidates are NOT users — their emailed token is their
-// credential. Roles: ADMIN (full control) or VIEWER (read-only). See DECISIONS.md D15.
 model User {
   id                 String   @id @default(cuid())
   email              String   @unique
@@ -27,55 +24,40 @@ model User {
   publishedVersions AssessmentVersion[] @relation("PublishedBy")
 }
 
-/// Identity only after D18 cutover. Lifecycle fields remain during expand/backfill.
+/// Person identity only. Invite lifecycle lives on CandidateAssignment (D18).
 model Candidate {
   id          String                @id @default(cuid())
   email       String                @unique
   fullName    String
-  // Legacy invite lifecycle — copied onto CandidateAssignment during backfill; removed in contract.
-  status      String                @default("DRAFT")
-  invitedById String?
-  tokenHash   String?               @unique
-  expiresAt   DateTime?
-  sentAt      DateTime?
-  openedAt    DateTime?
-  consentedAt DateTime?
-  startedAt   DateTime?
-  submittedAt DateTime?
   createdAt   DateTime              @default(now())
-  responses   Response[]
-  results     Result[]
   assignments CandidateAssignment[]
 }
 
 model Assessment {
-  id                 String              @id @default(cuid())
-  /// Stable product key for system templates, e.g. afenda-core-behavioural-profile
-  key                String?             @unique
-  title              String
-  /// SYSTEM | ORGANISATION | TEMPLATE
-  kind               String              @default("ORGANISATION")
-  isSystem           Boolean             @default(false)
-  /// DRAFT | PUBLISHED | ARCHIVED (template lifecycle — not round status)
-  status             String              @default("DRAFT")
-  draftDocument      Json?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  versions           AssessmentVersion[]
+  id            String              @id @default(cuid())
+  key           String?             @unique
+  title         String
+  kind          String              @default("ORGANISATION")
+  isSystem      Boolean             @default(false)
+  status        String              @default("DRAFT")
+  draftDocument Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  versions      AssessmentVersion[]
 }
 
 model AssessmentVersion {
-  id             String                @id @default(cuid())
-  assessmentId   String
-  versionNumber  Int
-  document       Json
-  publishedAt    DateTime              @default(now())
-  publishedById  String?
-  assessment     Assessment            @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  publishedBy    User?                 @relation("PublishedBy", fields: [publishedById], references: [id])
-  rounds         HiringRound[]
-  assignments    CandidateAssignment[]
-  results        Result[]
+  id            String                @id @default(cuid())
+  assessmentId  String
+  versionNumber Int
+  document      Json
+  publishedAt   DateTime              @default(now())
+  publishedById String?
+  assessment    Assessment            @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  publishedBy   User?                 @relation("PublishedBy", fields: [publishedById], references: [id])
+  rounds        HiringRound[]
+  assignments   CandidateAssignment[]
+  results       Result[]
 
   @@unique([assessmentId, versionNumber])
 }
@@ -83,7 +65,6 @@ model AssessmentVersion {
 model HiringRound {
   id                  String                @id @default(cuid())
   name                String
-  /// DRAFT | OPEN | CLOSED | ARCHIVED
   status              String                @default("DRAFT")
   assessmentVersionId String
   createdAt           DateTime              @default(now())
@@ -92,12 +73,10 @@ model HiringRound {
   assignments         CandidateAssignment[]
 }
 
-/// One invite/completion unit. Token and status live here (D18).
 model CandidateAssignment {
   id                  String            @id @default(cuid())
   candidateId         String
   hiringRoundId       String
-  /// Copied from round at creation; immutable thereafter.
   assessmentVersionId String
   status              String            @default("DRAFT")
   invitedById         String?
@@ -112,59 +91,39 @@ model CandidateAssignment {
   candidate           Candidate         @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   hiringRound         HiringRound       @relation(fields: [hiringRoundId], references: [id])
   assessmentVersion   AssessmentVersion @relation(fields: [assessmentVersionId], references: [id])
-  responses           Response[]        @relation("AssignmentResponses")
-  result              Result?           @relation("AssignmentResult")
+  responses           Response[]
+  result              Result?
 
   @@unique([candidateId, hiringRoundId])
 }
 
-/// Legacy global catalog — retained until contract migration drops it (D18 expand).
-model Item {
-  id            String     @id
-  dimension     String
-  order         Int
-  text          String
-  reverseScored Boolean    @default(false)
-  isValidity    Boolean    @default(false)
-  responses     Response[]
-}
-
 model Response {
-  id           String               @id @default(cuid())
-  candidateId  String
-  itemId       String
-  value        Int
-  msOnItem     Int                  @default(0)
-  updatedAt    DateTime             @updatedAt
-  /// Expand bridge — populated by backfill; required after contract.
-  assignmentId String?
-  /// Frozen item id from version document (same as itemId for Core v1).
-  questionId   String?
-  candidate    Candidate            @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  item         Item                 @relation(fields: [itemId], references: [id])
-  assignment   CandidateAssignment? @relation("AssignmentResponses", fields: [assignmentId], references: [id], onDelete: Cascade)
+  id           String              @id @default(cuid())
+  assignmentId String
+  questionId   String
+  /// Likert 1–5; null for text items.
+  value        Int?
+  textValue    String?
+  msOnItem     Int                 @default(0)
+  updatedAt    DateTime            @updatedAt
+  assignment   CandidateAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
-  @@unique([candidateId, itemId])
+  @@unique([assignmentId, questionId])
   @@index([assignmentId])
 }
 
 model Result {
-  id                  String               @id @default(cuid())
-  /// Legacy person link — no longer unique once multi-assignment is live (D18).
-  candidateId         String
+  id                  String              @id @default(cuid())
+  assignmentId        String              @unique
+  assessmentVersionId String
   dimensionScores     Json
-  /// Stores responseContext outcomes after cutover (legacy column name).
+  /// responseContext outcomes (legacy column name).
   validityFlags       Json
   totalSeconds        Int
   serverWindowSeconds Int
-  computedAt          DateTime             @default(now())
-  assignmentId        String?              @unique
-  assessmentVersionId String?
-  candidate           Candidate            @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  assignment          CandidateAssignment? @relation("AssignmentResult", fields: [assignmentId], references: [id], onDelete: Cascade)
-  assessmentVersion   AssessmentVersion?   @relation(fields: [assessmentVersionId], references: [id])
-
-  @@index([candidateId])
+  computedAt          DateTime            @default(now())
+  assignment          CandidateAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  assessmentVersion   AssessmentVersion   @relation(fields: [assessmentVersionId], references: [id])
 }
 
 model AuditEvent {

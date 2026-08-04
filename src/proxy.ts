@@ -5,9 +5,9 @@ import { jwtVerify } from "jose";
  * Coarse gate — BY CHOICE, not by constraint. See DECISIONS.md D7.
  *
  * This checks only that a cookie's signature is valid and unexpired. It deliberately does
- * not query the database, so it cannot know that a candidate was revoked or has already
- * submitted. Every handler behind this gate re-reads the candidate row and re-checks
- * status and expiry. Do not move authorisation logic here.
+ * not query the database, so it cannot know that an assignment was revoked or has already
+ * submitted. Every handler behind this gate re-reads the assignment (or admin) row and
+ * re-checks status and expiry. Do not move authorisation logic here.
  *
  * Cookie names are string literals rather than imports so this file depends on neither
  * auth module — importing either would blur the admin/candidate separation this repo
@@ -38,7 +38,8 @@ export async function proxy(request: NextRequest) {
 
   if (pathname.startsWith("/api/candidate")) {
     const payload = await claims(request.cookies.get(CANDIDATE_COOKIE)?.value);
-    if (!payload?.candidateId) {
+    // D18: cookie claim is assignmentId (not legacy candidateId).
+    if (!payload?.assignmentId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
     return NextResponse.next();

@@ -328,69 +328,73 @@ export function InviteForm({
 							<TabsTrigger value="many">Add many</TabsTrigger>
 						</TabsList>
 
-						<TabsContent value="single" className="mt-4 flex flex-col gap-4">
-							<div className="grid gap-4 sm:grid-cols-2">
-								<div className="space-y-2">
-									<Label htmlFor={singleNameId}>Full name</Label>
-									<Input
-										id={singleNameId}
-										name="candidate-name"
-										autoComplete="off"
-										value={fullName}
-										onChange={(e) => setFullName(e.target.value)}
-									/>
+						{/* Mount only the active panel — Base UI keeps inactive panels in the DOM,
+						    which duplicated “Full name” / “Email” for Playwright and assistive tech. */}
+						{mode === "single" ? (
+							<TabsContent value="single" className="mt-4 flex flex-col gap-4">
+								<div className="grid gap-4 sm:grid-cols-2">
+									<div className="space-y-2">
+										<Label htmlFor={singleNameId}>Full name</Label>
+										<Input
+											id={singleNameId}
+											name="candidate-name"
+											autoComplete="off"
+											value={fullName}
+											onChange={(e) => setFullName(e.target.value)}
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor={singleEmailId}>Email</Label>
+										<Input
+											id={singleEmailId}
+											name="candidate-email"
+											type="email"
+											autoComplete="off"
+											spellCheck={false}
+											value={email}
+											onChange={(e) => setEmail(e.target.value)}
+										/>
+									</div>
 								</div>
+								<div>
+									<Button
+										type="button"
+										variant="secondary"
+										disabled={!fullName.trim() || !email.trim() || !roundId}
+										onClick={reviewSingle}
+									>
+										Review invitation
+									</Button>
+								</div>
+							</TabsContent>
+						) : (
+							<TabsContent value="many" className="mt-4 flex flex-col gap-4">
 								<div className="space-y-2">
-									<Label htmlFor={singleEmailId}>Email</Label>
-									<Input
-										id={singleEmailId}
-										name="candidate-email"
-										type="email"
-										autoComplete="off"
+									<Label htmlFor={pasteId}>One per line as “Name, email”</Label>
+									<Textarea
+										id={pasteId}
+										name="pasted-candidates"
 										spellCheck={false}
-										value={email}
-										onChange={(e) => setEmail(e.target.value)}
+										rows={8}
+										value={pasted}
+										onChange={(e) => setPasted(e.target.value)}
+										placeholder={
+											"Amira Yusof, amira@example.com\nDaniel Tan, daniel@example.com"
+										}
 									/>
 								</div>
-							</div>
-							<div>
-								<Button
-									type="button"
-									variant="secondary"
-									disabled={!fullName.trim() || !email.trim() || !roundId}
-									onClick={reviewSingle}
-								>
-									Review invitation
-								</Button>
-							</div>
-						</TabsContent>
-
-						<TabsContent value="many" className="mt-4 flex flex-col gap-4">
-							<div className="space-y-2">
-								<Label htmlFor={pasteId}>One per line as “Name, email”</Label>
-								<Textarea
-									id={pasteId}
-									name="pasted-candidates"
-									spellCheck={false}
-									rows={8}
-									value={pasted}
-									onChange={(e) => setPasted(e.target.value)}
-									placeholder={
-										"Amira Yusof, amira@example.com\nDaniel Tan, daniel@example.com"
-									}
-								/>
-							</div>
-							<div>
-								<Button
-									type="button"
-									variant="secondary"
-									disabled={!pasted.trim() || !roundId}
-									onClick={reviewPaste}
-								>
-									Parse and review
-								</Button>
-							</div>
-						</TabsContent>
+								<div>
+									<Button
+										type="button"
+										variant="secondary"
+										disabled={!pasted.trim() || !roundId}
+										onClick={reviewPaste}
+									>
+										Parse and review
+									</Button>
+								</div>
+							</TabsContent>
+						)}
 					</Tabs>
 				</CardContent>
 			</Card>
@@ -398,7 +402,9 @@ export function InviteForm({
 			{rows.length > 0 && (
 				<Card className="min-w-0 overflow-hidden">
 					<CardHeader>
-						<CardTitle className="text-base">Review before sending</CardTitle>
+						<CardTitle className="text-base">
+							<h2 className="text-base font-semibold">Review before sending</h2>
+						</CardTitle>
 						<p className="text-sm text-muted-foreground" role="status">
 							{counts.valid} ready · {counts.existing} already invited ·{" "}
 							{counts.duplicate} duplicate · {counts.invalid} invalid

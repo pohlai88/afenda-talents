@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DuplicateAssessmentButton, NewAssessmentButton } from "@/components/assessment-builder/assessments-toolbar";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,12 +25,13 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 /**
- * Read-only through Delivery 1 (D18 §8) — no editor, no publish action here. A single
- * status column would be ambiguous while a draft and a published version can coexist,
- * so draft presence gets its own badge instead of folding into one lifecycle word.
+ * The Delivery 2 builder is live (D18 §8): every assessment can be previewed, edited,
+ * and duplicated from here. ADMIN gets the mutating actions (new, edit, duplicate);
+ * VIEWER keeps read-only access to preview, matching the rest of the app (D15).
  */
 export default async function AssessmentsPage() {
-	await requireHiringUser();
+	const session = await requireHiringUser();
+	const isAdmin = session.role === "ADMIN";
 
 	const [assessments, roundCounts] = await Promise.all([
 		db.assessment.findMany({
@@ -58,6 +60,7 @@ export default async function AssessmentsPage() {
 			id: assessment.id,
 			title: assessment.title,
 			kind: assessment.kind,
+			status: assessment.status,
 			latestVersionNumber: latestVersion?.versionNumber ?? null,
 			hasDraft: assessment.draftDocument !== null,
 			roundCount,
@@ -69,7 +72,8 @@ export default async function AssessmentsPage() {
 			<PageHeader
 				eyebrow="Workspace"
 				title="Assessments"
-				description="Every instrument in the workspace, its latest published version, and where it is in use. The visual builder ships in Delivery 2 — this list is read-only."
+				description="Every instrument in the workspace, its latest published version, and where it is in use. Preview any of them; the visual builder is live for edits, duplicates, and new drafts."
+				actions={isAdmin ? <NewAssessmentButton /> : undefined}
 			/>
 
 			{rows.length === 0 ? (
@@ -80,7 +84,9 @@ export default async function AssessmentsPage() {
 						</EmptyMedia>
 						<EmptyTitle>No assessments yet</EmptyTitle>
 						<EmptyDescription>
-							Seed the system assessment to get started — see the backfill script.
+							{isAdmin
+								? "Create one to get started, or seed the system assessment — see the backfill script."
+								: "Seed the system assessment to get started — see the backfill script."}
 						</EmptyDescription>
 					</EmptyHeader>
 				</Empty>
@@ -111,7 +117,9 @@ export default async function AssessmentsPage() {
 											{row.latestVersionNumber !== null ? `v${row.latestVersionNumber}` : "Not published"}
 										</TableCell>
 										<TableCell>
-											{row.hasDraft ? (
+											{row.status === "ARCHIVED" ? (
+												<Badge variant="outline">Archived</Badge>
+											) : row.hasDraft ? (
 												<Badge variant="outline">Draft pending</Badge>
 											) : (
 												<span className="text-muted-foreground">—</span>
@@ -119,16 +127,29 @@ export default async function AssessmentsPage() {
 										</TableCell>
 										<TableCell className="text-right tabular-nums">{row.roundCount}</TableCell>
 										<TableCell className="text-right">
-											{row.latestVersionNumber !== null && (
+											<div className="flex justify-end gap-2">
 												<Button
 													size="sm"
 													variant="outline"
 													nativeButton={false}
-													render={<Link href={`/admin/assessments/${row.id}`} />}
+													render={<Link href={`/admin/assessments/${row.id}/preview`} />}
 												>
 													Preview
 												</Button>
-											)}
+												{isAdmin && row.status !== "ARCHIVED" && (
+													<>
+														<Button
+															size="sm"
+															variant="outline"
+															nativeButton={false}
+															render={<Link href={`/admin/assessments/${row.id}/edit`} />}
+														>
+															Edit
+														</Button>
+														<DuplicateAssessmentButton assessmentId={row.id} />
+													</>
+												)}
+											</div>
 										</TableCell>
 									</TableRow>
 								))}

@@ -14,12 +14,30 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { LIKERT_LABELS } from "@/lib/instrument-labels";
 import { scrollIntoViewAware } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
-type Item = { id: string; order: number; text: string };
+export type AssessmentFormItem =
+	| {
+			id: string;
+			order: number;
+			text: string;
+			type: "likert";
+			required: boolean;
+	  }
+	| {
+			id: string;
+			order: number;
+			text: string;
+			type: "short_text" | "long_text";
+			required: boolean;
+			maxLength?: number;
+			helperText?: string;
+	  };
 
+type SavedAnswer = { value?: number; textValue?: string };
 type SaveStatus = "idle" | "saving" | "saved" | "error" | "offline";
 
 const SAVE_DEBOUNCE_MS = 800;
@@ -40,10 +58,16 @@ function saveStatusLabel(status: SaveStatus): string {
 	}
 }
 
-/** Module-level so Date.now is not flagged as render impurity. */
-async function persistCandidateAnswer(
-	itemId: string,
-	value: number,
+function isAnswered(item: AssessmentFormItem, answer: SavedAnswer | undefined): boolean {
+	if (!answer) return false;
+	if (item.type === "likert") return answer.value !== undefined;
+	if (!item.required) return true;
+	return Boolean(answer.textValue?.trim());
+}
+
+async function persistAnswer(
+	item: AssessmentFormItem,
+	answer: SavedAnswer,
 	shownAt: Record<string, number>,
 	setSaveStatus: (status: SaveStatus) => void,
 	isRetry = false,
@@ -53,16 +77,21 @@ async function persistCandidateAnswer(
 		return;
 	}
 
-	const startedAt = shownAt[itemId] ?? Date.now();
+	const startedAt = shownAt[item.id] ?? Date.now();
 	const msOnItem = Math.max(0, Date.now() - startedAt);
-	shownAt[itemId] = Date.now();
+	shownAt[item.id] = Date.now();
 	setSaveStatus("saving");
+
+	const body =
+		item.type === "likert"
+			? { itemId: item.id, value: answer.value, msOnItem }
+			: { itemId: item.id, textValue: answer.textValue ?? "", msOnItem };
 
 	try {
 		const response = await fetch("/api/candidate/autosave", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ itemId, value, msOnItem }),
+			body: JSON.stringify(body),
 			keepalive: true,
 		});
 		if (!response.ok) throw new Error("autosave failed");
@@ -71,29 +100,25 @@ async function persistCandidateAnswer(
 		setSaveStatus("error");
 		if (!isRetry) {
 			window.setTimeout(() => {
-				void persistCandidateAnswer(itemId, value, shownAt, setSaveStatus, true);
+				void persistAnswer(item, answer, shownAt, setSaveStatus, true);
 			}, 1500);
 		}
 	}
 }
 
-/**
- * All 34 items on one scrolling page, mobile-first (UI §12.3–12.6).
- * Autosave only claims “Saved” after the request succeeds.
- */
 export function AssessmentForm({
 	token,
 	items,
 	saved,
 }: {
 	token: string;
-	items: Item[];
-	saved: Record<string, number>;
+	items: AssessmentFormItem[];
+	saved: Record<string, SavedAnswer>;
 }) {
 	const router = useRouter();
 	const hadSavedAnswers = Object.keys(saved).length > 0;
 
-	const [answers, setAnswers] = useState<Record<string, number>>(saved);
+	const [answers, setAnswers] = useState<Record<string, SavedAnswer>>(saved);
 	const [missing, setMissing] = useState<string[]>([]);
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -104,6 +129,8 @@ export function AssessmentForm({
 	const shownAt = useRef<Record<string, number>>({});
 	const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 	const resumeScrolled = useRef(false);
+	const itemsById = useRef(new Map(items.map((i) => [i.id, i])));
+	itemsById.current = new Map(items.map((i) => [i.id, i]));
 
 	useEffect(() => {
 		const now = Date.now();
@@ -119,11 +146,7 @@ export function AssessmentForm({
 		}
 		window.addEventListener("online", syncOnline);
 		window.addEventListener("offline", syncOffline);
-		const onlineCheck = window.setTimeout(() => {
-			if (!navigator.onLine) setSaveStatus("offline");
-		}, 0);
 		return () => {
-			window.clearTimeout(onlineCheck);
 			window.removeEventListener("online", syncOnline);
 			window.removeEventListener("offline", syncOffline);
 		};
@@ -132,7 +155,7 @@ export function AssessmentForm({
 	useEffect(() => {
 		if (!hadSavedAnswers || resumeScrolled.current) return;
 		resumeScrolled.current = true;
-		const firstUnanswered = items.find((item) => saved[item.id] === undefined);
+		const firstUnanswered = items.find((item) => !isAnswered(item, saved[item.id]));
 		const targetId = firstUnanswered?.id ?? items[0]?.id;
 		if (!targetId) return;
 		requestAnimationFrame(() => {
@@ -140,28 +163,42 @@ export function AssessmentForm({
 		});
 	}, [hadSavedAnswers, items, saved]);
 
-	function choose(itemId: string, value: number) {
-		setAnswers((prev) => ({ ...prev, [itemId]: value }));
-		setMissing((prev) => prev.filter((id) => id !== itemId));
+	function scheduleSave(itemId: string, next: SavedAnswer) {
+		const item = itemsById.current.get(itemId);
+		if (!item) return;
 		clearTimeout(timers.current[itemId]);
 		timers.current[itemId] = setTimeout(() => {
-			void persistCandidateAnswer(itemId, value, shownAt.current, setSaveStatus);
+			void persistAnswer(item, next, shownAt.current, setSaveStatus);
 		}, SAVE_DEBOUNCE_MS);
 	}
 
+	function chooseLikert(itemId: string, value: number) {
+		const next = { value };
+		setAnswers((prev) => ({ ...prev, [itemId]: next }));
+		setMissing((prev) => prev.filter((id) => id !== itemId));
+		scheduleSave(itemId, next);
+	}
+
+	function changeText(itemId: string, textValue: string) {
+		const next = { textValue };
+		setAnswers((prev) => ({ ...prev, [itemId]: next }));
+		setMissing((prev) => prev.filter((id) => id !== itemId));
+		scheduleSave(itemId, next);
+	}
+
+	function unansweredIds() {
+		return items.filter((i) => !isAnswered(i, answers[i.id])).map((i) => i.id);
+	}
+
 	function reviewUnanswered() {
-		const unanswered = items
-			.filter((i) => answers[i.id] === undefined)
-			.map((i) => i.id);
+		const unanswered = unansweredIds();
 		if (unanswered.length === 0) return;
 		setMissing(unanswered);
 		scrollIntoViewAware(document.getElementById(`item-${unanswered[0]}`));
 	}
 
 	function requestSubmit() {
-		const unanswered = items
-			.filter((i) => answers[i.id] === undefined)
-			.map((i) => i.id);
+		const unanswered = unansweredIds();
 		if (unanswered.length > 0) {
 			setMissing(unanswered);
 			scrollIntoViewAware(document.getElementById(`item-${unanswered[0]}`));
@@ -173,9 +210,11 @@ export function AssessmentForm({
 	async function confirmSubmit() {
 		setBusy(true);
 		setError(null);
-		for (const [itemId, value] of Object.entries(answers)) {
-			clearTimeout(timers.current[itemId]);
-			await persistCandidateAnswer(itemId, value, shownAt.current, setSaveStatus);
+		for (const item of items) {
+			const answer = answers[item.id];
+			if (!answer) continue;
+			clearTimeout(timers.current[item.id]);
+			await persistAnswer(item, answer, shownAt.current, setSaveStatus);
 		}
 		await new Promise((resolve) => setTimeout(resolve, SUBMIT_FLUSH_WAIT_MS));
 
@@ -195,7 +234,7 @@ export function AssessmentForm({
 		);
 	}
 
-	const answered = Object.keys(answers).length;
+	const answered = items.filter((i) => isAnswered(i, answers[i.id])).length;
 	const total = items.length;
 	const progressLabel = `${answered} of ${total} answered`;
 	const statusText = saveStatusLabel(saveStatus);
@@ -217,9 +256,7 @@ export function AssessmentForm({
 			}
 		>
 			<main id="main" tabIndex={-1} className="mx-auto max-w-xl px-4 py-5 pb-40 outline-none">
-				<h1 className="text-lg font-semibold tracking-tight">
-					Your self-assessment
-				</h1>
+				<h1 className="text-lg font-semibold tracking-tight">Your self-assessment</h1>
 				<p className="mt-2 text-sm text-muted-foreground">
 					There are no right or wrong answers. Choose what is true of how you
 					actually work.
@@ -233,7 +270,7 @@ export function AssessmentForm({
 						<p>Your previous answers were restored.</p>
 						<button
 							type="button"
-							className="mt-1 text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+							className="mt-1 text-xs font-medium text-primary underline-offset-4 hover:underline"
 							onClick={() => setShowResumeNotice(false)}
 						>
 							Dismiss
@@ -241,7 +278,6 @@ export function AssessmentForm({
 					</div>
 				)}
 
-				{/* Sticky progress — single live region for save + progressbar for count */}
 				<div className="sticky top-[3.25rem] z-10 -mx-4 mt-4 border-b border-border/60 bg-background/95 px-4 py-2 backdrop-blur">
 					<div
 						role="progressbar"
@@ -271,7 +307,7 @@ export function AssessmentForm({
 				<ol className="mt-6 space-y-5">
 					{items.map((item) => {
 						const isMissing = missing.includes(item.id);
-						const selectedValue = answers[item.id];
+						const answer = answers[item.id];
 						const errorId = `item-${item.id}-error`;
 						return (
 							<li
@@ -291,53 +327,79 @@ export function AssessmentForm({
 										{item.order}.
 									</span>
 									{item.text}
+									{item.required ? null : (
+										<span className="ml-1 font-normal text-muted-foreground">
+											(optional)
+										</span>
+									)}
 								</p>
-								<fieldset
-									className="mt-3 m-0 min-w-0 border-0 p-0"
-									aria-invalid={isMissing || undefined}
-									aria-describedby={isMissing ? errorId : undefined}
-								>
-									<legend className="sr-only">
-										Statement {item.order}: {item.text}
-									</legend>
-									<div className="grid grid-cols-5 gap-1.5">
-										{([1, 2, 3, 4, 5] as const).map((value) => {
-											const selected = selectedValue === value;
-											const optionId = `item-${item.id}-v${value}`;
-											return (
-												<label
-													key={value}
-													htmlFor={optionId}
-													className={cn(
-														"flex h-14 cursor-pointer touch-manipulation items-center justify-center rounded-md border text-base font-medium transition-colors select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
-														selected
-															? "border-primary bg-primary text-primary-foreground"
-															: "border-border bg-card active:bg-muted",
-													)}
-												>
-													<input
-														id={optionId}
-														type="radio"
-														className="sr-only"
-														name={`item-${item.id}`}
-														value={value}
-														checked={selected}
-														onChange={() => choose(item.id, value)}
-														aria-label={LIKERT_LABELS[value - 1]}
-													/>
-													<span aria-hidden="true">{value}</span>
-												</label>
-											);
-										})}
+
+								{item.type === "likert" ? (
+									<>
+										<fieldset
+											className="mt-3 m-0 min-w-0 border-0 p-0"
+											aria-invalid={isMissing || undefined}
+											aria-describedby={isMissing ? errorId : undefined}
+										>
+											<legend className="sr-only">
+												Statement {item.order}: {item.text}
+											</legend>
+											<div className="grid grid-cols-5 gap-1.5">
+												{([1, 2, 3, 4, 5] as const).map((value) => {
+													const selected = answer?.value === value;
+													const optionId = `item-${item.id}-v${value}`;
+													return (
+														<label
+															key={value}
+															htmlFor={optionId}
+															className={cn(
+																"flex h-14 cursor-pointer touch-manipulation items-center justify-center rounded-md border text-base font-medium transition-colors select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+																selected
+																	? "border-primary bg-primary text-primary-foreground"
+																	: "border-border bg-card active:bg-muted",
+															)}
+														>
+															<input
+																id={optionId}
+																type="radio"
+																className="sr-only"
+																name={`item-${item.id}`}
+																value={value}
+																checked={selected}
+																onChange={() => chooseLikert(item.id, value)}
+																aria-label={LIKERT_LABELS[value - 1]}
+															/>
+															<span aria-hidden="true">{value}</span>
+														</label>
+													);
+												})}
+											</div>
+										</fieldset>
+										<div
+											className="mt-1.5 flex justify-between text-[11px] text-muted-foreground"
+											aria-hidden="true"
+										>
+											<span>{LIKERT_LABELS[0]}</span>
+											<span>{LIKERT_LABELS[4]}</span>
+										</div>
+									</>
+								) : (
+									<div className="mt-3 space-y-1.5">
+										{item.helperText ? (
+											<p className="text-xs text-muted-foreground">{item.helperText}</p>
+										) : null}
+										<Textarea
+											value={answer?.textValue ?? ""}
+											onChange={(e) => changeText(item.id, e.target.value)}
+											rows={item.type === "long_text" ? 5 : 2}
+											maxLength={item.maxLength}
+											aria-invalid={isMissing || undefined}
+											aria-describedby={isMissing ? errorId : undefined}
+											className="min-h-11"
+										/>
 									</div>
-								</fieldset>
-								<div
-									className="mt-1.5 flex justify-between text-[11px] text-muted-foreground"
-									aria-hidden="true"
-								>
-									<span>{LIKERT_LABELS[0]}</span>
-									<span>{LIKERT_LABELS[4]}</span>
-								</div>
+								)}
+
 								{isMissing && (
 									<p id={errorId} role="alert" className="mt-2 text-xs text-destructive">
 										Please answer this one.
@@ -386,18 +448,13 @@ export function AssessmentForm({
 					<AlertDialogHeader>
 						<AlertDialogTitle>Submit your answers?</AlertDialogTitle>
 						<AlertDialogDescription>
-							You have answered {answered} of {total} statements. After you
-							submit, responses cannot be changed.
+							You have answered {answered} of {total} items. After you submit,
+							responses cannot be changed.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel disabled={busy}>
-							Keep reviewing
-						</AlertDialogCancel>
-						<AlertDialogAction
-							disabled={busy}
-							onClick={() => void confirmSubmit()}
-						>
+						<AlertDialogCancel disabled={busy}>Keep reviewing</AlertDialogCancel>
+						<AlertDialogAction disabled={busy} onClick={() => void confirmSubmit()}>
 							{busy ? "Submitting…" : "Submit assessment"}
 						</AlertDialogAction>
 					</AlertDialogFooter>

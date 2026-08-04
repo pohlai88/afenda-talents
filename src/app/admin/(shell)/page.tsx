@@ -32,7 +32,6 @@ export default async function AdminOverviewPage() {
 		db.response.groupBy({
 			by: ["assignmentId"],
 			_max: { updatedAt: true },
-			where: { assignmentId: { not: null } },
 		}),
 		db.auditEvent.findMany({
 			where: { action: "result.viewed" },
@@ -52,8 +51,8 @@ export default async function AdminOverviewPage() {
 
 	const lastResponseAt = new Map(
 		responseActivity
-			.filter((r) => r.assignmentId)
-			.map((r) => [r.assignmentId!, r._max.updatedAt]),
+			.filter((r): r is typeof r & { assignmentId: string } => Boolean(r.assignmentId))
+			.map((r) => [r.assignmentId, r._max.updatedAt]),
 	);
 	const lastViewedAt = new Map<string, Date>();
 	for (const event of viewEvents) {

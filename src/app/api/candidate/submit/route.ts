@@ -19,32 +19,46 @@ export async function POST() {
 	}
 
 	const doc = await loadVersionDocument(assignment.assessmentVersionId);
-	const answerable = orderedAnswerableItems(doc).filter((i) => i.type === "likert");
+	const answerable = orderedAnswerableItems(doc);
 
 	const responses = await db.response.findMany({
 		where: { assignmentId: assignment.id },
 	});
+	const byQuestion = new Map(responses.map((r) => [r.questionId, r]));
 
-	const answeredIds = new Set(responses.map((r) => r.questionId ?? r.itemId));
-	const unanswered = answerable.filter((i) => !answeredIds.has(i.id)).map((i) => i.id);
+	const unanswered: string[] = [];
+	for (const item of answerable) {
+		const row = byQuestion.get(item.id);
+		if (item.type === "likert") {
+			if (!row || row.value == null) unanswered.push(item.id);
+		} else if (item.type === "short_text" || item.type === "long_text") {
+			if (item.required && (!row || !row.textValue?.trim())) unanswered.push(item.id);
+		}
+	}
 	if (unanswered.length > 0) {
 		return NextResponse.json(
-			{ error: "Please answer every statement before submitting.", unanswered },
+			{ error: "Please answer every required item before submitting.", unanswered },
 			{ status: 400 },
 		);
 	}
 
+	const likertResponses = answerable
+		.filter((i) => i.type === "likert")
+		.map((i) => {
+			const r = byQuestion.get(i.id)!;
+			return { itemId: i.id, value: r.value!, msOnItem: r.msOnItem };
+		});
+
 	const scored = scoreAssessment({
 		versionDocument: doc,
-		responses: responses.map((r) => ({
-			itemId: r.questionId ?? r.itemId,
-			value: r.value,
-			msOnItem: r.msOnItem,
-		})),
+		responses: likertResponses,
 	});
 
 	const stamps = responses.map((r) => r.updatedAt.getTime());
-	const serverWindowSeconds = Math.round((Math.max(...stamps) - Math.min(...stamps)) / 1000);
+	const serverWindowSeconds =
+		stamps.length > 0
+			? Math.round((Math.max(...stamps) - Math.min(...stamps)) / 1000)
+			: 0;
 
 	await applyStatus(assignment.id, "SUBMITTED", { submittedAt: new Date() });
 
@@ -58,7 +72,6 @@ export async function POST() {
 			assessmentVersionId: assignment.assessmentVersionId,
 		},
 		create: {
-			candidateId: assignment.candidateId,
 			assignmentId: assignment.id,
 			assessmentVersionId: assignment.assessmentVersionId,
 			dimensionScores: scored.dimensions,

@@ -14,7 +14,20 @@ export async function POST() {
 	}
 
 	const now = new Date();
-	await applyStatus(assignment.id, "STARTED", { consentedAt: now, startedAt: now });
+	try {
+		if (assignment.status === "STARTED") {
+			return NextResponse.json({ ok: true });
+		}
+		await applyStatus(assignment.id, "STARTED", {
+			consentedAt: now,
+			startedAt: now,
+		});
+	} catch {
+		return NextResponse.json(
+			{ error: "Could not start the assessment" },
+			{ status: 409 },
+		);
+	}
 	await audit("candidate", "candidate.consented", assignment.id);
 
 	return NextResponse.json({ ok: true });

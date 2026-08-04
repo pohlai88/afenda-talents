@@ -58,6 +58,17 @@ export async function allLinks(): Promise<string[]> {
 	return log.match(/http:\/\/localhost:\d+\/a\/[A-Za-z0-9_-]+/g) ?? [];
 }
 
+/** Fills the single-candidate invite fields (scoped to the active tabpanel). */
+export async function fillSingleInvite(
+	page: Page,
+	name: string,
+	email: string,
+): Promise<void> {
+	const single = page.getByRole("tabpanel", { name: "Single candidate" });
+	await single.getByLabel("Full name").fill(name);
+	await single.getByLabel("Email", { exact: true }).fill(email);
+}
+
 /** Invites one candidate and returns the invitation link from the console transport. */
 export async function invite(
 	page: Page,
@@ -66,8 +77,7 @@ export async function invite(
 ): Promise<string> {
 	const before = (await allLinks()).length;
 	await page.goto("/admin/invite");
-	await page.getByLabel("Full name").fill(name);
-	await page.getByLabel("Email", { exact: true }).fill(email);
+	await fillSingleInvite(page, name, email);
 	await page.getByRole("button", { name: "Review invitation" }).click();
 	await page.getByRole("button", { name: /Send 1 invitation/ }).click();
 	await page
@@ -87,14 +97,21 @@ export async function completeAssessment(
 	link: string,
 ): Promise<void> {
 	await page.goto(link);
+	await expect(page.getByRole("heading", { name: "Before you begin" })).toBeVisible();
 	await page.getByRole("checkbox").check();
 	await page.getByRole("button", { name: "Start the assessment" }).click();
+	await expect(page).toHaveURL(/\/assessment$/, { timeout: 20_000 });
+	await expect(page.locator("li[id^='item-']").first()).toBeVisible({
+		timeout: 15_000,
+	});
 
 	const groups = page.locator("li[id^='item-']");
-	for (let i = 0; i < 34; i++) {
+	const count = await groups.count();
+	expect(count).toBeGreaterThan(0);
+	for (let i = 0; i < count; i++) {
 		// Alternate answers so the straight-lining flag is not triggered by the fixture.
 		const label = i % 2 === 0 ? /^Agree$/ : /^Neither agree nor disagree$/;
-		await groups.nth(i).getByRole("radio", { name: label }).check();
+		await groups.nth(i).getByRole("radio", { name: label }).check({ timeout: 10_000 });
 	}
 	await page.waitForTimeout(1500); // let the last debounce flush
 	await page.getByRole("button", { name: "Submit" }).click();

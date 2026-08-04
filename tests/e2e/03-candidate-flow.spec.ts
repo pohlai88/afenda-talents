@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
-import { signIn } from "./helpers";
+import { fillSingleInvite, signIn } from "./helpers";
 
 async function inviteAndGetLink(
 	page: Page,
@@ -16,8 +16,7 @@ async function inviteAndGetLink(
 	await signIn(page);
 
 	await page.goto("/admin/invite");
-	await page.getByLabel("Full name").fill(name);
-	await page.getByLabel("Email", { exact: true }).fill(email);
+	await fillSingleInvite(page, name, email);
 	await page.getByRole("button", { name: "Review invitation" }).click();
 	await page.getByRole("button", { name: /Send 1 invitation/ }).click();
 	await page

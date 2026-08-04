@@ -529,6 +529,8 @@ export function CandidatesDatatable({
 										{pageRows.map((row) => (
 											<TableRow
 												key={row.id}
+												data-assignment-id={row.original.assignmentId}
+												data-candidate-id={row.original.id}
 												className="cursor-pointer"
 												onClick={(event) => {
 													if (

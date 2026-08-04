@@ -25,7 +25,13 @@ export function ConsentForm({ token }: { token: string }) {
 				router.push(`/a/${token}/assessment`);
 				return;
 			}
-			router.push(`/a/${token}/done`);
+			setBusy(false);
+			const body = await response.json().catch(() => ({}));
+			setError(
+				typeof body.error === "string"
+					? body.error
+					: "Could not start. Check your connection and try again.",
+			);
 		} catch {
 			setBusy(false);
 			setError("Could not start. Check your connection and try again.");

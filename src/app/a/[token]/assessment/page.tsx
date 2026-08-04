@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { currentAssignmentId, resolveAssignmentToken } from "@/lib/auth-candidate";
-import { AssessmentForm } from "@/components/assessment-form";
+import {
+	AssessmentForm,
+	type AssessmentFormItem,
+} from "@/components/assessment-form";
 import { loadVersionDocument } from "@/lib/version-document";
 import { orderedAnswerableItems } from "@/lib/instrument-document";
 import { db } from "@/lib/db";
@@ -23,24 +26,43 @@ export default async function AssessmentPage({
 	if (assignment.status !== "STARTED") redirect(`/a/${token}`);
 
 	const doc = await loadVersionDocument(assignment.assessmentVersionId);
-	const items = orderedAnswerableItems(doc).filter((i) => i.type === "likert");
+	const answerable = orderedAnswerableItems(doc);
+
+	const formItems: AssessmentFormItem[] = [];
+	let order = 0;
+	for (const item of answerable) {
+		order += 1;
+		if (item.type === "likert") {
+			formItems.push({
+				id: item.id,
+				order,
+				text: item.text,
+				type: "likert",
+				required: item.required,
+			});
+		} else if (item.type === "short_text" || item.type === "long_text") {
+			formItems.push({
+				id: item.id,
+				order,
+				text: item.text,
+				type: item.type,
+				required: item.required,
+				maxLength: item.maxLength,
+				helperText: item.helperText,
+			});
+		}
+	}
 
 	const responses = await db.response.findMany({
 		where: { assignmentId: assignment.id },
 	});
-	const saved = Object.fromEntries(
-		responses.map((r) => [r.questionId ?? r.itemId, r.value]),
-	);
+	const saved: Record<string, { value?: number; textValue?: string }> = {};
+	for (const r of responses) {
+		saved[r.questionId] = {
+			value: r.value ?? undefined,
+			textValue: r.textValue ?? undefined,
+		};
+	}
 
-	return (
-		<AssessmentForm
-			token={token}
-			items={items.map((i, order) => ({
-				id: i.id,
-				order: order + 1,
-				text: i.text,
-			}))}
-			saved={saved}
-		/>
-	);
+	return <AssessmentForm token={token} items={formItems} saved={saved} />;
 }

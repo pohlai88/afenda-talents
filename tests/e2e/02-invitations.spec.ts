@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { signIn } from "./helpers";
+import { fillSingleInvite, signIn } from "./helpers";
 
 /** The console transport prints every email to the server's stdout, captured in server.log. */
 async function capturedLinks(): Promise<string[]> {
@@ -14,8 +14,7 @@ async function sendSingleInvite(
 	name: string,
 	email: string,
 ) {
-	await page.getByLabel("Full name").fill(name);
-	await page.getByLabel("Email", { exact: true }).fill(email);
+	await fillSingleInvite(page, name, email);
 	await page.getByRole("button", { name: "Review invitation" }).click();
 	await page.getByRole("button", { name: /Send 1 invitation/ }).click();
 	await page
@@ -118,10 +117,7 @@ test("inviting the same email twice is blocked at review, not duplicated", async
 	await expect(page.getByRole("status")).toContainText("Invited 1");
 
 	await page.goto("/admin/invite");
-	await page.getByLabel("Full name").fill("Dupe Test");
-	await page
-		.getByLabel("Email", { exact: true })
-		.fill(`dupe+${stamp}@example.com`);
+	await fillSingleInvite(page, "Dupe Test", `dupe+${stamp}@example.com`);
 	await page.getByRole("button", { name: "Review invitation" }).click();
 	await expect(page.getByText("0 ready · 1 already invited")).toBeVisible();
 	await expect(page.getByText("Already invited in this round")).toBeVisible();

@@ -18,7 +18,7 @@ import {
 	orderedDimensionCodes,
 } from "@/lib/instrument-labels";
 
-type Row = { order: number; text: string; value: number; dimension: string };
+type Row = { order: number; text: string; value: number | string; dimension: string };
 
 /**
  * Item-level responses: collapsed by default, grouped by dimension (UI §8.6).
@@ -118,9 +118,13 @@ export function ItemResponsesTable({ rows }: { rows: Row[] }) {
 												{row.order}
 											</TableCell>
 											<TableCell>{row.text}</TableCell>
-											<TableCell>{likertLabel(row.value)}</TableCell>
+											<TableCell>
+												{typeof row.value === "number"
+													? likertLabel(row.value)
+													: row.value}
+											</TableCell>
 											<TableCell className="tabular-nums">
-												{row.value}
+												{typeof row.value === "number" ? row.value : "—"}
 											</TableCell>
 										</TableRow>
 									))}

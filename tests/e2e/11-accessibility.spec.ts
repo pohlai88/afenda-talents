@@ -20,7 +20,6 @@ test.describe("accessibility — WCAG AA smoke", () => {
 
 		await expectNoA11yViolations(page, "invite (empty)");
 
-		// Tabs are keyboard-reachable; fill and review with Enter on the action.
 		await page.getByRole("tab", { name: "Add many" }).focus();
 		await page.keyboard.press("Enter");
 		await expect(page.getByRole("tab", { name: "Add many" })).toHaveAttribute(
@@ -29,15 +28,14 @@ test.describe("accessibility — WCAG AA smoke", () => {
 		);
 		await page.getByRole("tab", { name: "Single candidate" }).focus();
 		await page.keyboard.press("Enter");
-		await page.getByLabel("Full name").fill("A11y Invite");
-		await page
+		const single = page.getByRole("tabpanel", { name: "Single candidate" });
+		await single.getByLabel("Full name").fill("A11y Invite");
+		await single
 			.getByLabel("Email", { exact: true })
 			.fill(`a11y-invite+${Date.now()}@example.com`);
 		await page.getByRole("button", { name: "Review invitation" }).focus();
 		await page.keyboard.press("Enter");
-		await expect(
-			page.getByRole("heading", { name: "Review before sending" }),
-		).toBeVisible();
+		await expect(page.getByText("Review before sending")).toBeVisible();
 		await expect(
 			page.getByRole("button", { name: /Send 1 invitation/ }),
 		).toBeVisible();
@@ -54,28 +52,34 @@ test.describe("accessibility — WCAG AA smoke", () => {
 		await expectNoA11yViolations(page, "candidates workspace");
 	});
 
-	test("candidate detail (progress + scored) axe and responses disclosure", async ({
-		page,
-	}) => {
-		test.setTimeout(180_000);
+	test("candidate detail progress is axe-clean", async ({ page }) => {
+		test.setTimeout(120_000);
 		const stamp = Date.now();
 		const progressName = `A11yProgress-${stamp}`;
-		const scoredName = `A11yScored-${stamp}`;
 
 		await signIn(page);
 		await invite(page, progressName, `a11y-progress+${stamp}@example.com`);
-		const link = await invite(
-			page,
-			scoredName,
-			`a11y-scored+${stamp}@example.com`,
-		);
 
 		await page.goto("/admin/candidates");
 		await page.getByRole("link", { name: new RegExp(progressName) }).click();
 		await expect(page.getByRole("heading", { name: progressName })).toBeVisible();
 		await expect(page.getByText(/Back to candidates/)).toBeVisible();
 		await expectNoA11yViolations(page, "candidate detail progress");
+	});
 
+	test("scored profile responses disclosure is keyboard operable and axe-clean", async ({
+		page,
+	}) => {
+		test.setTimeout(180_000);
+		const stamp = Date.now();
+		const scoredName = `A11yScored-${stamp}`;
+
+		await signIn(page);
+		const link = await invite(
+			page,
+			scoredName,
+			`a11y-scored+${stamp}@example.com`,
+		);
 		await completeAssessment(page, link);
 		await signIn(page);
 		await page.goto("/admin/candidates");

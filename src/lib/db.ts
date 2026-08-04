@@ -8,14 +8,30 @@ import { env } from "@/lib/env";
  *
  * The globalThis singleton matters on serverless: without it every warm invocation opens
  * a fresh pool and Neon's connection limit is reached quickly.
+ *
+ * In development, drop a cached client that predates a `prisma generate` (e.g. missing
+ * CandidateAssignment after the D18 expand) so Turbopack HMR does not keep serving a
+ * half-updated singleton.
  */
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createClient(): PrismaClient {
-  const adapter = new PrismaPg({ connectionString: env.DATABASE_URL });
-  return new PrismaClient({ adapter });
+	const adapter = new PrismaPg({ connectionString: env.DATABASE_URL });
+	return new PrismaClient({ adapter });
 }
 
-export const db = globalForPrisma.prisma ?? createClient();
+function isCurrentClient(client: PrismaClient): boolean {
+	const delegate = (client as unknown as Record<string, { findMany?: unknown }>)
+		.candidateAssignment;
+	return typeof delegate?.findMany === "function";
+}
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
+function resolveClient(): PrismaClient {
+	const existing = globalForPrisma.prisma;
+	if (existing && isCurrentClient(existing)) return existing;
+	const client = createClient();
+	if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = client;
+	return client;
+}
+
+export const db = resolveClient();

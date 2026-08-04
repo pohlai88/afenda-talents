@@ -27,6 +27,8 @@ import {
 	type UiContextFlag,
 	type UiDimension,
 } from "@/lib/result-display";
+import { loadVersionDocument } from "@/lib/version-document";
+import { orderedAnswerableItems } from "@/lib/instrument-document";
 
 export const dynamic = "force-dynamic";
 
@@ -55,10 +57,30 @@ export default async function CandidateDetailPage({
 
 	const assignment = await db.candidateAssignment.findFirst({
 		where: { candidateId: id },
-		include: { result: true, responses: { include: { item: true } } },
+		include: { result: true, responses: true },
 		orderBy: { createdAt: "desc" },
 	});
 	if (!assignment) notFound();
+
+	const versionDoc = await loadVersionDocument(assignment.assessmentVersionId);
+	const answerable = orderedAnswerableItems(versionDoc);
+	const itemMeta = new Map(
+		answerable.map((item, index) => {
+			const dimension =
+				item.type === "likert" && item.dimensionId
+					? (versionDoc.dimensions.find((d) => d.id === item.dimensionId)?.code ??
+						"")
+					: "";
+			return [
+				item.id,
+				{
+					order: index + 1,
+					text: item.type === "info" ? "" : item.text,
+					dimension,
+				},
+			] as const;
+		}),
+	);
 
 	const [inviter, auditRows] = await Promise.all([
 		assignment.invitedById
@@ -167,12 +189,15 @@ export default async function CandidateDetailPage({
 						totalSeconds={assignment.result.totalSeconds}
 						serverWindowSeconds={assignment.result.serverWindowSeconds}
 						rows={assignment.responses
-							.map((r) => ({
-								order: r.item.order,
-								text: r.item.text,
-								value: r.value,
-								dimension: r.item.dimension,
-							}))
+							.map((r) => {
+								const meta = itemMeta.get(r.questionId);
+								return {
+									order: meta?.order ?? 0,
+									text: meta?.text ?? r.questionId,
+									value: r.value ?? r.textValue ?? "",
+									dimension: meta?.dimension ?? "",
+								};
+							})
 							.sort((a, b) => a.order - b.order)}
 					/>
 				</>
@@ -209,7 +234,7 @@ function ScoredProfile({
 	flags: UiContextFlag[];
 	totalSeconds: number;
 	serverWindowSeconds: number;
-	rows: { order: number; text: string; value: number; dimension: string }[];
+	rows: { order: number; text: string; value: number | string; dimension: string }[];
 }) {
 	return (
 		<>

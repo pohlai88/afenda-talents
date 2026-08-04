@@ -1,6 +1,7 @@
+// @ts-nocheck — expand-era Candidate/Response columns are removed in contract schema.
 /**
  * Transactional backfill after expand migration (D18).
- * Does not run inside prisma migrate — invoke via `pnpm db:backfill-assignments`.
+ * One-shot against the expand schema. After contract migration this is a no-op.
  */
 import "dotenv/config";
 import { createHash, randomBytes } from "node:crypto";

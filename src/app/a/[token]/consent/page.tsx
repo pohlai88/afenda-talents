@@ -32,7 +32,10 @@ export default async function ConsentPage({
 
 	// D8: the token and the cookie must agree on which assignment this browser holds.
 	const cookieAssignmentId = await currentAssignmentId();
-	if (cookieAssignmentId !== assignment.id) redirect(`/a/${token}/done`);
+	if (cookieAssignmentId !== assignment.id) {
+		// Re-enter through the token gate so a missing/stale cookie is re-minted.
+		redirect(`/a/${token}`);
+	}
 
 	if (assignment.status === "STARTED") redirect(`/a/${token}/assessment`);
 

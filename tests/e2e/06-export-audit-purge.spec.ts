@@ -27,7 +27,11 @@ test("a full admin round produces a complete, identity-free audit trail", async 
 
 	const [revokeId, resendId] = await withDb(async (db) => {
 		const rows = await db.query(
-			`SELECT id, email FROM "Candidate" WHERE email IN ($1, $2) ORDER BY email`,
+			`SELECT a.id, c.email
+       FROM "CandidateAssignment" a
+       JOIN "Candidate" c ON c.id = a."candidateId"
+       WHERE c.email IN ($1, $2)
+       ORDER BY c.email`,
 			[`res+${stamp}@example.com`, `rev+${stamp}@example.com`],
 		);
 		const byEmail = Object.fromEntries(rows.rows.map((r) => [r.email, r.id]));
