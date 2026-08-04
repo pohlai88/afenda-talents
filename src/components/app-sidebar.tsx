@@ -42,7 +42,7 @@ export function AppSidebar({ user }: { user: ShellUser }) {
     <Sidebar collapsible="icon" className="print:hidden">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:justify-center">
-          <span aria-hidden="true" className="h-[7px] w-[7px] shrink-0 rotate-45 bg-[#C8A96A]" />
+          <span aria-hidden="true" className="h-[7px] w-[7px] shrink-0 rotate-45 bg-brand-gold" />
           <span className="truncate text-sm font-semibold group-data-[collapsible=icon]:hidden">
             Afenda Talents
           </span>

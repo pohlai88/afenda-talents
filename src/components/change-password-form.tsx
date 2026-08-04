@@ -50,7 +50,7 @@ export function ChangePasswordForm({ email, forced }: { email: string; forced: b
       <Card>
         <CardHeader>
           <div className="mb-1 flex items-center gap-2">
-            <span aria-hidden="true" className="h-[6px] w-[6px] rotate-45 bg-[#C8A96A]" />
+            <span aria-hidden="true" className="h-[6px] w-[6px] rotate-45 bg-brand-gold" />
             <span className="font-mono text-[10px] tracking-[0.28em] text-muted-foreground">
               AFENDA TALENTS
             </span>
