@@ -68,8 +68,11 @@ check "6: no audit call passes a name or an email" \
   "$(scan 'audit\([^)]*\b(email|fullName)\b' src)"
 
 # --- Invariant 9: no single summarising number --------------------------------
-check "9: no overall score, rank, or percentile" \
-  "$(scan '\b(overallScore|totalScore|compositeScore|averageScore|ranking|percentile)\b' src)"
+# Identifier forms only: the spec REQUIRES prose that negates ranking ("is not a test
+# score, a ranking, or a recommendation"), so bare words in copy must not trip this.
+# What must never exist is a computed rank/overall value: a variable, key, or call.
+check "9: no overall score, rank, or percentile is computed" \
+  "$(scan '\b(overallScore|totalScore|compositeScore|averageScore|percentile)\b|\brank(ing|ed)?\s*[:=(]' src)"
 
 echo
 if [ "$fail" -ne 0 ]; then
