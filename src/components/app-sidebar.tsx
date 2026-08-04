@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, UserPlus, Users, FileDown, KeyRound, LogOut } from "lucide-react";
+import {
+  ChevronsUpDown,
+  Database,
+  KeyRound,
+  LayoutDashboard,
+  LogOut,
+  UserPlus,
+  Users,
+  UsersRound,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -15,8 +24,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 type ShellUser = { name: string; email: string; role: string };
 
@@ -31,81 +46,101 @@ export function AppSidebar({ user }: { user: ShellUser }) {
     router.refresh();
   }
 
+  // Operational destinations only. Account utilities live in the footer menu —
+  // requirements §4.2. Export is a page action, not a destination, so it is not here.
   const items = [
-    { title: "Dashboard", href: "/admin", icon: LayoutDashboard, show: true },
-    { title: "Invite candidates", href: "/admin/invite", icon: UserPlus, show: isAdmin },
-    { title: "Hiring team", href: "/admin/users", icon: Users, show: isAdmin },
+    { title: "Overview", href: "/admin", icon: LayoutDashboard, show: true },
+    { title: "Candidates", href: "/admin/candidates", icon: UsersRound, show: true },
+    { title: "Invite", href: "/admin/invite", icon: UserPlus, show: isAdmin },
+    { title: "Team", href: "/admin/users", icon: Users, show: isAdmin },
+    { title: "Data & audit", href: "/admin/data", icon: Database, show: isAdmin },
   ];
 
   return (
-    // print:hidden — the profile page prints; the global print CSS only hides <nav>.
-    <Sidebar collapsible="icon" className="print:hidden">
+    // offcanvas, not icon: requirements §5.1 bans icon-only navigation. Desktop keeps
+    // 256px with permanent text labels; mobile gets the drawer.
+    // print:hidden — the candidate profile prints, and the global print CSS only hides <nav>.
+    <Sidebar collapsible="offcanvas" className="print:hidden">
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:justify-center">
+        <div className="flex items-center gap-2 px-2 py-1.5">
           <span aria-hidden="true" className="h-[7px] w-[7px] shrink-0 rotate-45 bg-brand-gold" />
-          <span className="truncate text-sm font-semibold group-data-[collapsible=icon]:hidden">
-            Afenda Talents
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold">Afenda Talents</span>
+            <span className="block truncate text-xs text-muted-foreground">
+              Hiring assessment workspace
+            </span>
           </span>
         </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Hiring round</SidebarGroupLabel>
+          <SidebarGroupLabel>This hiring round</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items
                 .filter((item) => item.show)
-                .map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      isActive={pathname === item.href}
-                      tooltip={item.title}
-                      render={<Link href={item.href} />}
-                    >
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              {isAdmin && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton tooltip="Export CSV" render={<a href="/api/admin/export" />}>
-                    <FileDown />
-                    <span>Export CSV</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
+                .map((item) => {
+                  const active = pathname === item.href;
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        isActive={active}
+                        // Three signals, as requirements §5.1 demands: background and
+                        // weight come from the primitive's data-active styles, the left
+                        // indicator is added here.
+                        className="relative data-active:before:absolute data-active:before:inset-y-1 data-active:before:left-0 data-active:before:w-0.5 data-active:before:rounded-full data-active:before:bg-primary"
+                        render={
+                          <Link href={item.href} aria-current={active ? "page" : undefined} />
+                        }
+                      >
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="flex flex-col gap-2 p-2 group-data-[collapsible=icon]:hidden">
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{user.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-            </div>
-            <Badge variant={isAdmin ? "default" : "secondary"}>{user.role}</Badge>
-          </div>
-          <div className="grid grid-cols-2 gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              nativeButton={false}
-              render={<Link href="/admin/change-password" />}
-            >
-              <KeyRound className="mr-1 size-3.5" />
-              Password
-            </Button>
-            <Button size="sm" variant="ghost" onClick={signOut}>
-              <LogOut className="mr-1 size-3.5" />
-              Sign out
-            </Button>
-          </div>
-        </div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <SidebarMenuButton
+                    size="lg"
+                    aria-label={`Account menu for ${user.name}`}
+                    className="data-open:bg-sidebar-accent"
+                  />
+                }
+              >
+                <div className="min-w-0 flex-1 text-left">
+                  <span className="block truncate text-sm font-medium">{user.name}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
+                </div>
+                <Badge variant={isAdmin ? "default" : "secondary"}>
+                  {isAdmin ? "Admin" : "Viewer"}
+                </Badge>
+                <ChevronsUpDown className="ml-1 opacity-60" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" className="w-56">
+                <DropdownMenuItem render={<Link href="/admin/change-password" />}>
+                  <KeyRound />
+                  Change password
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );
