@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth-admin";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import type { DimensionScore, ValidityFlag } from "@/lib/scoring";
@@ -24,6 +25,13 @@ function cell(value: string | number | null | undefined): string {
 }
 
 export async function GET() {
+  let session;
+  try {
+    session = await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
   const candidates = await db.candidate.findMany({
     orderBy: { createdAt: "asc" },
     include: { result: true },
@@ -53,7 +61,7 @@ export async function GET() {
     ];
   });
 
-  await audit("admin", "export.downloaded", undefined, { rowCount: rows.length });
+  await audit(session.userId, "export.downloaded", undefined, { rowCount: rows.length });
 
   // The BOM makes Excel read the file as UTF-8 rather than the local codepage.
   const csv = "﻿" + [header, ...rows].map((r) => r.map(cell).join(",")).join("\r\n");

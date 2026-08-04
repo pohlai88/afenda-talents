@@ -1,13 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import fs from "node:fs/promises";
-const PASSWORD = process.env.ADMIN_PASSWORD!;
-
-async function signIn(page: Page) {
-  await page.goto("/admin/login");
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/admin$/);
-}
+import { signIn } from "./helpers";
 
 async function allLinks(): Promise<string[]> {
   const log = await fs.readFile("server.log", "utf8").catch(() => "");

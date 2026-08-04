@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -19,7 +20,7 @@ export default function AdminLoginPage() {
     const response = await fetch("/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ email, password }),
     });
     setBusy(false);
     if (response.ok) {
@@ -34,8 +35,19 @@ export default function AdminLoginPage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center p-6">
       <h1 className="text-2xl font-semibold">Afenda Talents</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Hiring manager sign in</p>
+      <p className="mt-1 text-sm text-muted-foreground">Hiring team sign in</p>
       <form onSubmit={submit} className="mt-6 space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="username"
+            required
+          />
+        </div>
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
           <Input

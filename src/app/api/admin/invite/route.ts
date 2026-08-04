@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth-admin";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -17,6 +18,13 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  let session;
+  try {
+    session = await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
@@ -41,12 +49,18 @@ export async function POST(request: Request) {
     const expiresAt = expiryFromNow(env.INVITE_TTL_DAYS);
 
     const candidate = await db.candidate.create({
-      data: { email, fullName: entry.fullName.trim(), tokenHash: hashToken(token), expiresAt },
+      data: {
+        email,
+        fullName: entry.fullName.trim(),
+        tokenHash: hashToken(token),
+        expiresAt,
+        invitedById: session.userId,
+      },
     });
 
     await applyStatus(candidate.id, "SENT", { sentAt: new Date() });
     await sendInvitation(email, candidate.fullName, inviteUrl(env.APP_URL, token), expiresAt);
-    await audit("admin", "invite.created", candidate.id);
+    await audit(session.userId, "invite.created", candidate.id);
     invited++;
   }
 

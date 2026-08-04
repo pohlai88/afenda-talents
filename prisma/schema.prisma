@@ -13,11 +13,24 @@ datasource db {
   provider = "postgresql"
 }
 
+// Hiring-side login accounts. Candidates are NOT users — their emailed token is their
+// credential. Roles: ADMIN (full control) or VIEWER (read-only). See DECISIONS.md D15.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("VIEWER")
+  createdAt    DateTime @default(now())
+}
+
 model Candidate {
   id          String     @id @default(cuid())
   email       String     @unique
   fullName    String
   status      String     @default("DRAFT")
+  // Who sent the invitation — makes per-manager scoping a WHERE clause later.
+  invitedById String?
   tokenHash   String?    @unique
   expiresAt   DateTime?
   sentAt      DateTime?

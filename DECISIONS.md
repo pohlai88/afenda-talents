@@ -173,3 +173,21 @@ consecutive raw-client failures. Real PostgreSQL binaries via `embedded-postgres
 
 This is scaffolding, not architecture: production remains Neon (D1), and `.env`/`.env.test`
 swap to the Neon pooled/direct pairs when that project is created.
+
+## D15 — Homegrown two-role RBAC, not Neon Auth, and candidates are not users
+
+The single-admin model (spec §1, §12) was outgrown: several managers need to see candidates.
+Neon Auth (Managed Better Auth) was evaluated — live on the project, branch-aware — but the
+user chose a smaller build: a `User` table with scrypt password hashes (node:crypto, no new
+dependency) and two roles. **ADMIN** acts (invite, resend, revoke, delete, purge, export,
+manage users); **VIEWER** reads (dashboard, profiles). The session JWT carries
+`{ userId, role }` in the same `afenda_admin` cookie; the proxy gate admits either role and
+every mutating handler re-checks with `requireAdmin()` — consistent with D7's coarse gate.
+
+Deliberate exclusions: **candidates are not a role** — their emailed token remains their only
+credential, and the candidate auth file is untouched (invariant 7 holds). No self-service
+password reset — an admin regenerates a temporary password shown exactly once. No per-manager
+candidate scoping yet, but `Candidate.invitedById` records the inviter so scoping later is a
+WHERE clause, not a migration. The env `ADMIN_EMAIL`/`ADMIN_PASSWORD` now bootstrap the first
+ADMIN account at seed time instead of being the login credential themselves. Audit `actor`
+holds the user id — never an email (invariant 6).

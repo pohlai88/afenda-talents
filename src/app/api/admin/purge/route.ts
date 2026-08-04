@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth-admin";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
@@ -14,13 +15,20 @@ const bodySchema = z.object({ confirmation: z.string() });
  * so nothing identifying remains after this call.
  */
 export async function POST(request: Request) {
+  let session;
+  try {
+    session = await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success || parsed.data.confirmation !== CONFIRMATION) {
     return NextResponse.json({ error: `Type exactly: ${CONFIRMATION}` }, { status: 400 });
   }
 
   const { count } = await db.candidate.deleteMany({});
-  await audit("admin", "data.purged", undefined, { deletedCount: count });
+  await audit(session.userId, "data.purged", undefined, { deletedCount: count });
 
   return NextResponse.json({ deleted: count });
 }

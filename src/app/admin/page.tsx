@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { requireAdmin } from "@/lib/auth-admin";
+import { requireHiringUser } from "@/lib/auth-admin";
 import { Button } from "@/components/ui/button";
 import { CandidateRowActions } from "@/components/candidate-row-actions";
 import { DangerZone } from "@/components/danger-zone";
@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
 const STATUS_ORDER = ["SENT", "STARTED", "SUBMITTED", "SCORED", "EXPIRED", "REVOKED"] as const;
 
 export default async function AdminDashboardPage() {
-  await requireAdmin();
+  const session = await requireHiringUser();
+  const isAdmin = session.role === "ADMIN";
 
   const candidates = await db.candidate.findMany({ orderBy: { createdAt: "asc" } });
   const counts = Object.fromEntries(
@@ -22,12 +23,17 @@ export default async function AdminDashboardPage() {
     <main className="mx-auto max-w-5xl p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Candidates</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" render={<a href="/api/admin/export" />}>
-            Export CSV
-          </Button>
-          <Button render={<Link href="/admin/invite" />}>Invite candidates</Button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button variant="outline" render={<Link href="/admin/users" />}>
+              Hiring team
+            </Button>
+            <Button variant="outline" render={<a href="/api/admin/export" />}>
+              Export CSV
+            </Button>
+            <Button render={<Link href="/admin/invite" />}>Invite candidates</Button>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
@@ -68,7 +74,7 @@ export default async function AdminDashboardPage() {
                 <td className="pr-3">{c.sentAt?.toLocaleDateString("en-GB") ?? "—"}</td>
                 <td className="pr-3">{c.submittedAt?.toLocaleDateString("en-GB") ?? "—"}</td>
                 <td className="text-right">
-                  <CandidateRowActions id={c.id} status={c.status} />
+                  {isAdmin && <CandidateRowActions id={c.id} status={c.status} />}
                 </td>
               </tr>
             ))}
@@ -83,7 +89,7 @@ export default async function AdminDashboardPage() {
         </table>
       </div>
 
-      <DangerZone retentionDays={env.RETENTION_DAYS} />
+      {isAdmin && <DangerZone retentionDays={env.RETENTION_DAYS} />}
     </main>
   );
 }

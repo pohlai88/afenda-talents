@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth-admin";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { audit } from "@/lib/audit";
@@ -9,6 +10,13 @@ import { sendInvitation } from "@/lib/email";
 export const runtime = "nodejs";
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  let session;
+  try {
+    session = await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
   const { id } = await params;
   const candidate = await db.candidate.findUnique({ where: { id } });
   if (!candidate) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -32,7 +40,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   if (from !== "SENT") await applyStatus(id, "SENT");
 
   await sendInvitation(candidate.email, candidate.fullName, inviteUrl(env.APP_URL, token), expiresAt);
-  await audit("admin", "invite.resent", id);
+  await audit(session.userId, "invite.resent", id);
 
   return NextResponse.json({ ok: true });
 }

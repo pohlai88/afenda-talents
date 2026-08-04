@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth-admin";
+import { requireHiringUser } from "@/lib/auth-admin";
 import { audit } from "@/lib/audit";
 import { DimensionBar } from "@/components/dimension-bar";
 import { ItemResponsesTable } from "@/components/item-responses-table";
@@ -26,7 +26,7 @@ export default async function CandidateResultPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAdmin();
+  const session = await requireHiringUser();
   const { id } = await params;
 
   const candidate = await db.candidate.findUnique({
@@ -35,7 +35,7 @@ export default async function CandidateResultPage({
   });
   if (!candidate?.result) notFound();
 
-  await audit("admin", "result.viewed", id);
+  await audit(session.userId, "result.viewed", id);
 
   const dimensions = candidate.result.dimensionScores as unknown as DimensionScore[];
   const flags = candidate.result.validityFlags as unknown as ValidityFlag[];

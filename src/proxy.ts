@@ -44,8 +44,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Any hiring role passes the gate; ADMIN-only actions re-check in their handlers
+  // via requireAdmin(), consistent with this gate being coarse by design.
   const payload = await claims(request.cookies.get(ADMIN_COOKIE)?.value);
-  if (payload?.role === "admin") return NextResponse.next();
+  if (payload?.role === "ADMIN" || payload?.role === "VIEWER") return NextResponse.next();
 
   if (pathname.startsWith("/api/admin")) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

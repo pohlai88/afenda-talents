@@ -1,16 +1,13 @@
 import { test, expect, type Page } from "@playwright/test";
 import fs from "node:fs/promises";
-const PASSWORD = process.env.ADMIN_PASSWORD!;
+import { signIn } from "./helpers";
 
 async function inviteAndGetLink(page: Page, name: string, email: string): Promise<string> {
   const before = ((await fs.readFile("server.log", "utf8").catch(() => "")).match(
     /http:\/\/localhost:3000\/a\/[A-Za-z0-9_-]+/g,
   ) ?? []).length;
 
-  await page.goto("/admin/login");
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/admin$/);
+  await signIn(page);
 
   await page.goto("/admin/invite");
   await page.getByLabel("Full name").fill(name);

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth-admin";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { applyStatus, canTransition, type Status } from "@/lib/status";
@@ -6,6 +7,13 @@ import { applyStatus, canTransition, type Status } from "@/lib/status";
 export const runtime = "nodejs";
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  let session;
+  try {
+    session = await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
   const { id } = await params;
   const candidate = await db.candidate.findUnique({ where: { id } });
   if (!candidate) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -19,7 +27,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   await applyStatus(id, "REVOKED");
   await db.candidate.update({ where: { id }, data: { tokenHash: null } });
-  await audit("admin", "invite.revoked", id);
+  await audit(session.userId, "invite.revoked", id);
 
   return NextResponse.json({ ok: true });
 }

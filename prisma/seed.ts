@@ -9,6 +9,26 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const db = new PrismaClient({ adapter });
 
 async function main() {
+  // Bootstrap hiring user: the env credentials become the first ADMIN account.
+  // Further users are created from the dashboard by an admin. Idempotent: the
+  // password is only (re)set when the account is first created.
+  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (adminEmail && adminPassword) {
+    const { hashPassword } = await import("../src/lib/passwords");
+    await db.user.upsert({
+      where: { email: adminEmail },
+      update: { role: "ADMIN" },
+      create: {
+        email: adminEmail,
+        name: "Administrator",
+        passwordHash: hashPassword(adminPassword),
+        role: "ADMIN",
+      },
+    });
+    console.log(`Admin user ensured: ${adminEmail}`);
+  }
+
   // Upsert keyed on the stable item id is what makes re-running safe.
   for (const item of instrument.items) {
     await db.item.upsert({

@@ -1,13 +1,6 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import fs from "node:fs/promises";
-const PASSWORD = process.env.ADMIN_PASSWORD!;
-
-async function signIn(page: Page) {
-  await page.goto("/admin/login");
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/admin$/);
-}
+import { signIn } from "./helpers";
 
 /** The console transport prints every email to the server's stdout, captured in server.log. */
 async function capturedLinks(): Promise<string[]> {

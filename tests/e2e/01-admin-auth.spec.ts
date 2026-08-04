@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { clearLoginAttempts } from "./helpers";
+import { clearLoginAttempts, signIn, ADMIN_EMAIL } from "./helpers";
 
 const PASSWORD = process.env.ADMIN_PASSWORD!;
 
@@ -19,19 +19,25 @@ test("rejects an unauthenticated admin API call", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("loads the dashboard after signing in", async ({ page }) => {
-  await page.goto("/admin/login");
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/admin$/);
+test("loads the dashboard after signing in with email and password", async ({ page }) => {
+  await signIn(page);
   await expect(page.getByRole("heading", { name: "Candidates" })).toBeVisible();
+});
+
+test("rejects a valid password with the wrong email", async ({ request }) => {
+  // Own forwarded IP: this failure must not count against the 429 test's budget.
+  const response = await request.post("/api/admin/login", {
+    headers: { "x-forwarded-for": "10.8.8.8" },
+    data: { email: "someone-else@example.com", password: PASSWORD },
+  });
+  expect(response.status()).toBe(401);
 });
 
 test("returns 429 after six rapid wrong passwords", async ({ request }) => {
   const statuses: number[] = [];
   for (let i = 0; i < 6; i++) {
     const response = await request.post("/api/admin/login", {
-      data: { password: `wrong-${i}` },
+      data: { email: ADMIN_EMAIL, password: `wrong-${i}` },
     });
     statuses.push(response.status());
   }
@@ -40,24 +46,23 @@ test("returns 429 after six rapid wrong passwords", async ({ request }) => {
 });
 
 test("a successful login clears the failure run", async ({ request }) => {
-  // The previous test left this IP rate-limited; wait for a clean context is not
-  // possible within the window, so this test uses the fact that a success clears
-  // the counter — but a limited IP cannot log in at all. Instead: fail 3 times on
-  // a FRESH forwarded IP, succeed, then confirm the next failure is a 401 not 429.
   const headers = { "x-forwarded-for": "10.9.9.9" };
   for (let i = 0; i < 3; i++) {
-    await request.post("/api/admin/login", { headers, data: { password: `wrong-${i}` } });
+    await request.post("/api/admin/login", {
+      headers,
+      data: { email: ADMIN_EMAIL, password: `wrong-${i}` },
+    });
   }
   const success = await request.post("/api/admin/login", {
     headers,
-    data: { password: PASSWORD },
+    data: { email: ADMIN_EMAIL, password: PASSWORD },
   });
   expect(success.status()).toBe(200);
 
   for (let i = 0; i < 4; i++) {
     const again = await request.post("/api/admin/login", {
       headers,
-      data: { password: "wrong-after-success" },
+      data: { email: ADMIN_EMAIL, password: "wrong-after-success" },
     });
     expect(again.status()).toBe(401); // without the clear, the earlier 3 would push this run to 429
   }

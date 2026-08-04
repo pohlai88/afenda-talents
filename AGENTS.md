@@ -32,6 +32,7 @@ bash .claude/skills/afenda-talents-build/check-invariants.sh
 
 ## Rules
 
+- Hiring users have roles: ADMIN acts, VIEWER reads. Every mutating handler calls requireAdmin(); read surfaces call requireHiringUser(). Candidates are never users — their token is their credential (D15).
 - Two auth systems, never mixed: `lib/auth-admin.ts` and `lib/auth-candidate.ts`. No shared
   helper, no handler importing both.
 - Every request-level gate is coarse. Every handler and every `/a/[token]/*` page re-reads the
