@@ -52,3 +52,6 @@ server.log
 
 # local embedded postgres data
 .pgdata/
+
+.vercel
+.env*
