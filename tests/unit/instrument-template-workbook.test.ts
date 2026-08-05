@@ -235,8 +235,43 @@ describe("exportWorkbook + parseWorkbook", () => {
 });
 
 // ---------------------------------------------------------------------------
-// countZipCentralDirEntries — CD walk tests
+// countZipCentralDirEntries — CD walk + alignment tests
 // ---------------------------------------------------------------------------
+
+/**
+ * Build a decoy zip where EOCD.centralDirOffset points at a 1-record decoy CD,
+ * but the real CD (65 records) sits between the decoy and the EOCD.
+ * cdOffset + cdSize (=30+46=76) ≠ eocdPos (=30+46+2990=3066) → "malformed".
+ */
+function buildDecoyZip(): Buffer {
+	const localHeader = Buffer.alloc(30, 0);
+	localHeader.writeUInt32LE(0x04034b50, 0); // PK\x03\x04
+
+	// Decoy: 1 CD record (where EOCD points)
+	const decoyCD = Buffer.alloc(46, 0);
+	decoyCD.writeUInt32LE(0x02014b50, 0);
+
+	// Real CD: 65 records (where JSZip would actually walk via extraBytes adjustment)
+	const realCDEntries: Buffer[] = [];
+	for (let i = 0; i < 65; i++) {
+		const rec = Buffer.alloc(46, 0);
+		rec.writeUInt32LE(0x02014b50, 0);
+		realCDEntries.push(rec);
+	}
+	const realCD = Buffer.concat(realCDEntries);
+
+	// EOCD: declares cdOffset=30 (decoy), cdSize=46 (1 entry)
+	// but eocdPos = 30+46+2990 = 3066, so cdOffset+cdSize=76 ≠ 3066
+	const eocd = Buffer.alloc(22, 0);
+	eocd.writeUInt32LE(0x06054b50, 0); // PK\x05\x06
+	eocd.writeUInt16LE(1, 8);           // declared on-disk: 1
+	eocd.writeUInt16LE(1, 10);          // declared total: 1
+	eocd.writeUInt32LE(46, 12);         // cdSize: 46 (1-record decoy)
+	eocd.writeUInt32LE(30, 16);         // cdOffset: 30 (decoy)
+	eocd.writeUInt16LE(0, 20);
+
+	return Buffer.concat([localHeader, decoyCD, realCD, eocd]);
+}
 
 describe("countZipCentralDirEntries", () => {
 	it("returns entry count ≥ 1 and ≤ 64 for a real ExcelJS export", async () => {
@@ -249,41 +284,48 @@ describe("countZipCentralDirEntries", () => {
 	});
 
 	it("walks actual CD records — returns real count even when EOCD declares fewer", () => {
-		// EOCD says 5, but CD actually has 10 records → must return 10, not 5
+		// EOCD says 5, CD has 10 records; cdOffset+cdSize===eocdPos so alignment passes
 		const buf = buildSyntheticZip(10, 5);
-		const count = countZipCentralDirEntries(buf);
-		expect(count).toBe(10);
+		expect(countZipCentralDirEntries(buf)).toBe(10);
 	});
 
-	it("walks actual CD records — returns 65 when EOCD lies and says 5", () => {
-		// Critical bypass test: attacker sets EOCD totalEntries=5 but writes 65 CD records
+	it("walks actual CD records — returns 65 when EOCD declares 5", () => {
+		// cdOffset+cdSize===eocdPos (alignment passes); walked count is 65 > 64 → refuse
 		const buf = buildSyntheticZip(65, 5);
-		const count = countZipCentralDirEntries(buf);
-		expect(count).toBe(65);
+		expect(countZipCentralDirEntries(buf)).toBe(65);
 	});
 
-	it("parseWorkbook refuses when CD walk finds 65 entries even though EOCD declares 5", async () => {
+	it("parseWorkbook refuses when CD walk finds 65 entries despite EOCD declaring 5", async () => {
 		const buf = buildSyntheticZip(65, 5);
 		const result = await parseWorkbook(buf);
 		expect("refuse" in result).toBe(true);
 		if ("refuse" in result) expect(result.refuse).toMatch(/zip entries/i);
 	});
 
-	it("returns zip64 for a buffer with zip64 EOCD locator PK\\x06\\x07", () => {
-		// Zip64 locator (20 bytes) immediately before EOCD (22 bytes)
+	it("returns 'malformed' when cdOffset+cdSize ≠ eocdPos (decoy CD attack)", () => {
+		// Alignment check catches this; real CD (65 entries) is unreachable via our walk
+		const buf = buildDecoyZip();
+		expect(countZipCentralDirEntries(buf)).toBe("malformed");
+	});
+
+	it("parseWorkbook refuses a decoy-CD zip (cdOffset+cdSize ≠ eocdPos)", async () => {
+		const buf = buildDecoyZip();
+		const result = await parseWorkbook(buf);
+		expect("refuse" in result).toBe(true);
+		if ("refuse" in result) expect(result.refuse).toMatch(/centralDirOffset|structure|malformed/i);
+	});
+
+	it("returns 'zip64' for a buffer with zip64 EOCD locator PK\\x06\\x07", () => {
 		const locator = Buffer.alloc(20, 0);
 		locator.writeUInt32LE(0x07064b50, 0); // PK\x06\x07
-
 		const eocd = Buffer.alloc(22, 0);
-		eocd.writeUInt32LE(0x06054b50, 0); // PK\x05\x06
-		eocd.writeUInt16LE(10, 10);         // declared 10 (doesn't matter — locator fires first)
-
+		eocd.writeUInt32LE(0x06054b50, 0);
+		eocd.writeUInt16LE(10, 10);
 		const fakeBuf = Buffer.concat([Buffer.from("fake"), locator, eocd]);
 		expect(countZipCentralDirEntries(fakeBuf)).toBe("zip64");
 	});
 
-	it("returns zip64 when EOCD totalEntries is 0xFFFF", () => {
-		// Build a normal-looking EOCD with the zip64 sentinel count
+	it("returns 'zip64' when EOCD totalEntries is 0xFFFF", () => {
 		const buf = buildSyntheticZip(0, 0xffff);
 		expect(countZipCentralDirEntries(buf)).toBe("zip64");
 	});

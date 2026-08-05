@@ -86,10 +86,16 @@ export type ParseWorkbookResult = ParseWorkbookSuccess | { refuse: string };
  *    when past `centralDirOffset + centralDirSize`.
  * 5. Return walked count (do not return EOCD declared field).
  *
+ * Alignment invariant (step 3a): we ALSO require `centralDirOffset + centralDirSize === eocdPos`
+ * exactly. JSZip computes extraBytes = eocdPos − (cdOffset + cdSize) and adjusts the real
+ * CD start accordingly — so an attacker can set cdOffset to a 1-record decoy while JSZip loads
+ * the real 200-record CD via its offset-adjustment. Our exporter never prepends bytes, so
+ * legitimate workbooks always satisfy the exact equality. Mismatches → "malformed" refuse.
+ *
  * EOCD layout (+0=sig, +4=disk#, +6=CDdisk, +8=entriesOnDisk, +10=totalEntries,
  *              +12=CDsize, +16=CDoffset, +20=commentLen) — 22 bytes total.
  */
-export function countZipCentralDirEntries(buf: Buffer): number | "zip64" {
+export function countZipCentralDirEntries(buf: Buffer): number | "zip64" | "malformed" {
 	const maxSearch = Math.min(buf.length, 22 + 65535);
 	let eocdPos = -1;
 
@@ -119,7 +125,11 @@ export function countZipCentralDirEntries(buf: Buffer): number | "zip64" {
 	const cdSize = buf.readUInt32LE(eocdPos + 12);
 	const cdOffset = buf.readUInt32LE(eocdPos + 16);
 
-	if (cdOffset > buf.length) return 0; // malformed
+	// Alignment invariant: CD must immediately precede EOCD with no displacement.
+	// Prevents decoy-offset attacks where cdOffset points at a small fake CD while
+	// JSZip uses its extraBytes adjustment to find the real large CD.
+	if (cdOffset + cdSize !== eocdPos) return "malformed";
+	if (cdOffset > buf.length) return "malformed";
 
 	// Walk the actual central directory records (PK\x01\x02 = 0x02014b50)
 	// CD entry fixed header: 46 bytes
@@ -143,6 +153,9 @@ export function countZipCentralDirEntries(buf: Buffer): number | "zip64" {
 		const cmLen = buf.readUInt16LE(pos + 32);
 		pos += 46 + fnLen + exLen + cmLen;
 	}
+
+	// Empty CD walk means malformed or broken structure
+	if (count === 0) return "malformed";
 
 	return count;
 }
@@ -373,10 +386,13 @@ export async function parseWorkbook(buf: Buffer): Promise<ParseWorkbookResult> {
 		return { refuse: "File too large (max 2 MiB). Re-download from Afenda or import JSON." };
 	}
 
-	// 2. Zip entry count — read from EOCD central directory (not attacker-skippable local headers)
+	// 2. Zip entry count — walk actual CD records with strict alignment check
 	const entryCount = countZipCentralDirEntries(buf);
 	if (entryCount === "zip64") {
 		return { refuse: "Zip64 xlsx is not supported in v1. Re-download from Afenda or import JSON." };
+	}
+	if (entryCount === "malformed") {
+		return { refuse: "Zip structure invalid (centralDirOffset+centralDirSize≠EOCD position, empty CD, or offset out of range). Re-download from Afenda or import JSON." };
 	}
 	if (entryCount > MAX_ZIP_ENTRIES) {
 		return { refuse: `File has too many zip entries (${entryCount} > ${MAX_ZIP_ENTRIES}). Re-download from Afenda or import JSON.` };
