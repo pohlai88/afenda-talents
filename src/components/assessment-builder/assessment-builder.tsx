@@ -4,6 +4,7 @@ import {
 	ArrowDownIcon,
 	ArrowUpIcon,
 	FileTextIcon,
+	GripVerticalIcon,
 	InfoIcon,
 	ListChecksIcon,
 	MoreHorizontalIcon,
@@ -13,6 +14,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -23,7 +25,16 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -104,16 +115,28 @@ function ItemTypeIcon({ type, className }: { type: ItemType; className?: string 
 function SaveStatusBadge({ state }: { state: SaveState }) {
 	if (state === "saving") {
 		return (
-			<Badge variant="outline" className="border-border text-muted-foreground">
+			<Badge
+				variant="outline"
+				className="border-border text-muted-foreground"
+				aria-live="polite"
+			>
 				Saving…
 			</Badge>
 		);
 	}
 	if (state === "error") {
-		return <Badge variant="destructive">Save failed</Badge>;
+		return (
+			<Badge variant="destructive" aria-live="assertive">
+				Save failed
+			</Badge>
+		);
 	}
 	return (
-		<Badge variant="outline" className="border-border text-muted-foreground">
+		<Badge
+			variant="outline"
+			className="border-border text-muted-foreground"
+			aria-live="polite"
+		>
 			Saved
 		</Badge>
 	);
@@ -170,6 +193,7 @@ export function AssessmentBuilder({
 		ok: boolean;
 		issues: PublishIssue[];
 	} | null>(null);
+	const saveErrorToasted = useRef(false);
 
 	async function persist() {
 		setSaveState("saving");
@@ -181,8 +205,13 @@ export function AssessmentBuilder({
 			});
 			if (!response.ok) throw new Error("save failed");
 			setSaveState("saved");
+			saveErrorToasted.current = false;
 		} catch {
 			setSaveState("error");
+			if (!saveErrorToasted.current) {
+				saveErrorToasted.current = true;
+				toast.error("Could not save the draft. Your latest edits may be unsaved.");
+			}
 		}
 	}
 
@@ -203,6 +232,17 @@ export function AssessmentBuilder({
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- persist reads draftRef, not draft
 	}, [draft]);
+
+	useEffect(() => {
+		function onBeforeUnload(event: BeforeUnloadEvent) {
+			if (saveState === "saving" || saveState === "error") {
+				event.preventDefault();
+				event.returnValue = "";
+			}
+		}
+		window.addEventListener("beforeunload", onBeforeUnload);
+		return () => window.removeEventListener("beforeunload", onBeforeUnload);
+	}, [saveState]);
 
 	async function flushSave() {
 		if (saveTimer.current) {
@@ -468,8 +508,10 @@ export function AssessmentBuilder({
 						: [{ level: "error", code: "publish", message: body.error ?? "Publish failed." }],
 				});
 				setValidateOpen(true);
+				toast.error(body.error ?? "Publish failed.");
 				return;
 			}
+			toast.success("Assessment published.");
 			router.push(`/admin/assessments/${assessmentId}`);
 		} catch {
 			setValidateResult({
@@ -477,6 +519,7 @@ export function AssessmentBuilder({
 				issues: [{ level: "error", code: "network", message: "Could not reach the server." }],
 			});
 			setValidateOpen(true);
+			toast.error("Could not reach the server.");
 		} finally {
 			setPublishing(false);
 		}
@@ -493,13 +536,17 @@ export function AssessmentBuilder({
 			});
 			const body = await response.json().catch(() => ({}));
 			if (!response.ok || !body.id) {
-				setActionError(body.error ?? "Could not duplicate this assessment.");
+				const message = body.error ?? "Could not duplicate this assessment.";
+				setActionError(message);
+				toast.error(message);
 				setOverflowBusy(null);
 				return;
 			}
+			toast.success(asTemplate ? "Template draft created." : "Draft duplicated.");
 			router.push(`/admin/assessments/${body.id}/edit`);
 		} catch {
 			setActionError("Could not reach the server.");
+			toast.error("Could not reach the server.");
 			setOverflowBusy(null);
 		}
 	}
@@ -514,18 +561,29 @@ export function AssessmentBuilder({
 				body: JSON.stringify({ status: "ARCHIVED" }),
 			});
 			if (response.ok) {
+				toast.success("Assessment archived.");
 				router.push("/admin/assessments");
 				return;
 			}
 			const body = await response.json().catch(() => ({}));
-			setActionError(body.error ?? "Could not archive this assessment.");
+			const message = body.error ?? "Could not archive this assessment.";
+			setActionError(message);
+			toast.error(message);
 		} catch {
 			setActionError("Could not reach the server.");
+			toast.error("Could not reach the server.");
 		} finally {
 			setOverflowBusy(null);
 			setArchiveConfirmOpen(false);
 		}
 	}
+
+	const configRailTitle =
+		selection.kind === "overview"
+			? "Dimensions"
+			: selection.kind === "section"
+				? "Section"
+				: "Item settings";
 
 	// --- Panels --------------------------------------------------------------
 
@@ -538,10 +596,10 @@ export function AssessmentBuilder({
 					setMobileTab("editor");
 				}}
 				className={cn(
-					"rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors",
+					"flex w-full flex-col items-start rounded-md px-2 py-1.5 text-left text-sm transition-colors",
 					selection.kind === "overview"
-						? "border-primary/40 bg-primary/5 text-foreground"
-						: "border-border bg-transparent text-muted-foreground hover:bg-muted",
+						? "bg-accent font-medium text-accent-foreground"
+						: "text-muted-foreground hover:bg-muted hover:text-foreground",
 				)}
 			>
 				Overview &amp; consent
@@ -553,22 +611,26 @@ export function AssessmentBuilder({
 			<div className="flex flex-col gap-2">
 				{sortedSections.map((section, index) => (
 					<div key={section.id} className="flex flex-col gap-1">
-						<div
-							className={cn(
-								"flex items-center gap-1 rounded-lg border px-2 py-1.5 transition-colors",
-								selection.kind === "section" && selection.sectionId === section.id
-									? "border-primary/40 bg-primary/5"
-									: "border-border",
-							)}
-						>
+						<div className="flex items-center gap-0.5">
 							<button
 								type="button"
 								onClick={() => selectSection(section.id)}
-								className="min-w-0 flex-1 truncate text-left text-sm font-medium text-foreground"
+								className={cn(
+									"flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
+									selection.kind === "section" && selection.sectionId === section.id
+										? "bg-accent font-medium text-accent-foreground"
+										: "hover:bg-muted",
+								)}
 							>
-								{section.title.trim() || `Section ${index + 1}`}
-								<span className="ml-1.5 text-xs font-normal text-muted-foreground">
-									{section.itemIds.length} item{section.itemIds.length === 1 ? "" : "s"}
+								<GripVerticalIcon
+									className="size-3.5 shrink-0 text-muted-foreground"
+									aria-hidden="true"
+								/>
+								<span className="min-w-0 flex-1 truncate">
+									{section.title.trim() || `Section ${index + 1}`}
+								</span>
+								<span className="shrink-0 text-xs font-normal text-muted-foreground">
+									{section.itemIds.length}
 								</span>
 							</button>
 							<Button
@@ -579,7 +641,7 @@ export function AssessmentBuilder({
 								disabled={index === 0}
 								onClick={() => moveSection(section.id, -1)}
 							>
-								<ArrowUpIcon />
+								<ArrowUpIcon aria-hidden="true" />
 							</Button>
 							<Button
 								type="button"
@@ -589,7 +651,7 @@ export function AssessmentBuilder({
 								disabled={index === sortedSections.length - 1}
 								onClick={() => moveSection(section.id, 1)}
 							>
-								<ArrowDownIcon />
+								<ArrowDownIcon aria-hidden="true" />
 							</Button>
 						</div>
 
@@ -597,20 +659,26 @@ export function AssessmentBuilder({
 							{section.itemIds.map((itemId, itemIndex) => {
 								const item = itemsById.get(itemId);
 								if (!item) return null;
+								const isSelected =
+									selection.kind === "item" && selection.itemId === itemId;
 								return (
-									<li key={itemId} className="flex items-center gap-1">
+									<li key={itemId} className="flex items-center gap-0.5">
 										<button
 											type="button"
 											onClick={() => selectItem(itemId)}
 											className={cn(
-												"flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-xs transition-colors",
-												selection.kind === "item" && selection.itemId === itemId
-													? "bg-primary/10 text-foreground"
+												"flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+												isSelected
+													? "bg-accent font-medium text-accent-foreground"
 													: "text-muted-foreground hover:bg-muted hover:text-foreground",
 											)}
 										>
+											<GripVerticalIcon
+												className="size-3 shrink-0 text-muted-foreground"
+												aria-hidden="true"
+											/>
 											<ItemTypeIcon type={item.type} className="size-3.5 shrink-0" />
-											<span className="min-w-0 truncate">{itemPreviewText(item)}</span>
+											<span className="min-w-0 flex-1 truncate">{itemPreviewText(item)}</span>
 										</button>
 										<Button
 											type="button"
@@ -620,7 +688,7 @@ export function AssessmentBuilder({
 											disabled={itemIndex === 0}
 											onClick={() => moveItem(section.id, itemId, -1)}
 										>
-											<ArrowUpIcon />
+											<ArrowUpIcon aria-hidden="true" />
 										</Button>
 										<Button
 											type="button"
@@ -630,7 +698,7 @@ export function AssessmentBuilder({
 											disabled={itemIndex === section.itemIds.length - 1}
 											onClick={() => moveItem(section.id, itemId, 1)}
 										>
-											<ArrowDownIcon />
+											<ArrowDownIcon aria-hidden="true" />
 										</Button>
 									</li>
 								);
@@ -647,7 +715,7 @@ export function AssessmentBuilder({
 									/>
 								}
 							>
-								<PlusIcon />
+								<PlusIcon aria-hidden="true" />
 								Add item
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="start">
@@ -760,29 +828,44 @@ export function AssessmentBuilder({
 
 	return (
 		<div className="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col">
-			<div className="flex flex-col gap-4 border-b border-border p-6">
-				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+			<div className="sticky top-0 z-20 flex flex-col gap-3 border-b border-border bg-card px-4 py-3 shadow-sm sm:px-6">
+				<div className="flex items-center justify-between gap-4">
+					<Breadcrumb>
+						<BreadcrumbList>
+							<BreadcrumbItem>
+								<BreadcrumbLink render={<Link href="/admin/assessments" />}>
+									Assessments
+								</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator />
+							<BreadcrumbItem>
+								<BreadcrumbPage className="max-w-[12rem] truncate sm:max-w-xs">
+									{draft.title || "Untitled assessment"}
+								</BreadcrumbPage>
+							</BreadcrumbItem>
+						</BreadcrumbList>
+					</Breadcrumb>
+
+					<div className="flex shrink-0 items-center gap-2">
+						<SaveStatusBadge state={saveState} />
+						{isSystem && <Badge variant="outline">System</Badge>}
+					</div>
+				</div>
+
+				<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 					<div className="min-w-0 flex-1">
-						<p className="mb-1 font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase">
-							Assessment builder
-						</p>
 						<Input
 							aria-label="Assessment title"
 							value={draft.title}
 							onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
 							placeholder="Untitled assessment"
-							className="h-auto border-none bg-transparent px-0 text-2xl font-semibold shadow-none focus-visible:ring-0"
+							className="h-auto border-none bg-transparent px-0 text-xl font-semibold shadow-none focus-visible:ring-0"
 						/>
-						<div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-							<SaveStatusBadge state={saveState} />
-							<span aria-hidden="true">·</span>
-							<span>
-								{latestVersionNumber !== null
-									? `Published v${latestVersionNumber}`
-									: "Not yet published"}
-							</span>
-							{isSystem && <Badge variant="outline">System</Badge>}
-						</div>
+						<p className="mt-0.5 text-xs text-muted-foreground">
+							{latestVersionNumber !== null
+								? `Published v${latestVersionNumber}`
+								: "Not yet published"}
+						</p>
 					</div>
 
 					<div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -844,32 +927,48 @@ export function AssessmentBuilder({
 				</div>
 
 				{actionError && (
-					<p role="alert" className="text-sm text-destructive">
-						{actionError}
-					</p>
+					<Alert variant="destructive">
+						<AlertDescription>{actionError}</AlertDescription>
+					</Alert>
 				)}
 
-				<p className="max-w-3xl rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-					This builder does not psychometrically validate items, dimensions, or scoring.
-					Reverse-scoring and banding are arithmetic only — they do not establish reliability or
-					validity. Have a qualified professional review any new or edited instrument before it
-					informs a hiring decision.
-				</p>
+				<Alert>
+					<InfoIcon className="size-4" />
+					<AlertTitle>Psychometric disclaimer</AlertTitle>
+					<AlertDescription>
+						This builder does not psychometrically validate items, dimensions, or scoring.
+						Reverse-scoring and banding are arithmetic only — they do not establish reliability or
+						validity. Have a qualified professional review any new or edited instrument before it
+						informs a hiring decision.
+					</AlertDescription>
+				</Alert>
 			</div>
 
-			{/* Desktop: three-region layout, left/right rails pinned while the center scrolls
-			    with the page. Mobile: identical content, presented as tabs instead. */}
-			<div className="hidden gap-6 p-6 lg:grid lg:grid-cols-[280px_1fr_320px] lg:items-start">
-				<div className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto rounded-lg border border-border p-4">
+		{/* Desktop: three-region layout, left/right rails pinned while the center scrolls
+		    with the page. Mobile: identical content, presented as tabs instead. */}
+		<div className="hidden gap-6 p-6 lg:grid lg:grid-cols-[280px_1fr_320px] lg:items-start">
+			<Card className="lg:sticky lg:top-44 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto">
+				<CardHeader className="pb-2">
+					<CardTitle className="text-xs font-medium text-muted-foreground">Structure</CardTitle>
+				</CardHeader>
+				<CardContent className="pt-0">
 					{structureContent}
-				</div>
-				<div className="min-w-0">{editorContent}</div>
-				<div className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto rounded-lg border border-border p-4">
+				</CardContent>
+			</Card>
+			<div className="min-w-0">{editorContent}</div>
+			<Card className="lg:sticky lg:top-44 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto">
+				<CardHeader className="pb-2">
+					<CardTitle className="text-xs font-medium text-muted-foreground">
+						{configRailTitle}
+					</CardTitle>
+				</CardHeader>
+				<CardContent className="pt-0">
 					{configContent}
-				</div>
-			</div>
+				</CardContent>
+			</Card>
+		</div>
 
-			<div className="p-4 lg:hidden">
+			<div className="border-b border-border bg-muted/40 p-4 lg:hidden">
 				<Tabs value={mobileTab} onValueChange={(v) => v && setMobileTab(v as typeof mobileTab)}>
 					<TabsList className="w-full">
 						<TabsTrigger value="structure" className="flex-1">

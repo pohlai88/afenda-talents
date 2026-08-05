@@ -4,6 +4,9 @@ import { Eye, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-responses";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -23,13 +26,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { EmailPreviewDialog } from "@/components/email-preview-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -71,12 +68,15 @@ export type OpenRoundOption = {
 export function InviteForm({
 	invitationPreviewHtml,
 	receiptPreviewHtml,
+	mailFrom,
 	openRounds,
 	roundExistingEmails,
 	ttlDays,
 }: {
 	invitationPreviewHtml: string;
 	receiptPreviewHtml: string;
+	/** Live MAIL_FROM — shown in the preview chrome so managers see the real sender. */
+	mailFrom: string;
 	/** Only OPEN rounds — invitations require one (D18). */
 	openRounds: OpenRoundOption[];
 	/** Emails already holding an assignment in each round, keyed by round id. */
@@ -151,33 +151,43 @@ export function InviteForm({
 		if (toSend.length === 0 || !roundId) return;
 		setBusy(true);
 		setError(null);
-		const response = await fetch("/api/admin/invite", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ hiringRoundId: roundId, candidates: toSend }),
-		});
-		const body = await response.json().catch(() => ({}));
-		setBusy(false);
-		setConfirmOpen(false);
+		try {
+			const response = await fetch("/api/admin/invite", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ hiringRoundId: roundId, candidates: toSend }),
+			});
+			const body = await response.json().catch(() => ({}));
+			setConfirmOpen(false);
 
-		if (!response.ok) {
-			setError(
-				typeof body.error === "string"
-					? body.error
-					: "Could not send invitations",
+			if (!response.ok) {
+				const message = apiErrorMessage(body, "Could not send invitations");
+				setError(message);
+				toast.error(message);
+				return;
+			}
+
+			const invited = Number(body.invited) || 0;
+			const skipped = Number(body.skipped) || 0;
+			setResult({ invited, skipped });
+			toast.success(
+				skipped > 0
+					? `Sent ${invited} invitation${invited === 1 ? "" : "s"} (${skipped} skipped).`
+					: `Sent ${invited} invitation${invited === 1 ? "" : "s"}.`,
 			);
-			return;
+			setRows([]);
+			setFullName("");
+			setEmail("");
+			setPasted("");
+			router.refresh();
+		} catch {
+			setConfirmOpen(false);
+			const message = "Could not reach the server. Try again.";
+			setError(message);
+			toast.error(message);
+		} finally {
+			setBusy(false);
 		}
-
-		setResult({
-			invited: Number(body.invited) || 0,
-			skipped: Number(body.skipped) || 0,
-		});
-		setRows([]);
-		setFullName("");
-		setEmail("");
-		setPasted("");
-		router.refresh();
 	}
 
 	if (openRounds.length === 0) {
@@ -208,38 +218,13 @@ export function InviteForm({
 
 	return (
 		<div className="flex flex-col gap-6">
-			<Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-				<DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-					<DialogHeader>
-						<DialogTitle>What candidates receive</DialogTitle>
-						<DialogDescription>
-							Rendered from the live templates with a sample name and link. The
-							real email carries the candidate&apos;s personal one-time link at
-							send time.
-						</DialogDescription>
-					</DialogHeader>
-					<div className="flex flex-col gap-4">
-						<div>
-							<p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-								Invitation — “Your Afenda Talents self-assessment”
-							</p>
-							<EmailHtmlPreview
-								className="rounded-md border bg-white p-4 text-sm [&_a]:pointer-events-none [&_a]:underline"
-								html={invitationPreviewHtml}
-							/>
-						</div>
-						<div>
-							<p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-								Receipt — “We have received your Afenda Talents self-assessment”
-							</p>
-							<EmailHtmlPreview
-								className="rounded-md border bg-white p-4 text-sm"
-								html={receiptPreviewHtml}
-							/>
-						</div>
-					</div>
-				</DialogContent>
-			</Dialog>
+			<EmailPreviewDialog
+				open={previewOpen}
+				onOpenChange={setPreviewOpen}
+				mailFrom={mailFrom}
+				invitationHtml={invitationPreviewHtml}
+				receiptHtml={receiptPreviewHtml}
+			/>
 
 			<AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
 				<AlertDialogContent>
@@ -476,9 +461,9 @@ export function InviteForm({
 			)}
 
 			{error && (
-				<p id="invite-error" role="alert" className="text-sm text-destructive">
-					{error}
-				</p>
+				<Alert id="invite-error" variant="destructive">
+					<AlertDescription>{error}</AlertDescription>
+				</Alert>
 			)}
 
 			{result && (
@@ -491,20 +476,6 @@ export function InviteForm({
 				</p>
 			)}
 		</div>
-	);
-}
-
-function EmailHtmlPreview({
-	html,
-	className,
-}: {
-	html: string;
-	className?: string;
-}) {
-	// Trusted server-built templates (same builders as live mail).
-	return (
-		// biome-ignore lint/security/noDangerouslySetInnerHtml: email preview from server templates
-		<div className={className} dangerouslySetInnerHTML={{ __html: html }} />
 	);
 }
 

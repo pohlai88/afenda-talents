@@ -26,7 +26,10 @@ export default async function UsersPage() {
         title="Hiring team"
         description="Admins invite, revoke, export and manage this list. Viewers can open the dashboard and candidate profiles, and change nothing."
       />
-      <UserManager users={users} currentUserId={session.userId} />
+      <UserManager
+        users={users}
+        currentUserId={session.userId}
+      />
     </div>
   );
 }

@@ -1,43 +1,53 @@
 import type { ReactNode } from "react";
+import { SkipLink } from "@/components/skip-link";
 
 /**
  * Minimal candidate chrome (UI §12.1): brand mark only — no admin sidebar density.
- * Skip link + landmarks keep keyboard and SR users aligned with §16.
+ * Live invitation routes use CandidateShell (skip link + full viewport).
+ * Admin preview uses CandidatePreviewFrame (no skip link; host page owns landmarks).
  */
+
+function BrandHeader({ progress }: { progress?: ReactNode }) {
+	return (
+		<header className="sticky top-0 z-20 border-b border-border/80 bg-background/95 backdrop-blur">
+			<div className="mx-auto flex max-w-xl items-center justify-between gap-3 px-4 py-3">
+				<p className="font-heading text-sm font-semibold tracking-tight text-primary">
+					Afenda Talents
+				</p>
+				{progress}
+			</div>
+		</header>
+	);
+}
+
+/** Live candidate routes — skip link + full-page chrome. */
 export function CandidateShell({
 	children,
 	progress,
-	/** When true, omit skip-link (host page already owns #main). */
-	embedded = false,
 }: {
 	children: ReactNode;
 	progress?: ReactNode;
-	embedded?: boolean;
 }) {
 	return (
-		<div
-			className={
-				embedded
-					? "bg-background text-foreground"
-					: "min-h-dvh bg-background text-foreground"
-			}
-		>
-			{embedded ? null : (
-				<a
-					href="#main"
-					className="sr-only z-50 rounded-md bg-background px-3 py-2 text-sm ring-1 ring-ring focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:left-2"
-				>
-					Skip to content
-				</a>
-			)}
-			<header className="sticky top-0 z-20 border-b border-border/80 bg-background/95 backdrop-blur">
-				<div className="mx-auto flex max-w-xl items-center justify-between gap-3 px-4 py-3">
-					<p className="font-heading text-sm font-semibold tracking-tight text-primary">
-						Afenda Talents
-					</p>
-					{progress}
-				</div>
-			</header>
+		<div className="min-h-dvh bg-background text-foreground">
+			<SkipLink />
+			<BrandHeader progress={progress} />
+			{children}
+		</div>
+	);
+}
+
+/** Admin assessment preview — same brand chrome, no skip link / full-viewport shell. */
+export function CandidatePreviewFrame({
+	children,
+	progress,
+}: {
+	children: ReactNode;
+	progress?: ReactNode;
+}) {
+	return (
+		<div className="bg-background text-foreground">
+			<BrandHeader progress={progress} />
 			{children}
 		</div>
 	);

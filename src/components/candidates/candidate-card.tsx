@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { CandidateRowActions } from "@/components/candidates/row-actions";
-import { relativeTime } from "@/components/overview/round-summary";
+import { relativeTime } from "@/lib/relative-time";
+import { Card, CardContent } from "@/components/ui/card";
 import type { CandidateListItem } from "@/components/candidates/types";
 
 /**
@@ -19,7 +20,9 @@ export function CandidateCard({
   now: Date;
 }) {
   return (
-    <li className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+    <li>
+    <Card className="py-4">
+      <CardContent className="flex flex-col gap-3 px-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Link
@@ -60,6 +63,8 @@ export function CandidateCard({
           status={item.status}
         />
       )}
+      </CardContent>
+    </Card>
     </li>
   );
 }

@@ -1,3 +1,4 @@
+import type { Status } from "@/lib/status-constants";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { statusDisplay, type StatusTone } from "@/lib/status-display";
@@ -17,7 +18,7 @@ const TONE: Record<StatusTone, string> = {
   exception: "border-dashed border-border bg-transparent text-muted-foreground",
 };
 
-export function StatusBadge({ status, className }: { status: string; className?: string }) {
+export function StatusBadge({ status, className }: { status: Status; className?: string }) {
   const { label, tone } = statusDisplay(status);
   return (
     <Badge variant="outline" className={cn(TONE[tone], className)}>

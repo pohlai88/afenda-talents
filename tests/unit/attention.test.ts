@@ -44,7 +44,7 @@ describe("invitation not opened", () => {
 
 describe("assessment in progress", () => {
   it("measures staleness from the last saved answer, not from startedAt", () => {
-    const stale = {
+    const stale: CandidateFacts = {
       ...base,
       status: "STARTED",
       startedAt: hoursAgo(500),
@@ -55,7 +55,7 @@ describe("assessment in progress", () => {
   });
 
   it("flags a candidate whose last answer is older than the threshold", () => {
-    const stalled = {
+    const stalled: CandidateFacts = {
       ...base,
       status: "STARTED",
       startedAt: hoursAgo(500),
@@ -65,7 +65,7 @@ describe("assessment in progress", () => {
   });
 
   it("falls back to startedAt when no answer has been saved yet", () => {
-    const noAnswers = {
+    const noAnswers: CandidateFacts = {
       ...base,
       status: "STARTED",
       startedAt: hoursAgo(STALLED_AFTER_HOURS + 1),
@@ -83,7 +83,7 @@ describe("expiring soon", () => {
   });
 
   it("flags a STARTED invitation expiring inside the window", () => {
-    const started = { ...base, status: "STARTED", expiresAt: hoursAhead(1) };
+    const started: CandidateFacts = { ...base, status: "STARTED", expiresAt: hoursAhead(1) };
     expect(kinds([started])).toContain("expiring");
   });
 
@@ -93,19 +93,19 @@ describe("expiring soon", () => {
   });
 
   it("does not flag a submitted candidate", () => {
-    const submitted = { ...base, status: "SUBMITTED", expiresAt: hoursAhead(1) };
+    const submitted: CandidateFacts = { ...base, status: "SUBMITTED", expiresAt: hoursAhead(1) };
     expect(kinds([submitted])).not.toContain("expiring");
   });
 });
 
 describe("profile awaiting first review", () => {
   it("flags a scored profile nobody has opened", () => {
-    const scored = { ...base, status: "SCORED", computedAt: hoursAgo(10), lastViewedAt: null };
+    const scored: CandidateFacts = { ...base, status: "SCORED", computedAt: hoursAgo(10), lastViewedAt: null };
     expect(kinds([scored])).toContain("awaiting-review");
   });
 
   it("clears once viewed after the result was computed", () => {
-    const viewed = {
+    const viewed: CandidateFacts = {
       ...base,
       status: "SCORED",
       computedAt: hoursAgo(10),
@@ -115,7 +115,7 @@ describe("profile awaiting first review", () => {
   });
 
   it("still flags when the only view predates the result", () => {
-    const rescored = {
+    const rescored: CandidateFacts = {
       ...base,
       status: "SCORED",
       computedAt: hoursAgo(2),

@@ -1,3 +1,5 @@
+import type { Status } from "@/lib/status-constants";
+
 /**
  * Attention rules — product policy, written down.
  *
@@ -18,7 +20,7 @@ export type CandidateFacts = {
   /** CandidateAssignment id — the invite/completion unit (D18). */
   id: string;
   fullName: string;
-  status: string;
+  status: Status;
   sentAt: Date | null;
   openedAt: Date | null;
   startedAt: Date | null;

@@ -152,11 +152,13 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground;
+    touch-action: manipulation;
   }
 }
 /* WCAG 2.2 AA — honour OS reduced-motion preference (§16). */

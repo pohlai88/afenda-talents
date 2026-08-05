@@ -1,4 +1,6 @@
 import { EXCEPTION_STAGES, WORKFLOW_STAGES } from "@/lib/status-display";
+import type { Status } from "@/lib/status-constants";
+import { isStatus } from "@/lib/type-guards";
 
 /**
  * The registry's list state, parsed out of the URL.
@@ -18,7 +20,7 @@ export const SHORTCUT_LABEL: Record<Shortcut, string> = {
 	closed: "Closed",
 };
 
-export const SHORTCUT_STATUSES: Record<Shortcut, string[]> = {
+export const SHORTCUT_STATUSES: Record<Shortcut, readonly Status[]> = {
 	"needs-follow-up": ["SENT"],
 	"in-progress": ["STARTED", "SUBMITTED"],
 	"ready-for-review": ["SCORED"],
@@ -27,11 +29,11 @@ export const SHORTCUT_STATUSES: Record<Shortcut, string[]> = {
 
 export const PAGE_SIZE = 25;
 
-const ALL_STATUSES: string[] = [...WORKFLOW_STAGES, ...EXCEPTION_STAGES, "DRAFT"];
+const ALL_STATUSES: readonly Status[] = [...WORKFLOW_STAGES, ...EXCEPTION_STAGES, "DRAFT"];
 
 export type CandidateQuery = {
 	search: string;
-	status: string | null;
+	status: Status | null;
 	shortcut: Shortcut | null;
 	sort: SortKey;
 	direction: "asc" | "desc";
@@ -43,7 +45,7 @@ export function parseCandidateQuery(
 ): CandidateQuery {
 	const search = (params.q ?? "").trim();
 	const status =
-		params.status && ALL_STATUSES.includes(params.status) ? params.status : null;
+		params.status && isStatus(params.status) ? params.status : null;
 	const shortcut =
 		params.view && (SHORTCUTS as readonly string[]).includes(params.view)
 			? (params.view as Shortcut)

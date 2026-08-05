@@ -5,7 +5,6 @@ import {
 	ADMIN_COOKIE,
 	adminCookieOptions,
 	createSessionToken,
-	type Role,
 } from "@/lib/auth-admin";
 import { verifyPassword } from "@/lib/passwords";
 import { isRateLimited, recordFailure, clearFailures } from "@/lib/rate-limit";
@@ -49,7 +48,7 @@ export async function POST(request: Request) {
   const response = NextResponse.json({ ok: true });
   response.cookies.set(
     ADMIN_COOKIE,
-    await createSessionToken({ userId: user.id, role: user.role as Role }),
+    await createSessionToken({ userId: user.id, role: user.role }),
     adminCookieOptions(8 * 60 * 60),
   );
   return response;

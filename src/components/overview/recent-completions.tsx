@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import type { UiDimension } from "@/lib/result-display";
 
 export type CompletedProfile = {
@@ -47,7 +49,7 @@ export function RecentCompletions({ profiles }: { profiles: CompletedProfile[] }
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recently completed</CardTitle>
+        <CardTitle id="completions-heading">Recently completed</CardTitle>
         <CardDescription>
           Five dimensions per candidate. There is no overall score and no ranking — each
           profile is one input into a hiring decision.
@@ -55,34 +57,45 @@ export function RecentCompletions({ profiles }: { profiles: CompletedProfile[] }
       </CardHeader>
       <CardContent>
         {profiles.length === 0 ? (
-          <p className="py-4 text-sm text-muted-foreground">No completed assessments yet.</p>
+          <EmptyDescription className="py-4">
+            No completed assessments yet.
+          </EmptyDescription>
         ) : (
           <ul className="divide-y">
             {profiles.map((p) => (
               <li
                 key={p.id}
-                className="flex flex-wrap items-end justify-between gap-4 py-4 first:pt-0 last:pb-0"
+                className="flex items-start gap-4 py-4 first:pt-0 last:pb-0"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{p.fullName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Completed {p.submittedAt?.toLocaleDateString("en-GB") ?? "—"} ·{" "}
-                    {p.contextCount === 0
-                      ? "no response-context indicators"
-                      : `${p.contextCount} of 4 response-context indicators to review`}
-                  </p>
+                <Avatar className="h-10 w-10">
+                  <AvatarFallback className="text-xs font-medium">
+                    {p.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-sm font-medium">{p.fullName}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Completed {p.submittedAt?.toLocaleDateString("en-GB") ?? "—"} ·{" "}
+                        {p.contextCount === 0
+                          ? "no response-context indicators"
+                          : `${p.contextCount} of 4 response-context indicators to review`}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      nativeButton={false}
+                      render={<Link href={`/admin/candidate/${p.id}`} />}
+                    >
+                      Review profile
+                    </Button>
+                  </div>
                   <div className="mt-3">
                     <DimensionPips dimensions={p.dimensions} />
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  nativeButton={false}
-                  render={<Link href={`/admin/candidate/${p.id}`} />}
-                >
-                  Review profile
-                </Button>
               </li>
             ))}
           </ul>

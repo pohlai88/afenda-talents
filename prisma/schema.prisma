@@ -12,12 +12,48 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  ADMIN
+  VIEWER
+}
+
+enum AssessmentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+/// ORGANISATION: normal client assessment. TEMPLATE: reusable blueprint.
+/// SYSTEM: Afenda-supplied built-in (seeded, isSystem = true).
+enum AssessmentKind {
+  ORGANISATION
+  TEMPLATE
+  SYSTEM
+}
+
+enum RoundStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+enum AssignmentStatus {
+  DRAFT
+  SENT
+  STARTED
+  SUBMITTED
+  SCORED
+  EXPIRED
+  REVOKED
+}
+
 model User {
   id                 String   @id @default(cuid())
   email              String   @unique
   name               String
   passwordHash       String
-  role               String   @default("VIEWER")
+  role               UserRole @default(VIEWER)
   mustChangePassword Boolean  @default(false)
   createdAt          DateTime @default(now())
 
@@ -34,15 +70,15 @@ model Candidate {
 }
 
 model Assessment {
-  id            String              @id @default(cuid())
-  key           String?             @unique
+  id            String           @id @default(cuid())
+  key           String?          @unique
   title         String
-  kind          String              @default("ORGANISATION")
-  isSystem      Boolean             @default(false)
-  status        String              @default("DRAFT")
+  kind          AssessmentKind   @default(ORGANISATION)
+  isSystem      Boolean          @default(false)
+  status        AssessmentStatus @default(DRAFT)
   draftDocument Json?
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
   versions      AssessmentVersion[]
 }
 
@@ -65,7 +101,7 @@ model AssessmentVersion {
 model HiringRound {
   id                  String                @id @default(cuid())
   name                String
-  status              String                @default("DRAFT")
+  status              RoundStatus           @default(DRAFT)
   assessmentVersionId String
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
@@ -74,11 +110,11 @@ model HiringRound {
 }
 
 model CandidateAssignment {
-  id                  String            @id @default(cuid())
+  id                  String           @id @default(cuid())
   candidateId         String
   hiringRoundId       String
   assessmentVersionId String
-  status              String            @default("DRAFT")
+  status              AssignmentStatus @default(DRAFT)
   invitedById         String?
   tokenHash           String?           @unique
   expiresAt           DateTime?

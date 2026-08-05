@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { apiErrorMessage } from "@/lib/api-responses";
 import {
 	Dialog,
 	DialogContent,
@@ -36,7 +38,7 @@ export function NewAssessmentButton() {
 			});
 			const body = await response.json().catch(() => ({}));
 			if (!response.ok || !body.id) {
-				setError(body.error ?? "Could not create the assessment.");
+				setError(apiErrorMessage(body, "Could not create the assessment."));
 				setBusy(false);
 				return;
 			}
@@ -73,9 +75,9 @@ export function NewAssessmentButton() {
 							/>
 						</Label>
 						{error && (
-							<p role="alert" className="mt-2 text-sm text-destructive">
-								{error}
-							</p>
+							<Alert variant="destructive" className="mt-2">
+								<AlertDescription>{error}</AlertDescription>
+							</Alert>
 						)}
 					</div>
 					<DialogFooter>
@@ -115,7 +117,7 @@ export function DuplicateAssessmentButton({
 			});
 			const body = await response.json().catch(() => ({}));
 			if (!response.ok || !body.id) {
-				setError(body.error ?? "Could not duplicate this assessment.");
+				setError(apiErrorMessage(body, "Could not duplicate this assessment."));
 				setBusy(false);
 				return;
 			}
@@ -132,9 +134,9 @@ export function DuplicateAssessmentButton({
 				{busy ? "Duplicating…" : label}
 			</Button>
 			{error && (
-				<p role="alert" className="text-xs text-destructive">
-					{error}
-				</p>
+				<Alert variant="destructive">
+					<AlertDescription className="text-xs">{error}</AlertDescription>
+				</Alert>
 			)}
 		</div>
 	);

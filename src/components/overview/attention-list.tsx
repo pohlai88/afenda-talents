@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import type { AttentionItem, WorkspaceAttentionItem } from "@/lib/attention";
-import { relativeTime, untilTime } from "@/components/overview/round-summary";
+import { relativeTime, untilTime } from "@/lib/relative-time";
 
 /**
  * A prioritised queue of things a person must decide about, ordered by operational
@@ -12,16 +14,16 @@ export function HiringAttention({ items, now }: { items: AttentionItem[]; now: D
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Needs your attention</CardTitle>
+        <CardTitle id="attention-heading">Needs your attention</CardTitle>
         <CardDescription>
           Nothing here is sent automatically. Each item is a decision for a person.
         </CardDescription>
       </CardHeader>
       <CardContent>
         {items.length === 0 ? (
-          <p className="py-4 text-sm text-muted-foreground">
+          <EmptyDescription className="py-4">
             Nothing needs following up right now.
-          </p>
+          </EmptyDescription>
         ) : (
           <ul className="divide-y">
             {items.map((item) => (
@@ -29,8 +31,16 @@ export function HiringAttention({ items, now }: { items: AttentionItem[]; now: D
                 key={`${item.kind}-${item.assignmentId}`}
                 className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{item.fullName}</p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="truncate text-sm font-medium">{item.fullName}</h3>
+                    <Badge 
+                      variant={item.kind === "expiring" ? "destructive" : "secondary"}
+                      className="text-xs"
+                    >
+                      {item.kind === "expiring" ? "Urgent" : "Review"}
+                    </Badge>
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     <span className="text-attention">{item.reason}</span>
                     {" · "}
@@ -70,7 +80,7 @@ export function WorkspaceAttention({ items }: { items: WorkspaceAttentionItem[] 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Workspace</CardTitle>
+        <CardTitle id="workspace-heading">Workspace</CardTitle>
         <CardDescription>Access and account housekeeping.</CardDescription>
       </CardHeader>
       <CardContent>
@@ -80,8 +90,13 @@ export function WorkspaceAttention({ items }: { items: WorkspaceAttentionItem[] 
               key={item.userId}
               className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
             >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{item.name}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="truncate text-sm font-medium">{item.name}</h3>
+                  <Badge variant="outline" className="text-xs">
+                    Admin
+                  </Badge>
+                </div>
                 <p className="text-xs text-attention">{item.reason}</p>
               </div>
               <Button

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { STATUSES } from "@/lib/status";
+import { STATUSES } from "@/lib/status-constants";
 import {
   EXCEPTION_STAGES,
   STAGE_EXPLANATION,
@@ -34,10 +34,6 @@ describe("statusDisplay", () => {
   it("marks exceptions with the exception tone and never a destructive one", () => {
     expect(statusDisplay("EXPIRED").tone).toBe("exception");
     expect(statusDisplay("REVOKED").tone).toBe("exception");
-  });
-
-  it("falls back safely for an unrecognised status", () => {
-    expect(statusDisplay("WAT")).toEqual({ label: "WAT", tone: "neutral" });
   });
 });
 

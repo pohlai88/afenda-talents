@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,8 +49,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { Role } from "@/lib/hiring-roles";
+import {
+	apiErrorMessage,
+	userCreateResponseSchema,
+	userPatchResponseSchema,
+	type UserPatchPayload,
+} from "@/lib/api-responses";
 
-type UserRow = { id: string; email: string; name: string; role: string };
+type UserRow = { id: string; email: string; name: string; role: Role };
 
 export function UserManager({
   users,
@@ -60,7 +69,7 @@ export function UserManager({
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("VIEWER");
+  const [role, setRole] = useState<Role>("VIEWER");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [secret, setSecret] = useState<{ email: string; password: string } | null>(null);
@@ -70,59 +79,99 @@ export function UserManager({
     event.preventDefault();
     setBusy(true);
     setError(null);
-    const response = await fetch("/api/admin/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, role }),
-    });
-    const body = await response.json().catch(() => ({}));
-    setBusy(false);
-    if (!response.ok) {
-      setError(body.error ?? "Could not create the account");
-      return;
+    try {
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, role }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = apiErrorMessage(body, "Could not create the account");
+        setError(message);
+        toast.error(message);
+        return;
+      }
+      const parsed = userCreateResponseSchema.safeParse(body);
+      if (!parsed.success) {
+        setError("Unexpected server response.");
+        toast.error("Unexpected server response.");
+        return;
+      }
+      setSecret({ email: parsed.data.user.email, password: parsed.data.temporaryPassword });
+      setName("");
+      setEmail("");
+      toast.success("Account created.");
+      router.refresh();
+    } catch {
+      const message = "Could not reach the server. Try again.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setBusy(false);
     }
-    setSecret({ email: body.user.email, password: body.temporaryPassword });
-    setName("");
-    setEmail("");
-    router.refresh();
   }
 
-  async function patch(id: string, payload: Record<string, unknown>, forEmail?: string) {
+  async function patch(id: string, payload: UserPatchPayload, forEmail?: string) {
     setBusy(true);
     setError(null);
-    const response = await fetch(`/api/admin/users/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const body = await response.json().catch(() => ({}));
-    setBusy(false);
-    if (!response.ok) {
-      setError(body.error ?? "Could not update the account");
-      return;
+    try {
+      const response = await fetch(`/api/admin/users/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = apiErrorMessage(body, "Could not update the account");
+        setError(message);
+        toast.error(message);
+        return;
+      }
+      const parsed = userPatchResponseSchema.safeParse(body);
+      if (parsed.success && parsed.data.temporaryPassword && forEmail) {
+        setSecret({ email: forEmail, password: parsed.data.temporaryPassword });
+      }
+      toast.success("Account updated.");
+      router.refresh();
+    } catch {
+      const message = "Could not reach the server. Try again.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setBusy(false);
     }
-    if (body.temporaryPassword && forEmail) {
-      setSecret({ email: forEmail, password: body.temporaryPassword });
-    }
-    router.refresh();
   }
 
   async function remove(id: string) {
     setBusy(true);
     setError(null);
-    const response = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
-    const body = await response.json().catch(() => ({}));
-    setBusy(false);
-    if (!response.ok) setError(body.error ?? "Could not remove the account");
-    router.refresh();
+    try {
+      const response = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = body.error ?? "Could not remove the account";
+        setError(message);
+        toast.error(message);
+        return;
+      }
+      toast.success("Account removed.");
+      router.refresh();
+    } catch {
+      const message = "Could not reach the server. Try again.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
     <div className="mt-6 flex flex-col gap-6">
       {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* The one-time temporary password: a modal it cannot be scrolled past, with the
@@ -190,68 +239,84 @@ export function UserManager({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
+          <div className="hidden min-w-0 overflow-x-auto md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">
+                      {user.name}
+                      {user.id === currentUserId && (
+                        <span className="ml-2 text-xs text-muted-foreground">(you)</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
+                        {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <UserRowActions
+                        user={user}
+                        isSelf={user.id === currentUserId}
+                        busy={busy}
+                        onRoleToggle={() =>
+                          patch(user.id, { role: user.role === "ADMIN" ? "VIEWER" : "ADMIN" })
+                        }
+                        onReset={() => setConfirm({ kind: "reset", user })}
+                        onRemove={() => setConfirm({ kind: "remove", user })}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <ul className="flex flex-col gap-3 md:hidden">
+            {users.map((user) => (
+              <li
+                key={user.id}
+                className="space-y-3 rounded-lg border border-border px-3 py-3"
+              >
+                <div>
+                  <p className="font-medium">
                     {user.name}
                     {user.id === currentUserId && (
-                      <span className="ml-2 text-xs text-muted-foreground">(you)</span>
+                      <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        (you)
+                      </span>
                     )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                  <TableCell>
-                    <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      {user.id !== currentUserId && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={busy}
-                          onClick={() =>
-                            patch(user.id, { role: user.role === "ADMIN" ? "VIEWER" : "ADMIN" })
-                          }
-                        >
-                          Make {user.role === "ADMIN" ? "viewer" : "admin"}
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => setConfirm({ kind: "reset", user })}
-                      >
-                        Reset password
-                      </Button>
-                      {user.id !== currentUserId && (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          disabled={busy}
-                          onClick={() => setConfirm({ kind: "remove", user })}
-                        >
-                          Remove
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </p>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                  <Badge
+                    variant={user.role === "ADMIN" ? "default" : "secondary"}
+                    className="mt-2"
+                  >
+                    {user.role}
+                  </Badge>
+                </div>
+                <UserRowActions
+                  user={user}
+                  isSelf={user.id === currentUserId}
+                  busy={busy}
+                  onRoleToggle={() =>
+                    patch(user.id, { role: user.role === "ADMIN" ? "VIEWER" : "ADMIN" })
+                  }
+                  onReset={() => setConfirm({ kind: "reset", user })}
+                  onRemove={() => setConfirm({ kind: "remove", user })}
+                />
+              </li>
+            ))}
+          </ul>
         </CardContent>
       </Card>
 
@@ -291,7 +356,7 @@ export function UserManager({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="new-role">Role</Label>
-                <Select value={role} onValueChange={(v) => v && setRole(v)}>
+                <Select value={role} onValueChange={(v) => v && setRole(v as Role)}>
                   <SelectTrigger id="new-role" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
@@ -310,6 +375,40 @@ export function UserManager({
           </CardFooter>
         </Card>
       </form>
+    </div>
+  );
+}
+
+function UserRowActions({
+  user,
+  isSelf,
+  busy,
+  onRoleToggle,
+  onReset,
+  onRemove,
+}: {
+  user: UserRow;
+  isSelf: boolean;
+  busy: boolean;
+  onRoleToggle: () => void;
+  onReset: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2 md:justify-end">
+      {!isSelf && (
+        <Button size="sm" variant="outline" disabled={busy} onClick={onRoleToggle}>
+          Make {user.role === "ADMIN" ? "viewer" : "admin"}
+        </Button>
+      )}
+      <Button size="sm" variant="outline" disabled={busy} onClick={onReset}>
+        Reset password
+      </Button>
+      {!isSelf && (
+        <Button size="sm" variant="destructive" disabled={busy} onClick={onRemove}>
+          Remove account
+        </Button>
+      )}
     </div>
   );
 }

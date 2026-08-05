@@ -35,6 +35,7 @@ import {
 	NoSearchMatch,
 } from "@/components/candidates/empty-states";
 import { CandidateRowActions } from "@/components/candidates/row-actions";
+import type { CandidateTableItem } from "@/components/candidates/types";
 import { StatusBadge } from "@/components/status-badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,8 @@ import {
 	SHORTCUTS,
 	type Shortcut,
 } from "@/lib/candidate-query";
+import { isStatus } from "@/lib/type-guards";
+import type { Status } from "@/lib/status-constants";
 import {
 	EXCEPTION_STAGES,
 	statusDisplay,
@@ -85,23 +88,8 @@ declare module "@tanstack/react-table" {
 }
 
 /**
- * One row per CandidateAssignment (D18). `id` is the candidate id (profile link
- * target); `assignmentId` is the invite/completion unit resend/revoke act on, and
- * `status` is the assignment's status, not any legacy candidate-level status.
+ * One row per CandidateAssignment (D18). See CandidateTableItem in types.ts.
  */
-export type CandidateTableItem = {
-	id: string;
-	assignmentId: string;
-	fullName: string;
-	email: string;
-	status: string;
-	sentAt: string | null;
-	submittedAt: string | null;
-	lastActivityAt: string | null;
-	lastActivityLabel: string;
-	invitedByName: string | null;
-};
-
 const ALL = "all";
 
 function initials(name: string): string {
@@ -129,20 +117,22 @@ function buildColumns(isAdmin: boolean): ColumnDef<CandidateTableItem>[] {
 				);
 			},
 			cell: ({ row }) => (
-				<div className="flex items-center gap-2">
-					<Avatar className="size-9">
+				<div className="relative flex min-w-0 items-center gap-2">
+					{/* Real link (not row onClick) so Cmd/Ctrl+click and middle-click work. */}
+					<Link
+						href={`/admin/candidate/${row.original.assignmentId}`}
+						className="absolute inset-0 z-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						aria-label={`Open ${row.original.fullName}`}
+					/>
+					<Avatar className="pointer-events-none relative z-10 size-9">
 						<AvatarFallback className="text-xs">
 							{initials(row.original.fullName)}
 						</AvatarFallback>
 					</Avatar>
-					<div className="flex min-w-0 flex-col">
-						<Link
-							href={`/admin/candidate/${row.original.assignmentId}`}
-							className="truncate font-medium underline-offset-4 hover:underline"
-							onClick={(event) => event.stopPropagation()}
-						>
+					<div className="pointer-events-none relative z-10 flex min-w-0 flex-col">
+						<span className="truncate font-medium underline-offset-4 group-hover/row:underline">
 							{row.getValue("fullName")}
-						</Link>
+						</span>
 						<span className="truncate text-sm text-muted-foreground md:hidden">
 							{row.original.email}
 						</span>
@@ -255,7 +245,7 @@ function buildColumns(isAdmin: boolean): ColumnDef<CandidateTableItem>[] {
 			enableHiding: false,
 			cell: ({ row }) =>
 				isAdmin ? (
-					<div className="flex justify-end">
+					<div className="relative z-10 flex justify-end">
 						<CandidateRowActions
 							candidateId={row.original.id}
 							assignmentId={row.original.assignmentId}
@@ -356,7 +346,7 @@ export function CandidatesDatatable({
 		});
 	}
 
-	function applyStatus(status: string | null) {
+	function applyStatus(status: Status | null) {
 		writeParams((params) => {
 			params.delete("view");
 			if (status) params.set("status", status);
@@ -500,9 +490,10 @@ export function CandidatesDatatable({
 														className="sticky top-0 z-10 bg-card text-muted-foreground first:pl-4 last:px-4"
 													>
 														{header.isPlaceholder ? null : header.column.getCanSort() ? (
-															<button
+															<Button
 																type="button"
-																className="flex h-full w-full cursor-pointer items-center justify-between gap-2 select-none"
+																variant="ghost"
+																className="-mx-2 flex h-full w-full cursor-pointer items-center justify-between gap-2 px-2 font-normal select-none"
 																onClick={header.column.getToggleSortingHandler()}
 																aria-label={`Sort by ${String(header.column.columnDef.header ?? header.column.id)}`}
 															>
@@ -527,7 +518,7 @@ export function CandidatesDatatable({
 																	),
 																}[sorted as string] ??
 																	null}
-															</button>
+															</Button>
 														) : (
 															flexRender(
 																header.column.columnDef.header,
@@ -546,19 +537,7 @@ export function CandidatesDatatable({
 												key={row.id}
 												data-assignment-id={row.original.assignmentId}
 												data-candidate-id={row.original.id}
-												className="cursor-pointer"
-												onClick={(event) => {
-													if (
-														(event.target as HTMLElement).closest(
-															"a,button,[role='menu'],[role='dialog']",
-														)
-													) {
-														return;
-													}
-													router.push(
-														`/admin/candidate/${row.original.assignmentId}`,
-													);
-												}}
+												className="group/row"
 											>
 												{row.getVisibleCells().map((cell) => (
 													<TableCell
@@ -659,6 +638,7 @@ export function CandidatesDatatable({
 														"bg-primary/10 text-primary hover:bg-primary/20 focus-visible:ring-primary/20",
 												)}
 												onClick={() => table.setPageIndex(page - 1)}
+												aria-label={`Go to page ${page}`}
 												aria-current={isActive ? "page" : undefined}
 											>
 												{page}
@@ -743,9 +723,9 @@ function StatusFilter({
 	shortcut,
 	onStatusChange,
 }: {
-	status: string | null;
+	status: Status | null;
 	shortcut: Shortcut | null;
-	onStatusChange: (status: string | null) => void;
+	onStatusChange: (status: Status | null) => void;
 }) {
 	const id = useId();
 	const statuses = [...WORKFLOW_STAGES, ...EXCEPTION_STAGES];
@@ -758,7 +738,7 @@ function StatusFilter({
 				value={selectValue}
 				onValueChange={(value) => {
 					if (!value) return;
-					onStatusChange(value === ALL ? null : value);
+					onStatusChange(value === ALL || !isStatus(value) ? null : value);
 				}}
 			>
 				<SelectTrigger id={`${id}-select`} className="w-full">

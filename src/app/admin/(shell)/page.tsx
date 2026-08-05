@@ -1,15 +1,21 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireHiringUser } from "@/lib/auth-admin";
+import type { Status } from "@/lib/status-constants";
 import { EXCEPTION_STAGES } from "@/lib/status-display";
 import { hiringAttention, workspaceAttention, type CandidateFacts } from "@/lib/attention";
 import { FEED_ACTIONS, activitySentence } from "@/lib/activity";
 import { normalizeContextFlags, normalizeDimensions } from "@/lib/result-display";
+import { Button } from "@/components/ui/button";
 import { RoundSummary } from "@/components/overview/round-summary";
 import { WorkflowStrip } from "@/components/overview/workflow-strip";
 import { HiringAttention, WorkspaceAttention } from "@/components/overview/attention-list";
 import { RecentCompletions, type CompletedProfile } from "@/components/overview/recent-completions";
 import { ActivityFeed, type ActivityEntry } from "@/components/overview/activity-feed";
-import { EmptyRound } from "@/components/overview/empty-round";
+import {
+	EmptyRound,
+	EmptyRoundAdminActions,
+} from "@/components/overview/empty-round";
 
 export const dynamic = "force-dynamic";
 
@@ -77,8 +83,10 @@ export default async function AdminOverviewPage() {
 	const attention = hiringAttention(facts, now);
 	const workspace = workspaceAttention(users);
 
-	const counts: Record<string, number> = {};
-	for (const a of assignments) counts[a.status] = (counts[a.status] ?? 0) + 1;
+	const counts: Partial<Record<Status, number>> = {};
+	for (const a of assignments) {
+		counts[a.status] = (counts[a.status] ?? 0) + 1;
+	}
 	const exceptions = EXCEPTION_STAGES.map((status) => ({
 		status,
 		count: counts[status] ?? 0,
@@ -125,7 +133,7 @@ export default async function AdminOverviewPage() {
 	const lastActivityAt = feedEvents[0]?.createdAt ?? null;
 
 	return (
-		<div className="flex flex-col gap-6 p-6">
+		<div className="flex min-w-0 flex-col gap-6 overflow-x-hidden p-6">
 			<RoundSummary
 				firstName={firstName}
 				total={assignments.length}
@@ -133,20 +141,46 @@ export default async function AdminOverviewPage() {
 				needsAttention={attention.length}
 				lastActivityAt={lastActivityAt}
 				now={now}
-				isAdmin={isAdmin}
-			/>
+			>
+				{isAdmin ? (
+					<>
+						<Button
+							variant="outline"
+							nativeButton={false}
+							render={<a href="/api/admin/export" />}
+						>
+							Export results
+						</Button>
+						<Button nativeButton={false} render={<Link href="/admin/invite" />}>
+							Invite candidates
+						</Button>
+					</>
+				) : null}
+			</RoundSummary>
 
 			{assignments.length === 0 ? (
-				<EmptyRound isAdmin={isAdmin} />
+				<EmptyRound>{isAdmin ? <EmptyRoundAdminActions /> : null}</EmptyRound>
 			) : (
 				<>
-					<WorkflowStrip counts={counts} exceptions={exceptions} />
+					<section aria-labelledby="workflow-heading">
+						<WorkflowStrip counts={counts} exceptions={exceptions} />
+					</section>
 					<div className="grid gap-6 lg:grid-cols-2">
-						<HiringAttention items={attention} now={now} />
-						<ActivityFeed entries={entries} now={now} />
+						<section aria-labelledby="attention-heading">
+							<HiringAttention items={attention} now={now} />
+						</section>
+						<section aria-labelledby="activity-heading">
+							<ActivityFeed entries={entries} now={now} />
+						</section>
 					</div>
-					<RecentCompletions profiles={completed} />
-					<WorkspaceAttention items={workspace} />
+					<section aria-labelledby="completions-heading">
+						<RecentCompletions profiles={completed} />
+					</section>
+					{workspace.length > 0 && (
+						<section aria-labelledby="workspace-heading">
+							<WorkspaceAttention items={workspace} />
+						</section>
+					)}
 				</>
 			)}
 		</div>

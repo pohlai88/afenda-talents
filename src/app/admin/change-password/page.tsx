@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireHiringUser } from "@/lib/auth-admin";
-import { ChangePasswordForm } from "@/components/change-password-form";
+import {
+  ChangePasswordForm,
+  ForcedChangePasswordForm,
+} from "@/components/change-password-form";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +29,11 @@ export default async function ChangePasswordPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
-      <ChangePasswordForm email={user.email} forced={user.mustChangePassword} />
+      {user.mustChangePassword ? (
+        <ForcedChangePasswordForm email={user.email} />
+      ) : (
+        <ChangePasswordForm email={user.email} />
+      )}
     </main>
   );
 }

@@ -1,6 +1,12 @@
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import { env } from "@/lib/env";
+import {
+	ADMIN_COOKIE,
+	type HiringSession,
+	type Role,
+	ROLES,
+} from "@/lib/hiring-roles";
 
 /**
  * HIRING-SIDE authentication only. This file must never reference the other auth
@@ -9,12 +15,7 @@ import { env } from "@/lib/env";
  *
  * Two roles (DECISIONS.md D15): ADMIN acts, VIEWER reads. Candidates are not users.
  */
-export const ADMIN_COOKIE = "afenda_admin";
-
-export const ROLES = ["ADMIN", "VIEWER"] as const;
-export type Role = (typeof ROLES)[number];
-
-export type HiringSession = { userId: string; role: Role };
+export { ADMIN_COOKIE, ROLES, type HiringSession, type Role };
 
 const secret = () => new TextEncoder().encode(env.APP_SECRET);
 

@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { apiErrorMessage } from "@/lib/api-responses";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
@@ -12,6 +14,10 @@ export function ConsentForm({ token }: { token: string }) {
 	const [agreed, setAgreed] = useState(false);
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+
+	useEffect(() => {
+		if (error) document.getElementById("consent-agree")?.focus();
+	}, [error]);
 
 	async function begin() {
 		if (!agreed || busy) return;
@@ -28,9 +34,7 @@ export function ConsentForm({ token }: { token: string }) {
 			setBusy(false);
 			const body = await response.json().catch(() => ({}));
 			setError(
-				typeof body.error === "string"
-					? body.error
-					: "Could not start. Check your connection and try again.",
+				apiErrorMessage(body, "Could not start. Check your connection and try again."),
 			);
 		} catch {
 			setBusy(false);
@@ -59,9 +63,9 @@ export function ConsentForm({ token }: { token: string }) {
 				</Label>
 			</div>
 			{error && (
-				<p id={errorId} role="alert" className="text-sm text-destructive">
-					{error}
-				</p>
+				<Alert variant="destructive" id={errorId}>
+					<AlertDescription>{error}</AlertDescription>
+				</Alert>
 			)}
 			<Button
 				className="w-full"

@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { apiErrorMessage } from "@/lib/api-responses";
 
 /**
  * The only path back into editing once a draft has been published away (D18 §11):
@@ -24,7 +26,7 @@ export function CreateDraftButton({ assessmentId }: { assessmentId: string }) {
 			});
 			if (!response.ok) {
 				const body = await response.json().catch(() => ({}));
-				setError(body.error ?? "Could not create a new draft.");
+				setError(apiErrorMessage(body, "Could not create a new draft."));
 				setBusy(false);
 				return;
 			}
@@ -41,9 +43,9 @@ export function CreateDraftButton({ assessmentId }: { assessmentId: string }) {
 				{busy ? "Creating draft…" : "Create a new draft"}
 			</Button>
 			{error && (
-				<p role="alert" className="text-sm text-destructive">
-					{error}
-				</p>
+				<Alert variant="destructive">
+					<AlertDescription>{error}</AlertDescription>
+				</Alert>
 			)}
 		</div>
 	);

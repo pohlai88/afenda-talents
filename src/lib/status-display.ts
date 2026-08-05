@@ -1,4 +1,4 @@
-import type { Status } from "@/lib/status";
+import type { Status } from "@/lib/status-constants";
 
 /**
  * Canonical status codes are for the database, the CSV export, and audit rows.
@@ -25,8 +25,8 @@ const DISPLAY: Record<Status, StatusDisplay> = {
   REVOKED: { label: "Invitation revoked", tone: "exception" },
 };
 
-export function statusDisplay(status: string): StatusDisplay {
-  return DISPLAY[status as Status] ?? { label: status, tone: "neutral" };
+export function statusDisplay(status: Status): StatusDisplay {
+  return DISPLAY[status];
 }
 
 /**
@@ -41,7 +41,7 @@ export const WORKFLOW_STAGES = ["SENT", "STARTED", "SUBMITTED", "SCORED"] as con
 
 export const EXCEPTION_STAGES = ["EXPIRED", "REVOKED"] as const;
 
-export const STAGE_EXPLANATION: Record<string, string> = {
+export const STAGE_EXPLANATION: Record<(typeof WORKFLOW_STAGES)[number], string> = {
   SENT: "Personal link sent, not opened yet",
   STARTED: "Opened the link and began answering",
   SUBMITTED: "Answers received, profile being prepared",

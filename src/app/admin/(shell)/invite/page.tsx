@@ -59,6 +59,7 @@ export default async function InvitePage() {
 			<InviteWorkflow ttlDays={env.INVITE_TTL_DAYS} />
 			<InviteForm
 				ttlDays={env.INVITE_TTL_DAYS}
+				mailFrom={env.MAIL_FROM}
 				openRounds={openRounds.map((round) => ({
 					id: round.id,
 					name: round.name,

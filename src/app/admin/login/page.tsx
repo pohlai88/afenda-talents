@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,6 +21,10 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (error) document.getElementById("email")?.focus();
+  }, [error]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -94,9 +99,9 @@ export default function AdminLoginPage() {
               />
             </div>
             {error && (
-              <p id="login-error" role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
+              <Alert id="login-error" variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
           </CardContent>
           <CardFooter>

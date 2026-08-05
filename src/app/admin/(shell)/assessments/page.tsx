@@ -92,71 +92,130 @@ export default async function AssessmentsPage() {
 				</Empty>
 			) : (
 				<Card>
-					<CardContent>
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Title</TableHead>
-									<TableHead>Kind</TableHead>
-									<TableHead>Latest published version</TableHead>
-									<TableHead>Draft</TableHead>
-									<TableHead className="text-right">Rounds using it</TableHead>
-									<TableHead />
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{rows.map((row) => (
-									<TableRow key={row.id}>
-										<TableCell className="font-medium">{row.title}</TableCell>
-										<TableCell>
+					<CardContent className="space-y-0">
+						<div className="hidden min-w-0 overflow-x-auto md:block">
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead>Title</TableHead>
+										<TableHead>Kind</TableHead>
+										<TableHead>Latest published version</TableHead>
+										<TableHead>Draft</TableHead>
+										<TableHead className="text-right">Rounds using it</TableHead>
+										<TableHead />
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{rows.map((row) => (
+										<TableRow key={row.id}>
+											<TableCell className="font-medium">{row.title}</TableCell>
+											<TableCell>
+												<Badge variant={row.kind === "SYSTEM" ? "default" : "secondary"}>
+													{KIND_LABEL[row.kind] ?? row.kind}
+												</Badge>
+											</TableCell>
+											<TableCell className="text-muted-foreground">
+												{row.latestVersionNumber !== null
+													? `v${row.latestVersionNumber}`
+													: "Not published"}
+											</TableCell>
+											<TableCell>
+												{row.status === "ARCHIVED" ? (
+													<Badge variant="outline">Archived</Badge>
+												) : row.hasDraft ? (
+													<Badge variant="outline">Draft pending</Badge>
+												) : (
+													<span className="text-muted-foreground">—</span>
+												)}
+											</TableCell>
+											<TableCell className="text-right tabular-nums">
+												{row.roundCount}
+											</TableCell>
+											<TableCell className="text-right">
+												<AssessmentRowActions
+													assessmentId={row.id}
+													isAdmin={isAdmin}
+													archived={row.status === "ARCHIVED"}
+												/>
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+						</div>
+						<ul className="flex flex-col gap-3 md:hidden">
+							{rows.map((row) => (
+								<li
+									key={row.id}
+									className="space-y-3 rounded-lg border border-border px-3 py-3"
+								>
+									<div className="space-y-1">
+										<p className="font-medium">{row.title}</p>
+										<div className="flex flex-wrap items-center gap-2">
 											<Badge variant={row.kind === "SYSTEM" ? "default" : "secondary"}>
 												{KIND_LABEL[row.kind] ?? row.kind}
 											</Badge>
-										</TableCell>
-										<TableCell className="text-muted-foreground">
-											{row.latestVersionNumber !== null ? `v${row.latestVersionNumber}` : "Not published"}
-										</TableCell>
-										<TableCell>
 											{row.status === "ARCHIVED" ? (
 												<Badge variant="outline">Archived</Badge>
 											) : row.hasDraft ? (
 												<Badge variant="outline">Draft pending</Badge>
-											) : (
-												<span className="text-muted-foreground">—</span>
-											)}
-										</TableCell>
-										<TableCell className="text-right tabular-nums">{row.roundCount}</TableCell>
-										<TableCell className="text-right">
-											<div className="flex justify-end gap-2">
-												<Button
-													size="sm"
-													variant="outline"
-													nativeButton={false}
-													render={<Link href={`/admin/assessments/${row.id}/preview`} />}
-												>
-													Preview
-												</Button>
-												{isAdmin && row.status !== "ARCHIVED" && (
-													<>
-														<Button
-															size="sm"
-															variant="outline"
-															nativeButton={false}
-															render={<Link href={`/admin/assessments/${row.id}/edit`} />}
-														>
-															Edit
-														</Button>
-														<DuplicateAssessmentButton assessmentId={row.id} />
-													</>
-												)}
-											</div>
-										</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
+											) : null}
+										</div>
+										<p className="text-sm text-muted-foreground">
+											{row.latestVersionNumber !== null
+												? `Latest published: v${row.latestVersionNumber}`
+												: "Not published"}
+										</p>
+										<p className="text-sm tabular-nums text-muted-foreground">
+											{row.roundCount} round{row.roundCount === 1 ? "" : "s"} using it
+										</p>
+									</div>
+									<AssessmentRowActions
+										assessmentId={row.id}
+										isAdmin={isAdmin}
+										archived={row.status === "ARCHIVED"}
+									/>
+								</li>
+							))}
+						</ul>
 					</CardContent>
 				</Card>
+			)}
+		</div>
+	);
+}
+
+function AssessmentRowActions({
+	assessmentId,
+	isAdmin,
+	archived,
+}: {
+	assessmentId: string;
+	isAdmin: boolean;
+	archived: boolean;
+}) {
+	return (
+		<div className="flex flex-wrap gap-2 md:justify-end">
+			<Button
+				size="sm"
+				variant="outline"
+				nativeButton={false}
+				render={<Link href={`/admin/assessments/${assessmentId}/preview`} />}
+			>
+				Preview
+			</Button>
+			{isAdmin && !archived && (
+				<>
+					<Button
+						size="sm"
+						variant="outline"
+						nativeButton={false}
+						render={<Link href={`/admin/assessments/${assessmentId}/edit`} />}
+					>
+						Edit
+					</Button>
+					<DuplicateAssessmentButton assessmentId={assessmentId} />
+				</>
 			)}
 		</div>
 	);

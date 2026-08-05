@@ -5,7 +5,7 @@ import {
   IllegalStatusTransition,
   STATUSES,
   type Status,
-} from "@/lib/status";
+} from "@/lib/status-constants";
 
 const legal: [Status, Status][] = [
   ["DRAFT", "SENT"],

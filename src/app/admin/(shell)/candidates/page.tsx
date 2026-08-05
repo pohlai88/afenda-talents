@@ -2,10 +2,13 @@ import { Suspense } from "react";
 import Link from "next/link";
 import {
 	CandidatesDatatable,
-	type CandidateTableItem,
 } from "@/components/candidates/candidates-datatable";
-import { NoCandidates } from "@/components/candidates/empty-states";
-import { relativeTime } from "@/components/overview/round-summary";
+import type { CandidateTableItem } from "@/components/candidates/types";
+import {
+	InviteCandidatesAction,
+	NoCandidates,
+} from "@/components/candidates/empty-states";
+import { relativeTime } from "@/lib/relative-time";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireHiringUser } from "@/lib/auth-admin";
@@ -87,11 +90,21 @@ export default async function CandidatesPage() {
 			/>
 
 			{assignments.length === 0 ? (
-				<NoCandidates isAdmin={isAdmin} />
+				<NoCandidates>
+					{isAdmin ? <InviteCandidatesAction /> : null}
+				</NoCandidates>
 			) : (
 				<Suspense
 					fallback={
-						<p className="text-sm text-muted-foreground">Loading candidates…</p>
+						<div
+							className="flex flex-col gap-3"
+							aria-busy="true"
+							aria-live="polite"
+						>
+							<span className="sr-only">Loading candidates…</span>
+							<div className="h-10 w-full max-w-md animate-pulse rounded-md bg-muted" />
+							<div className="h-64 w-full animate-pulse rounded-xl bg-muted" />
+						</div>
 					}
 				>
 					<CandidatesDatatable data={items} isAdmin={isAdmin} />

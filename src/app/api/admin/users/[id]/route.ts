@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { requireAdmin, ROLES } from "@/lib/auth-admin";
 import { hashPassword, generatePassword } from "@/lib/passwords";
@@ -32,7 +33,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   let temporaryPassword: string | undefined;
-  const data: Record<string, unknown> = {};
+  const data: Prisma.UserUpdateInput = {};
   if (parsed.data.role) data.role = parsed.data.role;
   if (parsed.data.resetPassword) {
     temporaryPassword = generatePassword();

@@ -1,5 +1,8 @@
 import { Resend } from "resend";
+import { INVITATION_SUBJECT, RECEIPT_SUBJECT } from "@/lib/email-copy";
 import { env } from "@/lib/env";
+
+export { INVITATION_SUBJECT, RECEIPT_SUBJECT } from "@/lib/email-copy";
 
 /**
  * Two templates: invitation (also used for resend, per DECISIONS.md D12 — a reminder with
@@ -75,7 +78,7 @@ export async function sendInvitation(
 ): Promise<void> {
   await send({
     to,
-    subject: "Your Afenda Talents self-assessment",
+    subject: INVITATION_SUBJECT,
     html: invitationHtml(fullName, url, expiresAt),
   });
 }
@@ -83,7 +86,7 @@ export async function sendInvitation(
 export async function sendReceipt(to: string, fullName: string): Promise<void> {
   await send({
     to,
-    subject: "We have received your Afenda Talents self-assessment",
+    subject: RECEIPT_SUBJECT,
     html: receiptHtml(fullName),
   });
 }

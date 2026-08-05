@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { CandidateShell } from "@/components/candidate/shell";
@@ -13,10 +14,14 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { apiErrorMessage } from "@/lib/api-responses";
 import { LIKERT_LABELS } from "@/lib/instrument-labels";
-import { scrollIntoViewAware } from "@/lib/motion";
+import { scrollAndFocus } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 export type AssessmentFormItem =
@@ -159,7 +164,18 @@ export function AssessmentForm({
 		const targetId = firstUnanswered?.id ?? items[0]?.id;
 		if (!targetId) return;
 		requestAnimationFrame(() => {
-			scrollIntoViewAware(document.getElementById(`item-${targetId}`));
+			const item = itemsById.current.get(targetId);
+			const container = document.getElementById(`item-${targetId}`);
+			let focusTarget: HTMLElement | null = null;
+			if (item?.type === "likert") {
+				focusTarget =
+					document.querySelector<HTMLInputElement>(
+						`input[name="item-${targetId}"]:checked`,
+					) ?? document.getElementById(`item-${targetId}-v1`);
+			} else {
+				focusTarget = document.getElementById(`item-${targetId}-input`);
+			}
+			scrollAndFocus(container, focusTarget);
 		});
 	}, [hadSavedAnswers, items, saved]);
 
@@ -190,18 +206,33 @@ export function AssessmentForm({
 		return items.filter((i) => !isAnswered(i, answers[i.id])).map((i) => i.id);
 	}
 
+	function focusItemControl(itemId: string) {
+		const item = itemsById.current.get(itemId);
+		const container = document.getElementById(`item-${itemId}`);
+		let focusTarget: HTMLElement | null = null;
+		if (item?.type === "likert") {
+			focusTarget =
+				document.querySelector<HTMLInputElement>(
+					`input[name="item-${itemId}"]:checked`,
+				) ?? document.getElementById(`item-${itemId}-v1`);
+		} else {
+			focusTarget = document.getElementById(`item-${itemId}-input`);
+		}
+		scrollAndFocus(container, focusTarget);
+	}
+
 	function reviewUnanswered() {
 		const unanswered = unansweredIds();
 		if (unanswered.length === 0) return;
 		setMissing(unanswered);
-		scrollIntoViewAware(document.getElementById(`item-${unanswered[0]}`));
+		focusItemControl(unanswered[0]);
 	}
 
 	function requestSubmit() {
 		const unanswered = unansweredIds();
 		if (unanswered.length > 0) {
 			setMissing(unanswered);
-			scrollIntoViewAware(document.getElementById(`item-${unanswered[0]}`));
+			focusItemControl(unanswered[0]);
 			return;
 		}
 		setConfirmOpen(true);
@@ -226,11 +257,12 @@ export function AssessmentForm({
 		const body = await response.json().catch(() => ({}));
 		setBusy(false);
 		setConfirmOpen(false);
-		if (Array.isArray(body.unanswered)) setMissing(body.unanswered);
+		if (Array.isArray(body.unanswered) && body.unanswered.length > 0) {
+			setMissing(body.unanswered);
+			focusItemControl(body.unanswered[0]);
+		}
 		setError(
-			typeof body.error === "string"
-				? body.error
-				: "Could not submit. Please try again.",
+			apiErrorMessage(body, "Could not submit. Please try again."),
 		);
 	}
 
@@ -263,48 +295,41 @@ export function AssessmentForm({
 				</p>
 
 				{showResumeNotice && (
-					<div
-						role="status"
-						className="mt-4 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
-					>
-						<p>Your previous answers were restored.</p>
-						<button
-							type="button"
-							className="mt-1 text-xs font-medium text-primary underline-offset-4 hover:underline"
-							onClick={() => setShowResumeNotice(false)}
-						>
-							Dismiss
-						</button>
-					</div>
+					<Alert className="mt-4" role="status">
+						<CheckCircleIcon className="size-4" />
+						<AlertDescription>Your previous answers were restored.</AlertDescription>
+						<AlertAction>
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								className="text-xs"
+								onClick={() => setShowResumeNotice(false)}
+							>
+								Dismiss
+							</Button>
+						</AlertAction>
+					</Alert>
 				)}
 
 				<div className="sticky top-[3.25rem] z-10 -mx-4 mt-4 border-b border-border/60 bg-background/95 px-4 py-2 backdrop-blur">
-					<div
-						role="progressbar"
-						aria-valuemin={0}
-						aria-valuemax={total}
-						aria-valuenow={answered}
-						aria-valuetext={progressLabel}
+					<Progress
+						value={progressPct}
+						className="[&_[data-slot=progress-track]]:h-1.5"
 						aria-label="Assessment progress"
-						className="h-1.5 overflow-hidden rounded-full bg-muted"
+						aria-valuetext={progressLabel}
 					>
-						<div
-							className="h-full rounded-full bg-progress transition-[width] duration-300 motion-reduce:transition-none"
-							style={{ width: `${progressPct}%` }}
-							aria-hidden
-						/>
-					</div>
-					<div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-						<span className="tabular-nums" aria-hidden>
-							{progressLabel}
-						</span>
-						<span aria-live="polite" aria-atomic="true" className="min-h-[1em]">
+						<ProgressLabel className="sr-only">Progress</ProgressLabel>
+						<ProgressValue className="text-xs text-muted-foreground tabular-nums" />
+					</Progress>
+					{statusText && (
+						<p aria-live="polite" aria-atomic="true" className="mt-1 text-right text-[11px] text-muted-foreground">
 							{statusText}
-						</span>
-					</div>
+						</p>
+					)}
 				</div>
 
-				<ol className="mt-6 space-y-5">
+				<ol className="mt-6 space-y-3">
 					{items.map((item) => {
 						const isMissing = missing.includes(item.id);
 						const answer = answers[item.id];
@@ -313,12 +338,13 @@ export function AssessmentForm({
 							<li
 								key={item.id}
 								id={`item-${item.id}`}
-								className={cn(
-									"scroll-mt-28 border-b border-border/70 py-4 last:border-b-0",
-									isMissing &&
-										"rounded-md bg-destructive/5 px-3 ring-1 ring-destructive/40",
-								)}
+								className="scroll-mt-28"
 							>
+							<Card className={cn(
+								"shadow-none transition-colors",
+								isMissing && "ring-1 ring-destructive/60 bg-destructive/5",
+							)}>
+							<CardContent className="px-4 py-3">
 								<p
 									id={`item-${item.id}-prompt`}
 									className="text-sm font-medium leading-snug"
@@ -338,12 +364,10 @@ export function AssessmentForm({
 									<>
 										<fieldset
 											className="mt-3 m-0 min-w-0 border-0 p-0"
+											aria-labelledby={`item-${item.id}-prompt`}
 											aria-invalid={isMissing || undefined}
 											aria-describedby={isMissing ? errorId : undefined}
 										>
-											<legend className="sr-only">
-												Statement {item.order}: {item.text}
-											</legend>
 											<div className="grid grid-cols-5 gap-1.5">
 												{([1, 2, 3, 4, 5] as const).map((value) => {
 													const selected = answer?.value === value;
@@ -416,47 +440,46 @@ export function AssessmentForm({
 									</div>
 								)}
 
-								{isMissing && (
-									<p id={errorId} role="alert" className="mt-2 text-xs text-destructive">
-										Please answer this one.
-									</p>
-								)}
-							</li>
-						);
-					})}
-				</ol>
+							{isMissing && (
+								<p id={errorId} role="alert" className="mt-2 text-xs text-destructive">
+									Please answer this one.
+								</p>
+							)}
+							</CardContent>
+							</Card>
+						</li>
+					);
+				})}
+			</ol>
 
-				<div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
-					<div className="mx-auto max-w-xl space-y-2">
-						{error && (
-							<p id="submit-error" role="alert" className="text-sm text-destructive">
-								{error}
-							</p>
-						)}
-						{missing.length > 0 && (
-							<Button
-								type="button"
-								variant="outline"
-								className="w-full"
-								onClick={reviewUnanswered}
-							>
-								Review unanswered ({missing.length})
-							</Button>
-						)}
-						<p className="text-xs text-muted-foreground tabular-nums" aria-hidden>
-							{progressLabel}
-						</p>
+		<div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
+				<div className="mx-auto max-w-xl space-y-2">
+					{error && (
+						<Alert variant="destructive">
+							<AlertDescription id="submit-error">{error}</AlertDescription>
+						</Alert>
+					)}
+					{missing.length > 0 && (
 						<Button
+							type="button"
+							variant="outline"
 							className="w-full"
-							size="lg"
-							disabled={busy}
-							aria-describedby={error ? "submit-error" : undefined}
-							onClick={requestSubmit}
+							onClick={reviewUnanswered}
 						>
-							{busy ? "Submitting…" : "Submit"}
+							Review unanswered ({missing.length})
 						</Button>
-					</div>
+					)}
+					<Button
+						className="w-full"
+						size="lg"
+						disabled={busy}
+						aria-describedby={error ? "submit-error" : undefined}
+						onClick={requestSubmit}
+					>
+						{busy ? "Submitting…" : "Submit"}
+					</Button>
 				</div>
+			</div>
 			</main>
 
 			<AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>

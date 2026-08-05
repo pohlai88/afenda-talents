@@ -4,6 +4,7 @@ import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -15,6 +16,8 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { apiErrorMessage } from "@/lib/api-responses";
+import type { Status } from "@/lib/status-constants";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -25,27 +28,26 @@ import {
 
 type Confirm = "revoke" | "delete";
 
-/**
- * One primary action, everything else behind an overflow menu (requirements §7.4).
- * Both destructive entries name their object and consequence rather than saying
- * "Remove" or "Delete" on their own (§18.4).
- */
-export function CandidateRowActions({
-	candidateId,
-	assignmentId,
-	fullName,
-	status,
-	showPrimary = true,
-}: {
+type ActionIds = {
 	candidateId: string;
 	/** CandidateAssignment id (D18) — resend/revoke act on the assignment, not the person. */
 	assignmentId: string;
 	fullName: string;
 	/** Assignment status. */
-	status: string;
-	/** Hide the primary nav button when already on the candidate detail page. */
-	showPrimary?: boolean;
-}) {
+	status: Status;
+};
+
+async function readErrorMessage(response: Response): Promise<string> {
+	const body = await response.json().catch(() => ({}));
+	return apiErrorMessage(body, `Request failed (${response.status})`);
+}
+
+function useCandidateAdminActions({
+	candidateId,
+	assignmentId,
+	fullName,
+	status,
+}: ActionIds) {
 	const router = useRouter();
 	const [busy, setBusy] = useState(false);
 	const [confirm, setConfirm] = useState<Confirm | null>(null);
@@ -53,37 +55,65 @@ export function CandidateRowActions({
 	const canResend =
 		status === "SENT" || status === "EXPIRED" || status === "REVOKED";
 	const canRevoke = status === "SENT" || status === "STARTED";
-	const isScored = status === "SCORED";
 
 	async function post(action: "resend" | "revoke") {
 		setBusy(true);
-		await fetch(`/api/admin/invite/${assignmentId}/${action}`, { method: "POST" });
-		setBusy(false);
-		router.refresh();
+		try {
+			const response = await fetch(
+				`/api/admin/invite/${assignmentId}/${action}`,
+				{ method: "POST" },
+			);
+			if (!response.ok) {
+				toast.error(await readErrorMessage(response));
+				return;
+			}
+			toast.success(
+				action === "resend"
+					? `Invitation resent to ${fullName}`
+					: `Invitation revoked for ${fullName}`,
+			);
+			router.refresh();
+		} catch {
+			toast.error("Could not reach the server. Try again.");
+		} finally {
+			setBusy(false);
+		}
 	}
 
 	async function remove() {
 		setBusy(true);
-		await fetch(`/api/admin/candidate/${candidateId}`, { method: "DELETE" });
-		setBusy(false);
-		// Leave the detail route — the record is gone.
-		router.push("/admin/candidates");
-		router.refresh();
+		try {
+			const response = await fetch(`/api/admin/candidate/${candidateId}`, {
+				method: "DELETE",
+			});
+			if (!response.ok) {
+				toast.error(await readErrorMessage(response));
+				return;
+			}
+			toast.success(`${fullName} and their assessment data were deleted`);
+			router.push("/admin/candidates");
+			router.refresh();
+		} catch {
+			toast.error("Could not reach the server. Try again.");
+		} finally {
+			setBusy(false);
+		}
 	}
 
-	return (
-		<div className="flex items-center justify-end gap-1">
-			{showPrimary && (
-				<Button
-					size="sm"
-					variant="outline"
-					nativeButton={false}
-					render={<Link href={`/admin/candidate/${assignmentId}`} />}
-				>
-					{isScored ? "Review profile" : "View progress"}
-				</Button>
-			)}
+	return { busy, confirm, setConfirm, canResend, canRevoke, post, remove };
+}
 
+/**
+ * Overflow menu only — for the candidate detail header where the primary
+ * destination is already the current page (requirements §7.4 / §18.4).
+ */
+export function CandidateAdminMenu(props: ActionIds) {
+	const { busy, confirm, setConfirm, canResend, canRevoke, post, remove } =
+		useCandidateAdminActions(props);
+	const { fullName } = props;
+
+	return (
+		<>
 			<DropdownMenu>
 				<DropdownMenuTrigger
 					render={
@@ -144,9 +174,10 @@ export function CandidateRowActions({
 							variant="destructive"
 							disabled={busy}
 							onClick={async () => {
-								if (confirm === "revoke") await post("revoke");
-								else await remove();
+								const action = confirm;
 								setConfirm(null);
+								if (action === "revoke") await post("revoke");
+								else await remove();
 							}}
 						>
 							{confirm === "revoke" ? "Revoke invitation" : "Delete candidate"}
@@ -154,6 +185,27 @@ export function CandidateRowActions({
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
+		</>
+	);
+}
+
+/**
+ * List/card primary action + overflow menu (requirements §7.4).
+ */
+export function CandidateRowActions(props: ActionIds) {
+	const isScored = props.status === "SCORED";
+
+	return (
+		<div className="flex items-center justify-end gap-1">
+			<Button
+				size="sm"
+				variant="outline"
+				nativeButton={false}
+				render={<Link href={`/admin/candidate/${props.assignmentId}`} />}
+			>
+				{isScored ? "Review profile" : "View progress"}
+			</Button>
+			<CandidateAdminMenu {...props} />
 		</div>
 	);
 }

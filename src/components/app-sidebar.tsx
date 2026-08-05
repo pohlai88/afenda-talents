@@ -34,8 +34,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { navItemIsActive } from "@/lib/nav-active";
 
 type ShellUser = { name: string; email: string; role: string };
+
+type NavItem = {
+  title: string;
+  href: string;
+  icon: typeof LayoutDashboard;
+  show: boolean;
+  /** Extra path prefixes that keep this item active (detail routes). */
+  matchPrefixes?: string[];
+};
 
 export function AppSidebar({ user }: { user: ShellUser }) {
   const pathname = usePathname();
@@ -50,9 +60,16 @@ export function AppSidebar({ user }: { user: ShellUser }) {
 
   // Operational destinations only. Account utilities live in the footer menu —
   // requirements §4.2. Export is a page action, not a destination, so it is not here.
-  const items = [
+  const items: NavItem[] = [
     { title: "Overview", href: "/admin", icon: LayoutDashboard, show: true },
-    { title: "Candidates", href: "/admin/candidates", icon: UsersRound, show: true },
+    {
+      title: "Candidates",
+      href: "/admin/candidates",
+      icon: UsersRound,
+      show: true,
+      // List is plural; detail is /admin/candidate/[assignmentId].
+      matchPrefixes: ["/admin/candidate"],
+    },
     { title: "Hiring rounds", href: "/admin/rounds", icon: ClipboardList, show: true },
     { title: "Assessments", href: "/admin/assessments", icon: FileStack, show: true },
     { title: "Invite", href: "/admin/invite", icon: UserPlus, show: isAdmin },
@@ -85,7 +102,7 @@ export function AppSidebar({ user }: { user: ShellUser }) {
               {items
                 .filter((item) => item.show)
                 .map((item) => {
-                  const active = pathname === item.href;
+                  const active = navItemIsActive(pathname, item);
                   return (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton

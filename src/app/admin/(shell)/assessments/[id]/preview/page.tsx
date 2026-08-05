@@ -1,8 +1,12 @@
+import { ChevronLeftIcon, EyeIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CandidateShell } from "@/components/candidate/shell";
+import { CandidatePreviewFrame } from "@/components/candidate/shell";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { requireHiringUser } from "@/lib/auth-admin";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -66,26 +70,27 @@ export default async function AssessmentPreviewPage({
 	const source = assessment.draftDocument ?? assessment.versions[0]?.document ?? null;
 
 	return (
-		<CandidateShell embedded>
+		<CandidatePreviewFrame>
 			<div className="mx-auto max-w-xl px-4 py-6 pb-16">
 				<div className="mb-5 flex items-center justify-between gap-3">
 					<Button
 						variant="ghost"
 						size="sm"
-						className="-ml-2"
+						className="-ml-2 gap-1"
 						nativeButton={false}
 						render={<Link href={`/admin/assessments/${id}/edit`} />}
 					>
-						← Back to builder
+						<ChevronLeftIcon className="size-4" aria-hidden="true" />
+						Back to builder
 					</Button>
 				</div>
-				<div
-					role="note"
-					className="mb-6 rounded-md border border-dashed border-border bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground"
-				>
-					Preview — not a live invitation. Nothing shown here is saved as a response, and no
-					candidate link is created.
-				</div>
+				<Alert className="mb-6 border-dashed">
+					<EyeIcon className="size-4" />
+					<AlertDescription>
+						Preview — not a live invitation. Nothing shown here is saved as a response, and no
+						candidate link is created.
+					</AlertDescription>
+				</Alert>
 
 				{!source ? (
 					<Card>
@@ -101,7 +106,7 @@ export default async function AssessmentPreviewPage({
 					<PreviewBody doc={parseDraftDocument(source)} />
 				)}
 			</div>
-		</CandidateShell>
+		</CandidatePreviewFrame>
 	);
 }
 
@@ -126,13 +131,28 @@ function PreviewBody({ doc }: { doc: DraftInstrumentDocument }) {
 					<CardDescription>What a candidate would see before starting.</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<ul className="list-inside list-disc space-y-1.5 text-sm text-muted-foreground">
-						<li>
-							{answerableCount} item{answerableCount === 1 ? "" : "s"} to answer
-						</li>
-						<li>About {doc.estimatedMinutes} minutes</li>
-						<li>Displayed {doc.displayMode === "section" ? "by section" : "as one continuous page"}</li>
-					</ul>
+					<dl className="space-y-2 text-sm text-muted-foreground">
+						<div className="flex items-center justify-between gap-4">
+							<dt>Items to answer</dt>
+							<dd className="font-medium text-foreground tabular-nums">
+								{answerableCount}
+							</dd>
+						</div>
+						<Separator />
+						<div className="flex items-center justify-between gap-4">
+							<dt>Estimated time</dt>
+							<dd className="font-medium text-foreground tabular-nums">
+								About {doc.estimatedMinutes} minutes
+							</dd>
+						</div>
+						<Separator />
+						<div className="flex items-center justify-between gap-4">
+							<dt>Display mode</dt>
+							<dd className="font-medium text-foreground">
+								{doc.displayMode === "section" ? "By section" : "Continuous page"}
+							</dd>
+						</div>
+					</dl>
 				</CardContent>
 			</Card>
 
@@ -155,24 +175,28 @@ function PreviewBody({ doc }: { doc: DraftInstrumentDocument }) {
 				</section>
 			</div>
 
-			<ol className="mt-8 space-y-5">
-				{items.map(({ section, item, isFirstInSection }, index) => {
-					const showSectionHeader = doc.displayMode === "section" && isFirstInSection;
-					return (
-						<li key={item.id}>
-							{showSectionHeader && (
-								<div className="mb-3 border-b border-border pb-2 pt-4 first:pt-0">
-									<h2 className="text-sm font-semibold text-foreground">{section.title}</h2>
-									{section.introduction && (
-										<p className="mt-1 text-xs text-muted-foreground">{section.introduction}</p>
-									)}
-								</div>
-							)}
-							<PreviewItemBlock item={item} order={index + 1} />
-						</li>
-					);
-				})}
-			</ol>
+		<ol className="mt-8 space-y-3">
+			{items.map(({ section, item, isFirstInSection }, index) => {
+				const showSectionHeader = doc.displayMode === "section" && isFirstInSection;
+				return (
+					<li key={item.id}>
+						{showSectionHeader && (
+							<div className="mb-3 border-l-2 border-primary pl-3 pt-4 first:pt-0">
+								<h2 className="text-sm font-semibold text-foreground">{section.title}</h2>
+								{section.introduction && (
+									<p className="mt-1 text-xs text-muted-foreground">{section.introduction}</p>
+								)}
+							</div>
+						)}
+						<Card className="shadow-none">
+							<CardContent className="px-4 py-3">
+								<PreviewItemBlock item={item} order={index + 1} />
+							</CardContent>
+						</Card>
+					</li>
+				);
+			})}
+		</ol>
 		</>
 	);
 }
@@ -180,19 +204,25 @@ function PreviewBody({ doc }: { doc: DraftInstrumentDocument }) {
 function PreviewItemBlock({ item, order }: { item: PreviewItem; order: number }) {
 	if (item.type === "info") {
 		return (
-			<div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground">
-				{item.body || "(Empty info block)"}
-			</div>
+			<Card className="border-dashed bg-muted/50 shadow-none">
+				<CardContent className="px-3 py-2.5 text-sm italic text-muted-foreground">
+					{item.body || "(Empty info block)"}
+				</CardContent>
+			</Card>
 		);
 	}
 
 	return (
-		<div className="border-b border-border/70 py-4 last:border-b-0">
-			<p className="text-sm font-medium leading-snug">
-				<span className="mr-2 text-muted-foreground tabular-nums">{order}.</span>
-				{item.text || "(Empty item)"}
-				{item.required && <span className="ml-1 text-muted-foreground">*</span>}
-			</p>
+		<div className="py-1">
+			<div className="flex items-start gap-2">
+				<Badge variant="outline" className="mt-0.5 shrink-0 tabular-nums">
+					{order}
+				</Badge>
+				<p className="text-sm font-medium leading-snug">
+					{item.text || "(Empty item)"}
+					{item.required && <span className="ml-1 text-muted-foreground">*</span>}
+				</p>
+			</div>
 
 			{item.type === "likert" && (
 				<>
@@ -200,7 +230,7 @@ function PreviewItemBlock({ item, order }: { item: PreviewItem; order: number })
 						{[1, 2, 3, 4, 5].map((value) => (
 							<div
 								key={value}
-								className="flex h-12 items-center justify-center rounded-md border border-border bg-card text-sm font-medium text-muted-foreground"
+								className="flex h-12 items-center justify-center rounded-md border border-border bg-muted/40 text-sm font-medium text-muted-foreground"
 							>
 								{value}
 							</div>

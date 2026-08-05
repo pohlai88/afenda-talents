@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { requireAdmin, type HiringSession } from "@/lib/auth-admin";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
-import { applyStatus, canTransition, type Status } from "@/lib/status";
+import { applyStatus } from "@/lib/status";
+import { canTransition } from "@/lib/status-constants";
 
 export const runtime = "nodejs";
 
@@ -22,7 +23,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   const assignment = await db.candidateAssignment.findUnique({ where: { id } });
   if (!assignment) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  if (!canTransition(assignment.status as Status, "REVOKED")) {
+  if (!canTransition(assignment.status, "REVOKED")) {
     return NextResponse.json(
       { error: `Cannot revoke from status ${assignment.status}` },
       { status: 409 },

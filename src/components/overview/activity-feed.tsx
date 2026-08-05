@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { relativeTime } from "@/components/overview/round-summary";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
+import { relativeTime } from "@/lib/relative-time";
 
 export type ActivityEntry = { id: string; sentence: string; at: Date };
 
@@ -7,12 +8,14 @@ export function ActivityFeed({ entries, now }: { entries: ActivityEntry[]; now: 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent activity</CardTitle>
+        <CardTitle id="activity-heading">Recent activity</CardTitle>
         <CardDescription>What has happened in this round.</CardDescription>
       </CardHeader>
       <CardContent>
         {entries.length === 0 ? (
-          <p className="py-4 text-sm text-muted-foreground">Nothing has happened yet.</p>
+          <EmptyDescription className="py-4">
+            Nothing has happened yet.
+          </EmptyDescription>
         ) : (
           <ul className="flex flex-col gap-3">
             {entries.map((entry) => (

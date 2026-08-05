@@ -2,6 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,11 +58,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import type { Role } from "@/lib/hiring-roles";
+import {
+	apiErrorMessage,
+	type RoundPatchPayload,
+	userCreateResponseSchema,
+	userPatchResponseSchema,
+	type UserPatchPayload,
+} from "@/lib/api-responses";
+import type { RoundStatus } from "@/lib/status-constants";
 
 export type RoundRow = {
   id: string;
   name: string;
-  status: string;
+  status: RoundStatus;
   assessmentVersionId: string;
   assessmentTitle: string;
   versionNumber: number;
@@ -66,24 +85,24 @@ export type VersionOption = {
   versionNumber: number;
 };
 
-const ROUND_STATUS_TONE: Record<string, string> = {
+const ROUND_STATUS_TONE: Record<RoundStatus, string> = {
   DRAFT: "border-border bg-transparent text-muted-foreground",
   OPEN: "border-transparent bg-progress/12 text-progress",
   CLOSED: "border-dashed border-border bg-transparent text-muted-foreground",
   ARCHIVED: "border-dashed border-border bg-transparent text-muted-foreground",
 };
 
-const ROUND_STATUS_LABEL: Record<string, string> = {
+const ROUND_STATUS_LABEL: Record<RoundStatus, string> = {
   DRAFT: "Draft",
   OPEN: "Open",
   CLOSED: "Closed",
   ARCHIVED: "Archived",
 };
 
-function RoundStatusBadge({ status }: { status: string }) {
+function RoundStatusBadge({ status }: { status: RoundStatus }) {
   return (
     <Badge variant="outline" className={cn(ROUND_STATUS_TONE[status])}>
-      {ROUND_STATUS_LABEL[status] ?? status}
+      {ROUND_STATUS_LABEL[status]}
     </Badge>
   );
 }
@@ -92,13 +111,15 @@ function RoundStatusBadge({ status }: { status: string }) {
 // shortcut. lib/status.ts's assertRoundTransition is the only authority on legality;
 // this just offers the primary next step for the round's current status. DRAFT rounds
 // get a second, quieter "Abandon" action straight to ARCHIVED (design §4).
-const NEXT_TRANSITION: Record<string, { to: string; label: string } | undefined> = {
+const NEXT_TRANSITION: Partial<Record<RoundStatus, { to: RoundStatus; label: string }>> = {
   DRAFT: { to: "OPEN", label: "Open round" },
   OPEN: { to: "CLOSED", label: "Close round" },
   CLOSED: { to: "ARCHIVED", label: "Archive round" },
 };
 
-const TRANSITION_COPY: Record<string, { title: string; description: string; confirmLabel: string }> = {
+const TRANSITION_COPY: Partial<
+	Record<RoundStatus, { title: string; description: string; confirmLabel: string }>
+> = {
   OPEN: {
     title: "Open this round?",
     description:
@@ -138,51 +159,72 @@ export function RoundManager({
   const [editName, setEditName] = useState("");
   const [editVersionId, setEditVersionId] = useState("");
 
-  const [confirm, setConfirm] = useState<{ round: RoundRow; to: string } | null>(null);
+  const [confirm, setConfirm] = useState<{ round: RoundRow; to: RoundStatus } | null>(null);
 
   async function createRound(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError(null);
-    const response = await fetch("/api/admin/rounds", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, assessmentVersionId: versionId }),
-    });
-    const body = await response.json().catch(() => ({}));
-    setBusy(false);
-    if (!response.ok) {
-      setError(body.error ?? "Could not create the round");
-      return;
+    try {
+      const response = await fetch("/api/admin/rounds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, assessmentVersionId: versionId }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = apiErrorMessage(body, "Could not create the round");
+        setError(message);
+        toast.error(message);
+        return;
+      }
+      toast.success("Hiring round created.");
+      setName("");
+      router.refresh();
+    } catch {
+      const message = "Could not reach the server. Try again.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setBusy(false);
     }
-    setName("");
-    router.refresh();
   }
 
-  async function patchRound(id: string, payload: Record<string, unknown>) {
+  async function patchRound(id: string, payload: RoundPatchPayload) {
     setBusy(true);
     setError(null);
-    const response = await fetch(`/api/admin/rounds/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const body = await response.json().catch(() => ({}));
-    setBusy(false);
-    if (!response.ok) {
-      setError(body.error ?? "Could not update the round");
+    try {
+      const response = await fetch(`/api/admin/rounds/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = apiErrorMessage(body, "Could not update the round");
+        setError(message);
+        toast.error(message);
+        return false;
+      }
+      toast.success("Hiring round updated.");
+      router.refresh();
+      return true;
+    } catch {
+      const message = "Could not reach the server. Try again.";
+      setError(message);
+      toast.error(message);
       return false;
+    } finally {
+      setBusy(false);
     }
-    router.refresh();
-    return true;
   }
 
   return (
     <div className="flex flex-col gap-6">
       {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* Confirms the lifecycle step this row is about to take — opening locks the
@@ -278,80 +320,104 @@ export function RoundManager({
         </CardHeader>
         <CardContent>
           {rounds.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No hiring rounds yet.
-            </p>
+            <Empty className="border border-dashed">
+              <EmptyHeader>
+                <EmptyTitle>No hiring rounds yet</EmptyTitle>
+                <EmptyDescription>
+                  Create a draft round above, then open it before inviting candidates.
+                </EmptyDescription>
+              </EmptyHeader>
+              {isAdmin ? (
+                <EmptyContent>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    nativeButton={false}
+                    render={<Link href="/admin/assessments" />}
+                  >
+                    Manage assessments
+                  </Button>
+                </EmptyContent>
+              ) : null}
+            </Empty>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Assessment version</TableHead>
-                  <TableHead className="text-right">Assignments</TableHead>
-                  {isAdmin && <TableHead />}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rounds.map((round) => {
-                  const next = NEXT_TRANSITION[round.status];
-                  return (
-                    <TableRow key={round.id}>
-                      <TableCell className="font-medium">{round.name}</TableCell>
-                      <TableCell>
-                        <RoundStatusBadge status={round.status} />
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {round.assessmentTitle} v{round.versionNumber}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {round.assignmentCount}
-                      </TableCell>
-                      {isAdmin && (
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            {round.status === "DRAFT" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={busy}
-                                onClick={() => {
-                                  setEdit(round);
-                                  setEditName(round.name);
-                                  setEditVersionId(round.assessmentVersionId);
-                                }}
-                              >
-                                Edit
-                              </Button>
-                            )}
-                            {next && (
-                              <Button
-                                size="sm"
-                                variant="default"
-                                disabled={busy}
-                                onClick={() => setConfirm({ round, to: next.to })}
-                              >
-                                {next.label}
-                              </Button>
-                            )}
-                            {round.status === "DRAFT" && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={busy}
-                                onClick={() => setConfirm({ round, to: "ARCHIVED" })}
-                              >
-                                Abandon
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      )}
+            <>
+              <div className="hidden min-w-0 overflow-x-auto md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Assessment version</TableHead>
+                      <TableHead className="text-right">Assignments</TableHead>
+                      {isAdmin && <TableHead />}
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {rounds.map((round) => (
+                      <TableRow key={round.id}>
+                        <TableCell className="font-medium">{round.name}</TableCell>
+                        <TableCell>
+                          <RoundStatusBadge status={round.status} />
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {round.assessmentTitle} v{round.versionNumber}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {round.assignmentCount}
+                        </TableCell>
+                        {isAdmin && (
+                          <TableCell className="text-right">
+                            <RoundRowActions
+                              round={round}
+                              busy={busy}
+                              onEdit={() => {
+                                setEdit(round);
+                                setEditName(round.name);
+                                setEditVersionId(round.assessmentVersionId);
+                              }}
+                              onTransition={(to) => setConfirm({ round, to })}
+                            />
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <ul className="flex flex-col gap-3 md:hidden">
+                {rounds.map((round) => (
+                  <li
+                    key={round.id}
+                    className="space-y-3 rounded-lg border border-border px-3 py-3"
+                  >
+                    <div className="space-y-1">
+                      <p className="font-medium">{round.name}</p>
+                      <RoundStatusBadge status={round.status} />
+                      <p className="text-sm text-muted-foreground">
+                        {round.assessmentTitle} v{round.versionNumber}
+                      </p>
+                      <p className="text-sm tabular-nums text-muted-foreground">
+                        {round.assignmentCount} assignment
+                        {round.assignmentCount === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    {isAdmin && (
+                      <RoundRowActions
+                        round={round}
+                        busy={busy}
+                        onEdit={() => {
+                          setEdit(round);
+                          setEditName(round.name);
+                          setEditVersionId(round.assessmentVersionId);
+                        }}
+                        onTransition={(to) => setConfirm({ round, to })}
+                      />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </CardContent>
       </Card>
@@ -401,6 +467,49 @@ export function RoundManager({
             </CardFooter>
           </Card>
         </form>
+      )}
+    </div>
+  );
+}
+
+function RoundRowActions({
+  round,
+  busy,
+  onEdit,
+  onTransition,
+}: {
+  round: RoundRow;
+  busy: boolean;
+  onEdit: () => void;
+  onTransition: (to: RoundStatus) => void;
+}) {
+  const next = NEXT_TRANSITION[round.status];
+  return (
+    <div className="flex flex-wrap gap-2 md:justify-end">
+      {round.status === "DRAFT" && (
+        <Button size="sm" variant="outline" disabled={busy} onClick={onEdit}>
+          Edit
+        </Button>
+      )}
+      {next && (
+        <Button
+          size="sm"
+          variant="default"
+          disabled={busy}
+          onClick={() => onTransition(next.to)}
+        >
+          {next.label}
+        </Button>
+      )}
+      {round.status === "DRAFT" && (
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={() => onTransition("ARCHIVED")}
+        >
+          Abandon
+        </Button>
       )}
     </div>
   );

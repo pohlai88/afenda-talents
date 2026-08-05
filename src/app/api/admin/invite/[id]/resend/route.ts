@@ -3,7 +3,8 @@ import { requireAdmin, type HiringSession } from "@/lib/auth-admin";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { audit } from "@/lib/audit";
-import { applyStatus, canTransition, type Status } from "@/lib/status";
+import { applyStatus } from "@/lib/status";
+import { canTransition } from "@/lib/status-constants";
 import { expiryFromNow, generateToken, hashToken, inviteUrl } from "@/lib/tokens";
 import { sendInvitation } from "@/lib/email";
 
@@ -28,7 +29,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   });
   if (!assignment) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const from = assignment.status as Status;
+  const from = assignment.status;
   // From SENT this is a fresh token with no status change (the table has no SENT -> SENT
   // edge, and calling applyStatus there would rightly throw). From EXPIRED or REVOKED it
   // is the table's resend edge. Anything else cannot be resent.

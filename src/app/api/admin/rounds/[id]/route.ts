@@ -3,7 +3,12 @@ import { z } from "zod";
 import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth-admin";
 import { db } from "@/lib/db";
-import { assertRoundTransition, IllegalRoundTransition, ROUND_STATUSES, type RoundStatus } from "@/lib/status";
+import {
+	assertRoundTransition,
+	IllegalRoundTransition,
+	ROUND_STATUSES,
+	type RoundStatus,
+} from "@/lib/status-constants";
 
 export const runtime = "nodejs";
 
@@ -67,7 +72,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 	if (status !== undefined) {
 		try {
-			assertRoundTransition(round.status as RoundStatus, status);
+			assertRoundTransition(round.status, status);
 		} catch (error) {
 			if (error instanceof IllegalRoundTransition) {
 				return NextResponse.json({ error: error.message }, { status: 409 });

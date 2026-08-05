@@ -5,7 +5,7 @@ import { PrintProfileButton } from "@/components/candidate-detail/print-button";
 import { CandidateProgressPanel } from "@/components/candidate-detail/progress-panel";
 import { ResponseContextPanel } from "@/components/candidate-detail/response-context";
 import { CandidateTimeline } from "@/components/candidate-detail/timeline";
-import { CandidateRowActions } from "@/components/candidates/row-actions";
+import { CandidateAdminMenu } from "@/components/candidates/row-actions";
 import { ItemResponsesTable } from "@/components/item-responses-table";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
@@ -27,8 +27,8 @@ import {
 	type UiContextFlag,
 	type UiDimension,
 } from "@/lib/result-display";
-import { loadVersionDocument } from "@/lib/version-document";
 import { orderedAnswerableItems } from "@/lib/instrument-document";
+import { loadVersionDocument } from "@/lib/version-document";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +61,7 @@ export default async function CandidateDetailPage({
 	});
 	if (!assignment) notFound();
 	const candidate = assignment.candidate;
+	const assignmentStatus = assignment.status;
 
 	const versionDoc = await loadVersionDocument(assignment.assessmentVersionId);
 	const answerable = orderedAnswerableItems(versionDoc);
@@ -117,7 +118,10 @@ export default async function CandidateDetailPage({
 		auditRows,
 	);
 
-	const answeredCount = assignment.responses.length;
+	const answerableIds = new Set(answerable.map((item) => item.id));
+	const answeredCount = assignment.responses.filter((r) =>
+		answerableIds.has(r.questionId),
+	).length;
 	const scored = Boolean(assignment.result);
 
 	return (
@@ -140,7 +144,7 @@ export default async function CandidateDetailPage({
 				description={candidate.email}
 				meta={
 					<>
-						<StatusBadge status={assignment.status} />
+						<StatusBadge status={assignmentStatus} />
 						<span className="text-muted-foreground">
 							Invited{" "}
 							<span className="tabular-nums">
@@ -166,12 +170,11 @@ export default async function CandidateDetailPage({
 					<div className="flex flex-wrap items-center gap-2 print:hidden">
 						{scored && <PrintProfileButton />}
 						{isAdmin && (
-							<CandidateRowActions
+							<CandidateAdminMenu
 								candidateId={candidate.id}
 								assignmentId={assignment.id}
 								fullName={candidate.fullName}
-								status={assignment.status}
-								showPrimary={false}
+								status={assignmentStatus}
 							/>
 						)}
 					</div>
@@ -205,8 +208,9 @@ export default async function CandidateDetailPage({
 				</>
 			) : (
 				<CandidateProgressPanel
-					status={assignment.status}
+					status={assignmentStatus}
 					answeredCount={answeredCount}
+					totalItems={answerable.length}
 				/>
 			)}
 
