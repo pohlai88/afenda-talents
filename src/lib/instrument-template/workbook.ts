@@ -78,36 +78,40 @@ export type ParseWorkbookResult = ParseWorkbookSuccess | { refuse: string };
  * walks the CD until the signature fails, so it sees all 200.
  *
  * Algorithm:
- * 1. Find EOCD `PK\x05\x06` near EOF (scan backwards, up to 22+65535 bytes).
+ * 1. Find EOCD `PK\x05\x06` by scanning the ENTIRE buffer backward.
+ *    The zip spec allows a comment up to 65535 bytes after EOCD, but an attacker can
+ *    append more garbage to push the EOCD outside a narrow window. JSZip also scans
+ *    the whole buffer; we must match its search space. The buffer is already capped at
+ *    2 MiB, so this O(n) scan is bounded.
  * 2. Refuse zip64 (locator `PK\x06\x07` or declared count 0xFFFF).
  * 3. Read `centralDirSize` (+12, uint32 LE) and `centralDirOffset` (+16, uint32 LE).
- * 4. Walk from `centralDirOffset`, counting `PK\x01\x02` records (46-byte fixed header
+ * 4. Alignment invariant: `centralDirOffset + centralDirSize === eocdPos` exactly.
+ *    JSZip computes extraBytes = eocdPos − (cdOffset + cdSize) and adjusts the real
+ *    CD start accordingly — so an attacker can set cdOffset to a 1-record decoy while
+ *    JSZip loads the real 200-record CD via its offset-adjustment. Our exporter never
+ *    prepends bytes, so legitimate workbooks always satisfy this. Mismatches → "malformed".
+ * 5. Walk from `centralDirOffset`, counting `PK\x01\x02` records (46-byte fixed header
  *    + filenameLen + extraLen + commentLen). Stop at first non-matching signature or
  *    when past `centralDirOffset + centralDirSize`.
- * 5. Return walked count (do not return EOCD declared field).
- *
- * Alignment invariant (step 3a): we ALSO require `centralDirOffset + centralDirSize === eocdPos`
- * exactly. JSZip computes extraBytes = eocdPos − (cdOffset + cdSize) and adjusts the real
- * CD start accordingly — so an attacker can set cdOffset to a 1-record decoy while JSZip loads
- * the real 200-record CD via its offset-adjustment. Our exporter never prepends bytes, so
- * legitimate workbooks always satisfy the exact equality. Mismatches → "malformed" refuse.
+ * 6. Return walked count (never the EOCD declared field). Empty walk → "malformed".
  *
  * EOCD layout (+0=sig, +4=disk#, +6=CDdisk, +8=entriesOnDisk, +10=totalEntries,
  *              +12=CDsize, +16=CDoffset, +20=commentLen) — 22 bytes total.
  */
 export function countZipCentralDirEntries(buf: Buffer): number | "zip64" | "malformed" {
-	const maxSearch = Math.min(buf.length, 22 + 65535);
 	let eocdPos = -1;
 
-	for (let i = buf.length - 22; i >= buf.length - maxSearch; i--) {
-		if (i < 0) break;
+	// Scan entire buffer backward for the last PK\x05\x06.
+	// Buffer is already capped at MAX_BUFFER_BYTES (2 MiB) before this call.
+	for (let i = buf.length - 22; i >= 0; i--) {
 		if (buf[i] === 0x50 && buf[i + 1] === 0x4b && buf[i + 2] === 0x05 && buf[i + 3] === 0x06) {
 			eocdPos = i;
 			break;
 		}
 	}
 
-	if (eocdPos < 0 || eocdPos + 22 > buf.length) return 0;
+	if (eocdPos < 0) return "malformed";
+	if (eocdPos + 22 > buf.length) return "malformed";
 
 	// Zip64 EOCD locator `PK\x06\x07` is exactly 20 bytes immediately before EOCD
 	if (eocdPos >= 20) {
@@ -393,6 +397,10 @@ export async function parseWorkbook(buf: Buffer): Promise<ParseWorkbookResult> {
 	}
 	if (entryCount === "malformed") {
 		return { refuse: "Zip structure invalid (centralDirOffset+centralDirSize≠EOCD position, empty CD, or offset out of range). Re-download from Afenda or import JSON." };
+	}
+	// A well-formed xlsx always has at least one zip entry; 0 means something went wrong.
+	if (entryCount === 0) {
+		return { refuse: "Zip has zero entries. Re-download from Afenda or import JSON." };
 	}
 	if (entryCount > MAX_ZIP_ENTRIES) {
 		return { refuse: `File has too many zip entries (${entryCount} > ${MAX_ZIP_ENTRIES}). Re-download from Afenda or import JSON.` };

@@ -336,6 +336,42 @@ describe("countZipCentralDirEntries", () => {
 		expect("refuse" in result).toBe(true);
 		if ("refuse" in result) expect(result.refuse).toMatch(/zip64/i);
 	});
+
+	/**
+	 * EOCD search window bypass — fixed in review-3.
+	 *
+	 * Old code searched only the last 22+65535=65557 bytes. An attacker appends
+	 * ≥70 000 bytes of zero padding after a real EOCD (no PK\x05\x06 in padding).
+	 * The EOCD is now >65557 bytes from the end, outside the old window.
+	 *
+	 * Old behaviour: countZipCentralDirEntries returned 0 (no EOCD found).
+	 * parseWorkbook saw 0 > 64 === false → did NOT refuse → ExcelJS/JSZip scanned
+	 * the whole buffer, found the EOCD, loaded 65 real entries — cap bypassed.
+	 *
+	 * Fixed: scan the entire buffer backward. Now we find the EOCD, count 65
+	 * entries, and parseWorkbook correctly refuses with "zip entries".
+	 */
+	it("EOCD search window bypass: 65-entry zip padded with 70 000 zero bytes is refused", async () => {
+		// Build a 65-entry synthetic zip (each CD record 46 bytes, local header 30 bytes)
+		// total: 30 + 65*46 + 22 = 3042 bytes; EOCD at offset 3020
+		const zip65 = buildSyntheticZip(65, 65);
+
+		// Append 70 000 zero bytes — no PK\x05\x06 in the padding.
+		// EOCD is now 70022 bytes from the end; old 65557-byte window misses it.
+		const padded = Buffer.concat([zip65, Buffer.alloc(70_000, 0)]);
+
+		// Sanity: EOCD is indeed beyond the old narrow window
+		expect(padded.length - (zip65.length - 22)).toBeGreaterThan(22 + 65535);
+
+		// With whole-buffer scan: we find the EOCD, count 65 entries
+		const count = countZipCentralDirEntries(padded);
+		expect(count).toBe(65); // not 0, not "malformed"
+
+		// parseWorkbook must refuse because 65 > MAX_ZIP_ENTRIES (64)
+		const result = await parseWorkbook(padded);
+		expect("refuse" in result).toBe(true);
+		if ("refuse" in result) expect(result.refuse).toMatch(/zip entries/i);
+	});
 });
 
 // ---------------------------------------------------------------------------
