@@ -50,6 +50,14 @@ export type WorkbookProvenance = Map<string, string>;
 export type ParseWorkbookSuccess = {
 	sourceMode: "strict" | "draft";
 	sourceDocument: unknown;
+	/** A3 — SHA-256 of canonicalJson(importable) at export time. */
+	sourceHash: string;
+	/** A4 — assessment id this was exported from, or null. */
+	baseAssessmentId: string | null;
+	/** A5 — draft revision at export time, or null. */
+	baseDraftRevision: number | null;
+	/** A6 — published version number at export time, or null. */
+	basePublishedVersionNumber: number | null;
 	importableSheets: VisibleImportable;
 	contextRulesSheet: "absent" | { rows: unknown[] };
 	provenance: WorkbookProvenance;
@@ -59,26 +67,56 @@ export type ParseWorkbookSuccess = {
 export type ParseWorkbookResult = ParseWorkbookSuccess | { refuse: string };
 
 // ---------------------------------------------------------------------------
-// Zip entry count — parse local file headers without inflating
+// Zip entry count — read from EOCD central directory (safe, not attacker-skippable)
 // ---------------------------------------------------------------------------
 
-function countZipLocalEntries(buf: Buffer): number {
-	let count = 0;
-	let pos = 0;
-	while (pos < buf.length - 4) {
-		// PK\x03\x04 — local file header signature
-		if (buf[pos] === 0x50 && buf[pos + 1] === 0x4b && buf[pos + 2] === 0x03 && buf[pos + 3] === 0x04) {
-			count++;
-			// Skip 26 bytes of fixed header to reach filename length (offset 26) and extra length (offset 28)
-			if (pos + 30 > buf.length) break;
-			const fnLen = buf.readUInt16LE(pos + 26);
-			const exLen = buf.readUInt16LE(pos + 28);
-			pos = pos + 30 + fnLen + exLen;
-		} else {
-			pos++;
+/**
+ * Read total entry count from the End of Central Directory record.
+ * Returns the count, or 'zip64' if zip64 is detected (we refuse those),
+ * or 0 if the buffer does not look like a zip file.
+ *
+ * We scan backwards from the end for the EOCD signature `PK\x05\x06`.
+ * The EOCD comment can be up to 65535 bytes, so we search up to 22+65535 bytes from end.
+ * We do NOT trust local-header filename/extra lengths (attacker-controlled).
+ */
+export function countZipCentralDirEntries(buf: Buffer): number | "zip64" {
+	// EOCD is at least 22 bytes; comment can be up to 65535 bytes
+	const minOffset = buf.length - 22;
+	const maxSearch = Math.min(buf.length, 22 + 65535);
+
+	for (let i = minOffset; i >= buf.length - maxSearch; i--) {
+		if (i < 0) break;
+		// EOCD signature: PK\x05\x06
+		if (
+			buf[i] === 0x50 && buf[i + 1] === 0x4b &&
+			buf[i + 2] === 0x05 && buf[i + 3] === 0x06
+		) {
+			if (i + 22 > buf.length) break; // truncated
+
+			// Check for zip64 EOCD locator signature PK\x06\x07 that would precede EOCD
+			// The locator is 20 bytes and immediately precedes the EOCD
+			if (i >= 20) {
+				const locPos = i - 20;
+				if (
+					buf[locPos] === 0x50 && buf[locPos + 1] === 0x4b &&
+					buf[locPos + 2] === 0x06 && buf[locPos + 3] === 0x07
+				) {
+					return "zip64";
+				}
+			}
+
+			// Total entries field is at offset 10 from EOCD start (2 bytes LE)
+			const totalEntries = buf.readUInt16LE(i + 10);
+
+			// 0xFFFF signals zip64 (actual count in zip64 EOCD extra)
+			if (totalEntries === 0xffff) {
+				return "zip64";
+			}
+
+			return totalEntries;
 		}
 	}
-	return count;
+	return 0; // no EOCD found — treat as malformed (ExcelJS will also reject)
 }
 
 // ---------------------------------------------------------------------------
@@ -142,7 +180,8 @@ export async function exportWorkbook(document: unknown, meta: ExportMeta): Promi
 	const rawBytes = Buffer.from(raw, "utf8");
 	const rawHash = sha256Hex(rawBytes);
 
-	// gzip with mtime=0 (node:zlib default is already 0, but be explicit)
+	// node:zlib gzipSync sets mtime=0 by default; the option is not exposed by the API.
+	// Determinism is on the payload string (base64 of gzip), not full xlsx bytes.
 	const compressed = gzipSync(rawBytes, { level: 9 });
 	const payload = compressed.toString("base64");
 
@@ -306,8 +345,11 @@ export async function parseWorkbook(buf: Buffer): Promise<ParseWorkbookResult> {
 		return { refuse: "File too large (max 2 MiB). Re-download from Afenda or import JSON." };
 	}
 
-	// 2. Zip entry count check (before trusting sheet XML)
-	const entryCount = countZipLocalEntries(buf);
+	// 2. Zip entry count — read from EOCD central directory (not attacker-skippable local headers)
+	const entryCount = countZipCentralDirEntries(buf);
+	if (entryCount === "zip64") {
+		return { refuse: "Zip64 xlsx is not supported in v1. Re-download from Afenda or import JSON." };
+	}
 	if (entryCount > MAX_ZIP_ENTRIES) {
 		return { refuse: `File has too many zip entries (${entryCount} > ${MAX_ZIP_ENTRIES}). Re-download from Afenda or import JSON.` };
 	}
@@ -399,17 +441,19 @@ export async function parseWorkbook(buf: Buffer): Promise<ParseWorkbookResult> {
 	}
 	const payload = chunks.join("");
 
-	// 8. Base64 decode + gunzip
+	// 8. Base64 decode + gunzip with hard output cap (decompression bomb prevention)
 	let rawBytes: Buffer;
+	let compressedLen: number;
 	try {
 		const compressed = Buffer.from(payload, "base64");
-		rawBytes = gunzipSync(compressed);
+		compressedLen = compressed.length;
+		// maxOutputLength throws ERR_BUFFER_TOO_LARGE before fully decompressing
+		rawBytes = gunzipSync(compressed, { maxOutputLength: MAX_DECOMPRESSED_JSON_BYTES });
 	} catch (e) {
 		return { refuse: `Cannot decompress _Source payload: ${e instanceof Error ? e.message : String(e)}. Re-download from Afenda or import JSON.` };
 	}
 
-	// 9. Gzip ratio check
-	const compressedLen = Buffer.from(payload, "base64").length;
+	// 9. Gzip ratio check (decompressed already capped above; this catches borderline bombs)
 	if (rawBytes.length > MAX_DECOMPRESSED_JSON_BYTES || rawBytes.length > MAX_GZIP_RATIO * compressedLen) {
 		return { refuse: "Decompressed _Source exceeds size limit. Re-download from Afenda or import JSON." };
 	}
@@ -661,15 +705,13 @@ export async function parseWorkbook(buf: Buffer): Promise<ParseWorkbookResult> {
 	provenance.set("meta.baseDraftRevision", `_Source!A5`);
 	provenance.set("meta.basePublishedVersionNumber", `_Source!A6`);
 
-	// Store computed importable hash for caller verification if needed
-	void storedImportableHash;
-	void baseAssessmentId;
-	void baseDraftRevision;
-	void basePublishedVersionNumber;
-
 	return {
 		sourceMode,
 		sourceDocument,
+		sourceHash: storedImportableHash,
+		baseAssessmentId,
+		baseDraftRevision,
+		basePublishedVersionNumber,
 		importableSheets,
 		contextRulesSheet,
 		provenance,
