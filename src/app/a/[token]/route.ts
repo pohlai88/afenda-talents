@@ -26,9 +26,14 @@ export async function GET(
 	const timing = `db;dur=${dbMs.toFixed(1)}`;
 
 	if (!assignment) {
-		const gone = NextResponse.redirect(new URL(`/a/${token}/done`, base));
-		gone.headers.set("Server-Timing", timing);
-		return gone;
+		return new Response(null, {
+			status: 307,
+			headers: {
+				Location: new URL(`/a/${token}/done`, base).toString(),
+				"Server-Timing": timing,
+				"x-afenda-db-ms": dbMs.toFixed(1),
+			},
+		});
 	}
 
 	if (!assignment.openedAt) {
@@ -41,6 +46,7 @@ export async function GET(
 	const destination = assignment.status === "STARTED" ? "assessment" : "consent";
 	const response = NextResponse.redirect(new URL(`/a/${token}/${destination}`, base));
 	response.headers.set("Server-Timing", timing);
+	response.headers.set("x-afenda-db-ms", dbMs.toFixed(1));
 	response.cookies.set(
 		CANDIDATE_COOKIE,
 		await createAssignmentSession(assignment.id),
