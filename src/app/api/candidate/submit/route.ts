@@ -90,7 +90,7 @@ export async function POST() {
       const unanswered: string[] = [];
       for (const item of answerable) {
         const row = byQuestion.get(item.id);
-        if (item.type === "likert") {
+        if (item.type === "scale") {
           if (!row || row.value == null) unanswered.push(item.id);
         } else if (item.type === "short_text" || item.type === "long_text") {
           if (item.required && (!row || !row.textValue?.trim())) {
@@ -102,8 +102,8 @@ export async function POST() {
         throw new SubmissionValidationError(unanswered);
       }
 
-      const likertResponses = answerable
-        .filter((item) => item.type === "likert")
+      const scaleResponses = answerable
+        .filter((item) => item.type === "scale")
         .map((item) => {
           const response = byQuestion.get(item.id)!;
           return {
@@ -114,7 +114,7 @@ export async function POST() {
         });
       const scored = scoreAssessment({
         versionDocument: document,
-        responses: likertResponses,
+        responses: scaleResponses,
       });
 
       const stamps = responses.map((response) => response.updatedAt.getTime());

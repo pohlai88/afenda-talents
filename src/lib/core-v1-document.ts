@@ -37,7 +37,7 @@ function buildCoreV1Document(): InstrumentDocument {
 	const items = instrument.items.map((raw: RawItem) => {
 		const isValidity = raw.isValidity;
 		return {
-			type: "likert" as const,
+			type: "scale" as const,
 			id: raw.id,
 			text: raw.text,
 			required: true,
@@ -71,6 +71,7 @@ function buildCoreV1Document(): InstrumentDocument {
 		},
 		estimatedMinutes: 12,
 		displayMode: "continuous",
+		scoringMode: "dimensional",
 		dimensions,
 		bands: [
 			{ id: "band-developing", name: "Developing", minScaled: 0, maxScaled: 44 },

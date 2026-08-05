@@ -43,10 +43,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unknown item" }, { status: 400 });
   }
 
-  if (item.type === "likert") {
+  if (item.type === "scale") {
     if (value === undefined) {
       return NextResponse.json(
-        { error: "Likert value required" },
+        { error: "A rating is required" },
         { status: 400 },
       );
     }
@@ -83,15 +83,15 @@ export async function POST(request: Request) {
           },
         },
         update: {
-          value: item.type === "likert" ? value! : null,
-          textValue: item.type === "likert" ? null : (textValue ?? null),
+          value: item.type === "scale" ? value! : null,
+          textValue: item.type === "scale" ? null : (textValue ?? null),
           msOnItem: { increment: msOnItem },
         },
         create: {
           assignmentId: assignment.id,
           questionId: itemId,
-          value: item.type === "likert" ? value! : null,
-          textValue: item.type === "likert" ? null : (textValue ?? null),
+          value: item.type === "scale" ? value! : null,
+          textValue: item.type === "scale" ? null : (textValue ?? null),
           msOnItem,
         },
       });

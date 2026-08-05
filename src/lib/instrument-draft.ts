@@ -228,9 +228,9 @@ export function collectPublishIssues(doc: InstrumentDocument): PublishIssue[] {
 	}
 
 	const reverseCount = doc.items.filter(
-		(i) => i.type === "likert" && i.reverseScored,
+		(i) => i.type === "scale" && i.reverseScored,
 	).length;
-	const likertCount = doc.items.filter((i) => i.type === "likert").length;
+	const likertCount = doc.items.filter((i) => i.type === "scale").length;
 	if (likertCount > 0 && reverseCount / likertCount > 0.5) {
 		issues.push({
 			level: "warning",
@@ -241,7 +241,7 @@ export function collectPublishIssues(doc: InstrumentDocument): PublishIssue[] {
 
 	for (const dim of doc.dimensions) {
 		const n = doc.items.filter(
-			(i) => i.type === "likert" && i.scored && i.dimensionId === dim.id,
+			(i) => i.type === "scale" && i.scored && i.dimensionId === dim.id,
 		).length;
 		if (n > 0 && n < 3) {
 			issues.push({

@@ -186,6 +186,14 @@ export function scoreAssessment(args: {
 	versionDocument: InstrumentDocument;
 	responses: RawResponse[];
 }): ScoreAssessmentResult {
+	if (args.versionDocument.scoringMode === "none") {
+		return {
+			dimensions: [],
+			responseContext: [],
+			totalSeconds: totalSecondsFrom(args.responses),
+		};
+	}
+
 	const { versionDocument: doc, responses } = args;
 	const byId = new Map(responses.map((r) => [r.itemId, r]));
 	const valueOf = (id: string) => byId.get(id)?.value ?? 0;
@@ -194,10 +202,10 @@ export function scoreAssessment(args: {
 		.sort((a, b) => a.order - b.order)
 		.map((dim) => {
 			const scoredItems = doc.items.filter(
-				(i) => i.type === "likert" && i.scored && i.dimensionId === dim.id,
+				(i) => i.type === "scale" && i.scored && i.dimensionId === dim.id,
 			);
 			const raw = scoredItems.reduce((sum, item) => {
-				if (item.type !== "likert") return sum;
+				if (item.type !== "scale") return sum;
 				return sum + itemScore(valueOf(item.id), item.reverseScored);
 			}, 0);
 			const scaled = scaleDimensionRaw(raw, scoredItems.length);
@@ -223,7 +231,7 @@ export function scoreAssessment(args: {
 	const totalSeconds = totalSecondsFrom(timingResponses);
 
 	const orderedValues = orderedAllItems(doc)
-		.filter((i) => i.type === "likert")
+		.filter((i) => i.type === "scale")
 		.map((i) => valueOf(i.id));
 
 	const responseContext = doc.responseContextRules.map((rule) =>

@@ -13,8 +13,8 @@ export const RESPONSE_CONTEXT_TYPES = [
 
 export type ResponseContextType = (typeof RESPONSE_CONTEXT_TYPES)[number];
 
-const likertItemSchema = z.object({
-	type: z.literal("likert"),
+const scaleItemSchema = z.object({
+	type: z.literal("scale"),
 	id: z.string().min(1),
 	text: z.string().min(1),
 	required: z.boolean(),
@@ -42,12 +42,15 @@ const infoItemSchema = z.object({
 });
 
 export const instrumentItemSchema = z.discriminatedUnion("type", [
-	likertItemSchema,
+	scaleItemSchema,
 	textItemSchema,
 	infoItemSchema,
 ]);
 
 export type InstrumentItem = z.infer<typeof instrumentItemSchema>;
+export type ScaleItem = z.infer<typeof scaleItemSchema>;
+export type TextItem = z.infer<typeof textItemSchema>;
+export type InfoItem = z.infer<typeof infoItemSchema>;
 
 const responseContextRuleSchema = z.object({
 	id: z.string().min(1),
@@ -86,6 +89,9 @@ const sectionSchema = z.object({
 	itemIds: z.array(z.string().min(1)).min(1),
 });
 
+export const SCORING_MODES = ["dimensional", "none"] as const;
+export type ScoringMode = (typeof SCORING_MODES)[number];
+
 export const instrumentDocumentSchema = z
 	.object({
 		schemaVersion: z.literal(1),
@@ -100,8 +106,9 @@ export const instrumentDocumentSchema = z
 		}),
 		estimatedMinutes: z.number().positive(),
 		displayMode: z.enum(["continuous", "section"]),
-		dimensions: z.array(dimensionSchema).min(1),
-		bands: z.array(bandSchema).min(1),
+		scoringMode: z.enum(SCORING_MODES),
+		dimensions: z.array(dimensionSchema),
+		bands: z.array(bandSchema),
 		sections: z.array(sectionSchema).min(1),
 		items: z.array(instrumentItemSchema).min(1),
 		responseContextRules: z.array(responseContextRuleSchema),
@@ -165,8 +172,50 @@ export const instrumentDocumentSchema = z
 			}
 		}
 
+		if (doc.scoringMode === "none") {
+			if (doc.dimensions.length > 0) {
+				ctx.addIssue({
+					code: "custom",
+					message: "scoringMode 'none' must not declare dimensions",
+					path: ["dimensions"],
+				});
+			}
+			if (doc.bands.length > 0) {
+				ctx.addIssue({
+					code: "custom",
+					message: "scoringMode 'none' must not declare bands",
+					path: ["bands"],
+				});
+			}
+			for (const [ii, item] of doc.items.entries()) {
+				if (item.type === "scale" && item.scored) {
+					ctx.addIssue({
+						code: "custom",
+						message: "scoringMode 'none' must not contain scored items",
+						path: ["items", ii, "scored"],
+					});
+				}
+			}
+			return;
+		}
+
+		if (doc.dimensions.length === 0) {
+			ctx.addIssue({
+				code: "custom",
+				message: "scoringMode 'dimensional' requires at least one dimension",
+				path: ["dimensions"],
+			});
+		}
+		if (doc.bands.length === 0) {
+			ctx.addIssue({
+				code: "custom",
+				message: "scoringMode 'dimensional' requires at least one band",
+				path: ["bands"],
+			});
+		}
+
 		for (const [ii, item] of doc.items.entries()) {
-			if (item.type === "likert" && item.scored) {
+			if (item.type === "scale" && item.scored) {
 				if (!item.dimensionId || !dimIds.has(item.dimensionId)) {
 					ctx.addIssue({
 						code: "custom",
@@ -179,7 +228,7 @@ export const instrumentDocumentSchema = z
 
 		for (const dim of doc.dimensions) {
 			const n = doc.items.filter(
-				(i) => i.type === "likert" && i.scored && i.dimensionId === dim.id,
+				(i) => i.type === "scale" && i.scored && i.dimensionId === dim.id,
 			).length;
 			if (n === 0) {
 				ctx.addIssue({
@@ -244,12 +293,32 @@ export const instrumentDocumentSchema = z
 
 export type InstrumentDocument = z.infer<typeof instrumentDocumentSchema>;
 
+/**
+ * Stored documents predate `scoringMode` and used `type: "likert"`. Normalize on
+ * read so no database migration is needed; publishing rewrites the row in the
+ * new shape, so stored documents converge over time.
+ */
+export function normalizeLegacyDocument(input: unknown): unknown {
+	if (typeof input !== "object" || input === null) return input;
+	const doc = input as Record<string, unknown>;
+
+	const items = Array.isArray(doc.items)
+		? doc.items.map((item) => {
+				if (typeof item !== "object" || item === null) return item;
+				const record = item as Record<string, unknown>;
+				return record.type === "likert" ? { ...record, type: "scale" } : record;
+			})
+		: doc.items;
+
+	return { ...doc, scoringMode: doc.scoringMode ?? "dimensional", items };
+}
+
 export function parseInstrumentDocument(input: unknown): InstrumentDocument {
-	return instrumentDocumentSchema.parse(input);
+	return instrumentDocumentSchema.parse(normalizeLegacyDocument(input));
 }
 
 export function safeParseInstrumentDocument(input: unknown) {
-	return instrumentDocumentSchema.safeParse(input);
+	return instrumentDocumentSchema.safeParse(normalizeLegacyDocument(input));
 }
 
 /** Flatten answerable items in document order (section order, then itemIds). */
