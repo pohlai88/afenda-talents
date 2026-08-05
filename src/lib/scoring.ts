@@ -242,6 +242,21 @@ export type ItemDef = {
 	isValidity: boolean;
 };
 
+/**
+ * Returns the complete set of scaled values reachable for a dimension with n
+ * scored Likert 1–5 items, using round(((raw-n)/(4n))*100) for raw = n..5n.
+ * Used by import/publish unreachable-band checks.
+ */
+export function reachableScaledValues(n: number): number[] {
+	if (n <= 0) return [];
+	const values: number[] = [];
+	for (let raw = n; raw <= 5 * n; raw++) {
+		values.push(Math.round(((raw - n) / (4 * n)) * 100));
+	}
+	// Deduplicate while preserving order (Math.round can produce same value for adjacent raws)
+	return [...new Set(values)];
+}
+
 /** Re-export — single source lives in instrument-labels (UI + export). */
 export { COMPETENCY_CODES } from "@/lib/instrument-labels";
 export const STRAIGHT_LINE_RUN = 12;

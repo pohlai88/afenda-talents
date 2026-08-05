@@ -8,6 +8,7 @@ import {
 	publishBlockers,
 } from "@/lib/instrument-draft";
 import { parseInstrumentDocument } from "@/lib/instrument-document";
+import { assertInstrumentInvariants } from "@/lib/instrument-invariants";
 
 export const runtime = "nodejs";
 
@@ -35,14 +36,25 @@ export async function POST(
 	const draft = parseDraftDocument(assessment.draftDocument);
 	try {
 		const document = parseInstrumentDocument(draft);
+
+		const invariantIssues = assertInstrumentInvariants(document, "publish");
+		const invariantErrors = invariantIssues.map((i) => ({
+			level: "error" as const,
+			code: i.code,
+			message: i.message,
+			path: i.path,
+		}));
+
 		const issues = collectPublishIssues(document);
+		const allIssues = [...invariantErrors, ...issues];
+
 		await audit(session.userId, "draft.validated", id, {
-			errorCount: publishBlockers(issues).length,
+			errorCount: invariantErrors.length + publishBlockers(issues).length,
 			warningCount: issues.filter((i) => i.level === "warning").length,
 		});
 		return NextResponse.json({
-			ok: publishBlockers(issues).length === 0,
-			issues,
+			ok: invariantErrors.length === 0 && publishBlockers(issues).length === 0,
+			issues: allIssues,
 		});
 	} catch (error) {
 		return NextResponse.json({

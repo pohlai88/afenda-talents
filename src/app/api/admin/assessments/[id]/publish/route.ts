@@ -10,14 +10,18 @@ import {
   type PublishIssue,
 } from "@/lib/instrument-draft";
 import { parseInstrumentDocument } from "@/lib/instrument-document";
+import { assertInstrumentInvariants } from "@/lib/instrument-invariants";
 
 export const runtime = "nodejs";
+
+/** Invariant issues carry a document path; completeness issues do not. */
+type PublishResponseIssue = PublishIssue & { path?: string };
 
 class PublishRequestError extends Error {
   constructor(
     message: string,
     readonly status: number,
-    readonly issues?: PublishIssue[],
+    readonly issues?: PublishResponseIssue[],
     readonly detail?: string,
   ) {
     super(message);
@@ -76,6 +80,20 @@ export async function POST(
           400,
           undefined,
           error instanceof Error ? error.message : "Invalid document",
+        );
+      }
+
+      const invariantIssues = assertInstrumentInvariants(document, "publish");
+      if (invariantIssues.length > 0) {
+        throw new PublishRequestError(
+          "Publish blocked",
+          400,
+          invariantIssues.map((i) => ({
+            level: "error" as const,
+            code: i.code,
+            message: i.message,
+            path: i.path,
+          })),
         );
       }
 
