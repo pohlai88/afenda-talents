@@ -71,52 +71,80 @@ export type ParseWorkbookResult = ParseWorkbookSuccess | { refuse: string };
 // ---------------------------------------------------------------------------
 
 /**
- * Read total entry count from the End of Central Directory record.
- * Returns the count, or 'zip64' if zip64 is detected (we refuse those),
- * or 0 if the buffer does not look like a zip file.
+ * Count zip entries by WALKING the actual central directory records (`PK\x01\x02`).
  *
- * We scan backwards from the end for the EOCD signature `PK\x05\x06`.
- * The EOCD comment can be up to 65535 bytes, so we search up to 22+65535 bytes from end.
- * We do NOT trust local-header filename/extra lengths (attacker-controlled).
+ * The EOCD total-entries field is attacker-controlled and must NOT be used as the cap.
+ * An attacker can set EOCD entries=5 while the CD contains 200 records; JSZip/ExcelJS
+ * walks the CD until the signature fails, so it sees all 200.
+ *
+ * Algorithm:
+ * 1. Find EOCD `PK\x05\x06` near EOF (scan backwards, up to 22+65535 bytes).
+ * 2. Refuse zip64 (locator `PK\x06\x07` or declared count 0xFFFF).
+ * 3. Read `centralDirSize` (+12, uint32 LE) and `centralDirOffset` (+16, uint32 LE).
+ * 4. Walk from `centralDirOffset`, counting `PK\x01\x02` records (46-byte fixed header
+ *    + filenameLen + extraLen + commentLen). Stop at first non-matching signature or
+ *    when past `centralDirOffset + centralDirSize`.
+ * 5. Return walked count (do not return EOCD declared field).
+ *
+ * EOCD layout (+0=sig, +4=disk#, +6=CDdisk, +8=entriesOnDisk, +10=totalEntries,
+ *              +12=CDsize, +16=CDoffset, +20=commentLen) — 22 bytes total.
  */
 export function countZipCentralDirEntries(buf: Buffer): number | "zip64" {
-	// EOCD is at least 22 bytes; comment can be up to 65535 bytes
-	const minOffset = buf.length - 22;
 	const maxSearch = Math.min(buf.length, 22 + 65535);
+	let eocdPos = -1;
 
-	for (let i = minOffset; i >= buf.length - maxSearch; i--) {
+	for (let i = buf.length - 22; i >= buf.length - maxSearch; i--) {
 		if (i < 0) break;
-		// EOCD signature: PK\x05\x06
-		if (
-			buf[i] === 0x50 && buf[i + 1] === 0x4b &&
-			buf[i + 2] === 0x05 && buf[i + 3] === 0x06
-		) {
-			if (i + 22 > buf.length) break; // truncated
-
-			// Check for zip64 EOCD locator signature PK\x06\x07 that would precede EOCD
-			// The locator is 20 bytes and immediately precedes the EOCD
-			if (i >= 20) {
-				const locPos = i - 20;
-				if (
-					buf[locPos] === 0x50 && buf[locPos + 1] === 0x4b &&
-					buf[locPos + 2] === 0x06 && buf[locPos + 3] === 0x07
-				) {
-					return "zip64";
-				}
-			}
-
-			// Total entries field is at offset 10 from EOCD start (2 bytes LE)
-			const totalEntries = buf.readUInt16LE(i + 10);
-
-			// 0xFFFF signals zip64 (actual count in zip64 EOCD extra)
-			if (totalEntries === 0xffff) {
-				return "zip64";
-			}
-
-			return totalEntries;
+		if (buf[i] === 0x50 && buf[i + 1] === 0x4b && buf[i + 2] === 0x05 && buf[i + 3] === 0x06) {
+			eocdPos = i;
+			break;
 		}
 	}
-	return 0; // no EOCD found — treat as malformed (ExcelJS will also reject)
+
+	if (eocdPos < 0 || eocdPos + 22 > buf.length) return 0;
+
+	// Zip64 EOCD locator `PK\x06\x07` is exactly 20 bytes immediately before EOCD
+	if (eocdPos >= 20) {
+		const locPos = eocdPos - 20;
+		if (buf[locPos] === 0x50 && buf[locPos + 1] === 0x4b && buf[locPos + 2] === 0x06 && buf[locPos + 3] === 0x07) {
+			return "zip64";
+		}
+	}
+
+	// Declared count 0xFFFF is the zip64 marker
+	const declaredCount = buf.readUInt16LE(eocdPos + 10);
+	if (declaredCount === 0xffff) return "zip64";
+
+	// Read central directory location from EOCD (+12 = size, +16 = offset)
+	const cdSize = buf.readUInt32LE(eocdPos + 12);
+	const cdOffset = buf.readUInt32LE(eocdPos + 16);
+
+	if (cdOffset > buf.length) return 0; // malformed
+
+	// Walk the actual central directory records (PK\x01\x02 = 0x02014b50)
+	// CD entry fixed header: 46 bytes
+	//   +0  signature (4)      +4  version made by (2)   +6  version needed (2)
+	//   +8  bit flag (2)       +10 compression (2)       +12 last mod time (2)
+	//   +14 last mod date (2)  +16 crc32 (4)             +20 compressed size (4)
+	//   +24 uncompressed (4)   +28 filename len (2)       +30 extra len (2)
+	//   +32 comment len (2)    +34 disk start (2)         +36 int attrs (2)
+	//   +38 ext attrs (4)      +42 local header offset (4)
+	const cdEnd = cdOffset + cdSize;
+	let pos = cdOffset;
+	let count = 0;
+
+	while (pos + 46 <= buf.length && pos < cdEnd) {
+		if (!(buf[pos] === 0x50 && buf[pos + 1] === 0x4b && buf[pos + 2] === 0x01 && buf[pos + 3] === 0x02)) {
+			break; // non-CD signature — stop walk
+		}
+		count++;
+		const fnLen = buf.readUInt16LE(pos + 28);
+		const exLen = buf.readUInt16LE(pos + 30);
+		const cmLen = buf.readUInt16LE(pos + 32);
+		pos += 46 + fnLen + exLen + cmLen;
+	}
+
+	return count;
 }
 
 // ---------------------------------------------------------------------------
