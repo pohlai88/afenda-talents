@@ -83,23 +83,22 @@ export async function POST(
         );
       }
 
-      const invariantIssues = assertInstrumentInvariants(document, "publish");
-      if (invariantIssues.length > 0) {
-        throw new PublishRequestError(
-          "Publish blocked",
-          400,
-          invariantIssues.map((i) => ({
-            level: "error" as const,
-            code: i.code,
-            message: i.message,
-            path: i.path,
-          })),
-        );
-      }
-
+      // Report invariant and completeness problems together, so one publish
+      // attempt surfaces every blocker rather than only the first class of them.
+      const invariantErrors = assertInstrumentInvariants(document, "publish").map(
+        (i) => ({
+          level: "error" as const,
+          code: i.code,
+          message: i.message,
+          path: i.path,
+        }),
+      );
       const issues = collectPublishIssues(document);
-      if (publishBlockers(issues).length > 0) {
-        throw new PublishRequestError("Publish blocked", 400, issues);
+      if (invariantErrors.length > 0 || publishBlockers(issues).length > 0) {
+        throw new PublishRequestError("Publish blocked", 400, [
+          ...invariantErrors,
+          ...issues,
+        ]);
       }
 
       const nextNumber = (assessment.versions[0]?.versionNumber ?? 0) + 1;

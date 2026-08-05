@@ -249,7 +249,8 @@ export function assertInstrumentInvariants(
 			.map((d) => safeString((d as Record<string, unknown>).id)),
 	);
 
-	const seenInSections = new Set<string>();
+	// Track how many sections reference each item (must be exactly one).
+	const itemSectionCount = new Map<string, number>();
 	for (const [si, section] of sections.entries()) {
 		if (typeof section !== "object" || section === null) continue;
 		const s = section as Record<string, unknown>;
@@ -264,8 +265,17 @@ export function assertInstrumentInvariants(
 					message: `Section "${safeString(s.id)}" references unknown item "${refId}"`,
 					path: `sections[${si}].itemIds`,
 				});
+			} else {
+				itemSectionCount.set(refId, (itemSectionCount.get(refId) ?? 0) + 1);
+				if (itemSectionCount.get(refId)! > 1) {
+					issues.push({
+						severity: "hard",
+						code: "item_in_multiple_sections",
+						message: `Item "${refId}" appears in more than one section`,
+						path: `sections[${si}].itemIds`,
+					});
+				}
 			}
-			seenInSections.add(refId);
 		}
 	}
 
@@ -273,7 +283,7 @@ export function assertInstrumentInvariants(
 	for (const item of items) {
 		if (typeof item !== "object" || item === null) continue;
 		const id = safeString((item as Record<string, unknown>).id);
-		if (id && !seenInSections.has(id)) {
+		if (id && !itemSectionCount.has(id)) {
 			issues.push({
 				severity: "hard",
 				code: "item_not_in_section",

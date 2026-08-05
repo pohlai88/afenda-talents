@@ -432,6 +432,57 @@ describe("assertInstrumentInvariants — scoringMode consistency (publish only)"
 	});
 });
 
+describe("assertInstrumentInvariants — item in multiple sections (publish only)", () => {
+	it("draft skips item-in-multiple-sections check", () => {
+		const rawMultiSection: unknown = {
+			schemaVersion: 1,
+			title: "multi-section",
+			candidateIntroduction: "intro",
+			consent: { purpose: "p", whatWeCollect: "w", whoSeesIt: "s", retention: "r" },
+			estimatedMinutes: 10,
+			displayMode: "continuous",
+			scoringMode: "none",
+			dimensions: [],
+			bands: [],
+			sections: [
+				{ id: "sec-1", title: "S1", order: 0, itemIds: ["item-1"] },
+				{ id: "sec-2", title: "S2", order: 1, itemIds: ["item-1"] },
+			],
+			items: [{ type: "short_text", id: "item-1", text: "Q1", required: false }],
+			responseContextRules: [],
+		};
+		expect(
+			assertInstrumentInvariants(rawMultiSection, "draft").some(
+				(i) => i.code === "item_in_multiple_sections",
+			),
+		).toBe(false);
+	});
+
+	it("publish flags item listed in two sections as hard error", () => {
+		const rawMultiSection: unknown = {
+			schemaVersion: 1,
+			title: "multi-section",
+			candidateIntroduction: "intro",
+			consent: { purpose: "p", whatWeCollect: "w", whoSeesIt: "s", retention: "r" },
+			estimatedMinutes: 10,
+			displayMode: "continuous",
+			scoringMode: "none",
+			dimensions: [],
+			bands: [],
+			sections: [
+				{ id: "sec-1", title: "S1", order: 0, itemIds: ["item-1"] },
+				{ id: "sec-2", title: "S2", order: 1, itemIds: ["item-1"] },
+			],
+			items: [{ type: "short_text", id: "item-1", text: "Q1", required: false }],
+			responseContextRules: [],
+		};
+		const issues = assertInstrumentInvariants(rawMultiSection, "publish");
+		expect(
+			issues.some((i) => i.code === "item_in_multiple_sections" && i.severity === "hard"),
+		).toBe(true);
+	});
+});
+
 describe("assertInstrumentInvariants — integrity checks (publish only)", () => {
 	it("draft skips dangling sectionId check", () => {
 		const rawDanglingRef: unknown = {
