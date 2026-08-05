@@ -20,9 +20,15 @@ export async function GET(
 	const { token } = await params;
 	const base = env.APP_URL;
 
+	const t0 = performance.now();
 	const assignment = await resolveAssignmentToken(token);
+	const dbMs = performance.now() - t0;
+	const timing = `db;dur=${dbMs.toFixed(1)}`;
+
 	if (!assignment) {
-		return NextResponse.redirect(new URL(`/a/${token}/done`, base));
+		const gone = NextResponse.redirect(new URL(`/a/${token}/done`, base));
+		gone.headers.set("Server-Timing", timing);
+		return gone;
 	}
 
 	if (!assignment.openedAt) {
@@ -34,6 +40,7 @@ export async function GET(
 
 	const destination = assignment.status === "STARTED" ? "assessment" : "consent";
 	const response = NextResponse.redirect(new URL(`/a/${token}/${destination}`, base));
+	response.headers.set("Server-Timing", timing);
 	response.cookies.set(
 		CANDIDATE_COOKIE,
 		await createAssignmentSession(assignment.id),
