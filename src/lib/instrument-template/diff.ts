@@ -226,7 +226,7 @@ function diffSections(
 	mergedSections: unknown[],
 	targetSections: unknown[],
 	entries: DiffEntry[],
-): { breaking: boolean; allOrderOrEmpty: boolean } {
+): { breaking: boolean } {
 	const targetById = new Map<string, CanonSection>();
 	for (const s of targetSections) {
 		const r = asRecord(s) as CanonSection;
@@ -239,7 +239,6 @@ function diffSections(
 	}
 
 	let breaking = false;
-	let hasOrderEntries = false;
 
 	// Added sections
 	for (const [id, section] of mergedById) {
@@ -320,7 +319,6 @@ function diffSections(
 				before: targetSection,
 				after: mergedSection,
 			});
-			hasOrderEntries = true;
 		} else if (hasWording) {
 			entries.push({
 				path: `sections[id=${id}].title`,
@@ -333,8 +331,7 @@ function diffSections(
 		}
 	}
 
-	const allOrderOrEmpty = !breaking && (hasOrderEntries || entries.filter((e) => e.entityType === "section").length === 0);
-	return { breaking, allOrderOrEmpty: !breaking && hasOrderEntries };
+	return { breaking };
 }
 
 function diffDimensions(
