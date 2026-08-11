@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { InviteForm } from "@/components/invite-form";
+import { AdminPage } from "@/components/admin-page";
+import { InviteWorkspace } from "@/components/invite-workspace";
 import { InviteWorkflow } from "@/components/invite-workflow";
 import { PageHeader } from "@/components/page-header";
 import { requireAdmin } from "@/lib/auth-admin";
@@ -61,20 +62,28 @@ export default async function InvitePage({
   }
 
   const sampleExpiry = new Date(
-    // eslint-disable-next-line react-hooks/purity -- force-dynamic; preview expiry is request-time only
+    // eslint-disable-next-line react-hooks/purity -- force-dynamic; request-time preview only
     Date.now() + env.INVITE_TTL_DAYS * 24 * 60 * 60 * 1000,
   );
   const selectedRound = openRounds[0] ?? null;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-6 overflow-x-hidden p-6">
+    <AdminPage width="content">
       <PageHeader
         eyebrow={selectedRound?.name ?? "Hiring workspace"}
         title="Invite candidates"
-        description="Each candidate receives a personal one-time link that expires. There are no candidate accounts — the link is the credential."
+        description="Create personal one-time assessment links, review the complete batch, and send only validated candidate records."
+        meta={
+          selectedRound ? (
+            <span className="text-muted-foreground">
+              {selectedRound.assessmentVersion.assessment.title} · v
+              {selectedRound.assessmentVersion.versionNumber}
+            </span>
+          ) : undefined
+        }
       />
       <InviteWorkflow ttlDays={env.INVITE_TTL_DAYS} />
-      <InviteForm
+      <InviteWorkspace
         ttlDays={env.INVITE_TTL_DAYS}
         mailFrom={env.MAIL_FROM}
         openRounds={openRounds.map((round) => ({
@@ -90,6 +99,6 @@ export default async function InvitePage({
         )}
         receiptPreviewHtml={receiptHtml("Jane Candidate")}
       />
-    </div>
+    </AdminPage>
   );
 }
