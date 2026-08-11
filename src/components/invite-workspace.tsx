@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type KeyboardEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -42,7 +42,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   classifyInviteRows,
@@ -58,6 +57,8 @@ export type InviteRoundOption = {
   name: string;
   versionTitle: string;
 };
+
+type InviteMode = "single" | "bulk";
 
 type DeliveryResult = {
   invited: number;
@@ -88,7 +89,7 @@ export function InviteWorkspace({
   receiptPreviewHtml: string;
 }) {
   const router = useRouter();
-  const [mode, setMode] = useState<"single" | "bulk">("single");
+  const [mode, setMode] = useState<InviteMode>("single");
   const [roundId, setRoundId] = useState(openRounds[0]?.id ?? "");
   const [singleName, setSingleName] = useState("");
   const [singleEmail, setSingleEmail] = useState("");
@@ -122,6 +123,27 @@ export function InviteWorkspace({
     setRoundId(value);
     setError(null);
     setResult(null);
+  }
+
+  function selectMode(nextMode: InviteMode) {
+    setMode(nextMode);
+  }
+
+  function handleModeKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    let nextMode: InviteMode | null = null;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown" || event.key === "End") {
+      nextMode = "bulk";
+    } else if (
+      event.key === "ArrowLeft" ||
+      event.key === "ArrowUp" ||
+      event.key === "Home"
+    ) {
+      nextMode = "single";
+    }
+    if (!nextMode) return;
+    event.preventDefault();
+    setMode(nextMode);
+    document.getElementById(`invite-${nextMode}-tab`)?.focus();
   }
 
   function addSingleCandidate() {
@@ -315,25 +337,48 @@ export function InviteWorkspace({
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
-          <Tabs value={mode} className="gap-5">
-            <TabsList aria-label="Candidate entry method">
-              <TabsTrigger
+          <div className="flex flex-col gap-5">
+            <div
+              role="tablist"
+              aria-label="Candidate entry method"
+              className="inline-flex h-9 w-fit items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground"
+            >
+              <button
                 id="invite-single-tab"
+                type="button"
+                role="tab"
+                aria-selected={mode === "single"}
                 aria-controls="invite-single-panel"
-                value="single"
-                onClick={() => setMode("single")}
+                tabIndex={mode === "single" ? 0 : -1}
+                onClick={() => selectMode("single")}
+                onKeyDown={handleModeKeyDown}
+                className={`inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 ${
+                  mode === "single"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-foreground/60 hover:text-foreground"
+                }`}
               >
                 Single candidate
-              </TabsTrigger>
-              <TabsTrigger
+              </button>
+              <button
                 id="invite-bulk-tab"
+                type="button"
+                role="tab"
+                aria-selected={mode === "bulk"}
                 aria-controls="invite-bulk-panel"
-                value="bulk"
-                onClick={() => setMode("bulk")}
+                tabIndex={mode === "bulk" ? 0 : -1}
+                onClick={() => selectMode("bulk")}
+                onKeyDown={handleModeKeyDown}
+                className={`inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 ${
+                  mode === "bulk"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-foreground/60 hover:text-foreground"
+                }`}
               >
                 Add many
-              </TabsTrigger>
-            </TabsList>
+              </button>
+            </div>
+
             {mode === "single" ? (
               <div
                 id="invite-single-panel"
@@ -375,8 +420,7 @@ export function InviteWorkspace({
                   </Button>
                 </div>
               </div>
-            ) : null}
-            {mode === "bulk" ? (
+            ) : (
               <div
                 id="invite-bulk-panel"
                 role="tabpanel"
@@ -408,8 +452,8 @@ export function InviteWorkspace({
                   Parse and review
                 </Button>
               </div>
-            ) : null}
-          </Tabs>
+            )}
+          </div>
         </CardContent>
       </Card>
 
