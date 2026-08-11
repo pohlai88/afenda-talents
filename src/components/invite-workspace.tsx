@@ -429,7 +429,7 @@ export function InviteWorkspace({
                 className="mt-0 flex-1 space-y-3 text-sm outline-none"
               >
                 <div className="space-y-2">
-                  <Label htmlFor="invite-list">One candidate per line</Label>
+                  <Label htmlFor="invite-list">One per line</Label>
                   <Textarea
                     id="invite-list"
                     value={bulkText}
