@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { AssessmentBuilder } from "@/components/assessment-builder/assessment-builder";
+import { AssessmentBuilderBoundary } from "@/components/assessment-builder/assessment-builder-boundary";
 import { CreateDraftButton } from "@/components/assessment-builder/create-draft-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -101,7 +101,7 @@ export default async function EditAssessmentPage({
   const draft = parseDraftDocument(assessment.draftDocument);
 
   return (
-    <AssessmentBuilder
+    <AssessmentBuilderBoundary
       assessmentId={id}
       initialTitle={assessment.title}
       initialDraft={draft}
