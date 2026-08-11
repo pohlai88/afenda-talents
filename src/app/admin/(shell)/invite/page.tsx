@@ -3,10 +3,10 @@ import { AdminPage } from "@/components/admin-page";
 import { InviteWorkspace } from "@/components/invite-workspace-client";
 import { InviteWorkflow } from "@/components/invite-workflow";
 import { PageHeader } from "@/components/page-header";
-import { requireAdmin } from "@/lib/auth-admin";
 import { db } from "@/lib/db";
 import { invitationHtml, receiptHtml } from "@/lib/email";
 import { env } from "@/lib/env";
+import { requirePageAdmin } from "@/lib/page-authority";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,7 @@ export default async function InvitePage({
   searchParams: SearchParams;
 }) {
   try {
-    await requireAdmin();
+    await requirePageAdmin();
   } catch {
     redirect("/admin");
   }
