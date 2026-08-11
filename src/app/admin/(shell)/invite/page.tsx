@@ -1,11 +1,7 @@
 import { redirect } from "next/navigation";
 import { AdminPage } from "@/components/admin-page";
-import { InviteWorkspace } from "@/components/invite-workspace";
-import { InviteWorkflow } from "@/components/invite-workflow";
+import { InviteWorkspaceLoader } from "@/components/invite-workspace-loader";
 import { PageHeader } from "@/components/page-header";
-import { db } from "@/lib/db";
-import { invitationHtml, receiptHtml } from "@/lib/email";
-import { env } from "@/lib/env";
 import { requirePageAdmin } from "@/lib/page-authority";
 
 export const dynamic = "force-dynamic";
@@ -29,75 +25,20 @@ export default async function InvitePage({
     redirect("/admin");
   }
 
-  const requestedRoundId = first((await searchParams).round);
-  const [openRounds, assignments] = await Promise.all([
-    db.hiringRound.findMany({
-      where: { status: "OPEN" },
-      include: {
-        assessmentVersion: {
-          include: { assessment: { select: { title: true } } },
-        },
-      },
-      orderBy: { updatedAt: "desc" },
-    }),
-    db.candidateAssignment.findMany({
-      select: {
-        hiringRoundId: true,
-        candidate: { select: { email: true } },
-      },
-    }),
-  ]);
-
-  openRounds.sort((left, right) => {
-    if (left.id === requestedRoundId) return -1;
-    if (right.id === requestedRoundId) return 1;
-    return right.updatedAt.getTime() - left.updatedAt.getTime();
-  });
-
-  const roundExistingEmails: Record<string, string[]> = {};
-  for (const assignment of assignments) {
-    const emails = roundExistingEmails[assignment.hiringRoundId] ?? [];
-    emails.push(assignment.candidate.email);
-    roundExistingEmails[assignment.hiringRoundId] = emails;
-  }
-
-  const sampleExpiry = new Date(
-    // eslint-disable-next-line react-hooks/purity -- force-dynamic; request-time preview only
-    Date.now() + env.INVITE_TTL_DAYS * 24 * 60 * 60 * 1000,
-  );
-  const selectedRound = openRounds[0] ?? null;
+  const requestedRoundId = first((await searchParams).round) ?? null;
+  // eslint-disable-next-line react-hooks/purity -- force-dynamic request marker; router.refresh() must reload invitation context.
+  const refreshNonce = Date.now();
 
   return (
     <AdminPage width="content">
       <PageHeader
-        eyebrow={selectedRound?.name ?? "Hiring workspace"}
+        eyebrow="Hiring workspace"
         title="Invite candidates"
         description="Create personal one-time assessment links, review the complete batch, and send only validated candidate records."
-        meta={
-          selectedRound ? (
-            <span className="text-muted-foreground">
-              {selectedRound.assessmentVersion.assessment.title} · v
-              {selectedRound.assessmentVersion.versionNumber}
-            </span>
-          ) : undefined
-        }
       />
-      <InviteWorkflow ttlDays={env.INVITE_TTL_DAYS} />
-      <InviteWorkspace
-        ttlDays={env.INVITE_TTL_DAYS}
-        mailFrom={env.MAIL_FROM}
-        openRounds={openRounds.map((round) => ({
-          id: round.id,
-          name: round.name,
-          versionTitle: `${round.assessmentVersion.assessment.title} · v${round.assessmentVersion.versionNumber}`,
-        }))}
-        roundExistingEmails={roundExistingEmails}
-        invitationPreviewHtml={invitationHtml(
-          "Jane Candidate",
-          "#personal-one-time-link",
-          sampleExpiry,
-        )}
-        receiptPreviewHtml={receiptHtml("Jane Candidate")}
+      <InviteWorkspaceLoader
+        requestedRoundId={requestedRoundId}
+        refreshNonce={refreshNonce}
       />
     </AdminPage>
   );
