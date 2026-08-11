@@ -323,8 +323,12 @@ export function InviteWorkspace({
             className="gap-5"
           >
             <TabsList aria-label="Candidate entry method">
-              <TabsTrigger value="single">Single candidate</TabsTrigger>
-              <TabsTrigger value="bulk">Add many</TabsTrigger>
+              <TabsTrigger value="single" onClick={() => setMode("single")}>
+                Single candidate
+              </TabsTrigger>
+              <TabsTrigger value="bulk" onClick={() => setMode("bulk")}>
+                Add many
+              </TabsTrigger>
             </TabsList>
             {mode === "single" ? (
               <TabsContent value="single" aria-label="Single candidate" className="mt-0">
