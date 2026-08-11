@@ -13,6 +13,10 @@ function Progress({
   return (
     <ProgressPrimitive.Root
       value={value}
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={typeof value === "number" ? value : undefined}
       data-slot="progress"
       className={cn("flex flex-wrap gap-3", className)}
       {...props}
