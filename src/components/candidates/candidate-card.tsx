@@ -20,51 +20,59 @@ export function CandidateCard({
   now: Date;
 }) {
   return (
-    <li>
-    <Card className="py-4">
-      <CardContent className="flex flex-col gap-3 px-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <Link
-            href={`/admin/candidate/${item.assignmentId}`}
-            className="block truncate font-medium underline-offset-4 hover:underline"
-          >
-            {item.fullName}
-          </Link>
-          <p className="truncate text-sm text-muted-foreground">{item.email}</p>
-        </div>
-        <StatusBadge status={item.status} />
-      </div>
+    <li
+      role="row"
+      data-assignment-id={item.assignmentId}
+      data-candidate-id={item.id}
+    >
+      <Card className="py-4">
+        <CardContent className="flex flex-col gap-3 px-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <Link
+                href={`/admin/candidate/${item.assignmentId}`}
+                className="block truncate font-medium underline-offset-4 hover:underline"
+              >
+                {item.fullName}
+              </Link>
+              <p className="truncate text-sm text-muted-foreground">{item.email}</p>
+            </div>
+            <StatusBadge status={item.status} />
+          </div>
 
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-        <div className="flex gap-1">
-          <dt className="text-muted-foreground">Invited</dt>
-          <dd className="tabular-nums">{item.sentAt?.toLocaleDateString("en-GB") ?? "—"}</dd>
-        </div>
-        <div className="flex gap-1">
-          <dt className="text-muted-foreground">Submitted</dt>
-          <dd className="tabular-nums">{item.submittedAt?.toLocaleDateString("en-GB") ?? "—"}</dd>
-        </div>
-        <div className="flex gap-1">
-          <dt className="text-muted-foreground">Last activity</dt>
-          <dd>{item.lastActivityAt ? relativeTime(item.lastActivityAt, now) : "—"}</dd>
-        </div>
-        <div className="flex gap-1">
-          <dt className="text-muted-foreground">Invited by</dt>
-          <dd className="truncate">{item.invitedByName ?? "—"}</dd>
-        </div>
-      </dl>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+            <div className="flex gap-1">
+              <dt className="text-muted-foreground">Invited</dt>
+              <dd className="tabular-nums">
+                {item.sentAt?.toLocaleDateString("en-GB") ?? "—"}
+              </dd>
+            </div>
+            <div className="flex gap-1">
+              <dt className="text-muted-foreground">Submitted</dt>
+              <dd className="tabular-nums">
+                {item.submittedAt?.toLocaleDateString("en-GB") ?? "—"}
+              </dd>
+            </div>
+            <div className="flex gap-1">
+              <dt className="text-muted-foreground">Last activity</dt>
+              <dd>{item.lastActivityAt ? relativeTime(item.lastActivityAt, now) : "—"}</dd>
+            </div>
+            <div className="flex gap-1">
+              <dt className="text-muted-foreground">Invited by</dt>
+              <dd className="truncate">{item.invitedByName ?? "—"}</dd>
+            </div>
+          </dl>
 
-      {isAdmin && (
-        <CandidateRowActions
-          candidateId={item.id}
-          assignmentId={item.assignmentId}
-          fullName={item.fullName}
-          status={item.status}
-        />
-      )}
-      </CardContent>
-    </Card>
+          {isAdmin && (
+            <CandidateRowActions
+              candidateId={item.id}
+              assignmentId={item.assignmentId}
+              fullName={item.fullName}
+              status={item.status}
+            />
+          )}
+        </CardContent>
+      </Card>
     </li>
   );
 }
