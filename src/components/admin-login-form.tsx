@@ -36,7 +36,11 @@ export function AdminLoginForm({ developerMode }: { developerMode: boolean }) {
       const response = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          mode: developerMode ? "developer" : "hiring",
+        }),
       });
       if (response.ok) {
         router.push("/admin");
@@ -58,7 +62,7 @@ export function AdminLoginForm({ developerMode }: { developerMode: boolean }) {
     ? "Developer administrator sign in"
     : "Hiring team sign in";
   const description = developerMode
-    ? "Restricted to the named developer administrator. Normal password, rate-limit, session, and audit controls still apply."
+    ? "Restricted to the designated developer administrator. Normal password, rate-limit, session, and audit controls still apply."
     : "Candidates don’t sign in — their emailed link is their access.";
 
   return (
