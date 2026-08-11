@@ -1,11 +1,13 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { AdminPage } from "@/components/admin-page";
 import { CandidatesDatatable } from "@/components/candidates/candidates-datatable";
 import type { CandidateTableItem } from "@/components/candidates/types";
 import { NoCandidates } from "@/components/candidates/empty-states";
 import { relativeTime } from "@/lib/relative-time";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { requireHiringUser } from "@/lib/auth-admin";
 import { db } from "@/lib/db";
 import {
@@ -91,14 +93,29 @@ export default async function CandidatesPage({
   const canInvite = isAdmin && selected?.status === "OPEN";
 
   return (
-    <div className="flex min-w-0 max-w-full flex-col gap-6 overflow-x-hidden p-6">
+    <AdminPage width="wide">
       <PageHeader
         eyebrow={selected ? selected.name : "Hiring workspace"}
         title="Candidates"
         description={
           selected
-            ? `Find and manage candidates assigned to ${selected.name}.`
-            : "Create or select a hiring round to view candidates."
+            ? `Search, filter, and manage the candidates assigned to ${selected.name}.`
+            : "Create or select a hiring round to view candidate assignments."
+        }
+        meta={
+          selected ? (
+            <>
+              <span className="text-muted-foreground">
+                {selected.assessmentTitle} · v{selected.versionNumber}
+              </span>
+              <span className="text-muted-foreground">
+                <span className="font-medium text-foreground tabular-nums">
+                  {assignments.length}
+                </span>{" "}
+                candidate{assignments.length === 1 ? "" : "s"}
+              </span>
+            </>
+          ) : undefined
         }
         actions={
           isAdmin && selected ? (
@@ -135,22 +152,24 @@ export default async function CandidatesPage({
           ) : null}
         </NoCandidates>
       ) : (
-        <Suspense
-          fallback={
-            <div
-              className="flex flex-col gap-3"
-              aria-busy="true"
-              aria-live="polite"
-            >
-              <span className="sr-only">Loading candidates…</span>
-              <div className="h-10 w-full max-w-md animate-pulse rounded-md bg-muted" />
-              <div className="h-64 w-full animate-pulse rounded-xl bg-muted" />
-            </div>
-          }
-        >
+        <Suspense fallback={<CandidateRegistrySkeleton />}>
           <CandidatesDatatable data={items} isAdmin={isAdmin} />
         </Suspense>
       )}
+    </AdminPage>
+  );
+}
+
+function CandidateRegistrySkeleton() {
+  return (
+    <div
+      className="flex min-w-0 flex-col gap-3"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <span className="sr-only">Loading candidates…</span>
+      <Skeleton className="h-11 w-full max-w-xl rounded-lg" />
+      <Skeleton className="h-[28rem] w-full rounded-xl" />
     </div>
   );
 }
