@@ -1,11 +1,20 @@
 import { z } from "zod";
 
+const DEFAULT_VERIFICATION_AUTH_BASE =
+  "https://ep-icy-shape-au5tb70w.neonauth.c-10.us-east-1.aws.neon.tech/neondb/auth";
+const DEFAULT_VERIFICATION_DATA_API_BASE =
+  "https://ep-icy-shape-au5tb70w.apirest.c-10.us-east-1.aws.neon.tech/neondb/rest/v1";
+
 /**
  * Fails fast at boot. No defaults for APP_SECRET or ADMIN_PASSWORD in production — a
  * deploy without them must die loudly, not run guessably. Preview deployments are the
  * only exception: they receive non-routable database URLs and per-process random auth
  * material so Next.js can collect route metadata without exposing or simulating a
  * working hiring-admin login.
+ *
+ * The employee-verification service predates this repository's environment contract.
+ * Its current endpoints remain the compatibility default, while named variables make
+ * the dependency explicit and allow staging/production rotation without source edits.
  */
 export const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
@@ -20,6 +29,8 @@ export const envSchema = z.object({
   MAIL_FROM: z.string().min(1),
   INVITE_TTL_DAYS: z.coerce.number().int().positive().default(14),
   RETENTION_DAYS: z.coerce.number().int().positive().default(180),
+  VERIFICATION_AUTH_BASE: z.url().default(DEFAULT_VERIFICATION_AUTH_BASE),
+  VERIFICATION_DATA_API_BASE: z.url().default(DEFAULT_VERIFICATION_DATA_API_BASE),
 });
 
 export type Env = z.infer<typeof envSchema>;
