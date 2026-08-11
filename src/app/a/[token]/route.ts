@@ -43,7 +43,8 @@ export async function GET(
 		});
 	}
 
-	const destination = assignment.status === "STARTED" ? "assessment" : "consent";
+	const destination =
+		assignment.status === "STARTED" ? "assessment" : "assessment/consent";
 	const response = NextResponse.redirect(new URL(`/a/${token}/${destination}`, base));
 	response.headers.set("Server-Timing", timing);
 	response.headers.set("x-afenda-db-ms", dbMs.toFixed(1));
