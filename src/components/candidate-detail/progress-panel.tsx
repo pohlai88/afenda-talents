@@ -6,7 +6,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { STAGE_EXPLANATION, WORKFLOW_STAGES, statusDisplay } from "@/lib/status-display";
+import { STAGE_EXPLANATION, statusDisplay } from "@/lib/status-display";
 import type { Status } from "@/lib/status-constants";
 
 /**
