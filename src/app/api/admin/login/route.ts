@@ -9,10 +9,15 @@ import {
 import { verifyPassword } from "@/lib/passwords";
 import { isRateLimited, recordFailure, clearFailures } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
+import { env } from "@/lib/env";
 
 export const runtime = "nodejs";
 
-const bodySchema = z.object({ email: z.email(), password: z.string().min(1) });
+const bodySchema = z.object({
+  email: z.email(),
+  password: z.string().min(1),
+  mode: z.enum(["hiring", "developer"]).default("hiring"),
+});
 
 // Fixed dummy hash (scrypt$salt$hash) so unknown emails take a verify pass without
 // hashing a fresh salt on every cold start of this module.
@@ -34,16 +39,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
   }
 
-  const user = await db.user.findUnique({ where: { email: parsed.data.email.toLowerCase() } });
-  const ok = verifyPassword(parsed.data.password, user?.passwordHash ?? DUMMY_HASH);
+  const normalizedEmail = parsed.data.email.toLowerCase();
+  const user = await db.user.findUnique({ where: { email: normalizedEmail } });
+  const passwordMatches = verifyPassword(parsed.data.password, user?.passwordHash ?? DUMMY_HASH);
+  const developerAccountMatches =
+    parsed.data.mode !== "developer" ||
+    (user?.role === "ADMIN" && normalizedEmail === env.ADMIN_EMAIL.toLowerCase());
 
-  if (!user || !ok) {
+  if (!user || !passwordMatches || !developerAccountMatches) {
     await recordFailure(ip);
     return NextResponse.json({ error: "Incorrect email or password" }, { status: 401 });
   }
 
   await clearFailures(ip);
-  await audit(user.id, "admin.login");
+  await audit(user.id, "admin.login", undefined, { mode: parsed.data.mode });
 
   const response = NextResponse.json({ ok: true });
   response.cookies.set(
