@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { AdminPage } from "@/components/admin-page";
-import { InviteWorkspace } from "@/components/invite-workspace-client";
+import { InviteWorkspace } from "@/components/invite-workspace";
 import { InviteWorkflow } from "@/components/invite-workflow";
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db";
