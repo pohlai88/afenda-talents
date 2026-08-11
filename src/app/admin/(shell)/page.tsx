@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminPage } from "@/components/admin-page";
 import { db } from "@/lib/db";
 import { requireHiringUser } from "@/lib/auth-admin";
 import type { Status } from "@/lib/status-constants";
@@ -204,7 +205,7 @@ export default async function AdminOverviewPage({
   const roundId = selected?.id ?? null;
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 overflow-x-hidden p-6">
+    <AdminPage width="wide">
       <RoundSummary
         firstName={firstName}
         total={assignments.length}
@@ -212,6 +213,7 @@ export default async function AdminOverviewPage({
         needsAttention={attention.length}
         lastActivityAt={lastActivityAt}
         now={now}
+        roundId={roundId}
       >
         {isAdmin && selected ? (
           <>
@@ -242,27 +244,19 @@ export default async function AdminOverviewPage({
         </EmptyRound>
       ) : (
         <>
-          <section aria-labelledby="workflow-heading">
-            <WorkflowStrip counts={counts} exceptions={exceptions} />
-          </section>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <section aria-labelledby="attention-heading">
-              <HiringAttention items={attention} now={now} />
-            </section>
-            <section aria-labelledby="activity-heading">
-              <ActivityFeed entries={entries} now={now} />
-            </section>
+          <WorkflowStrip
+            counts={counts}
+            exceptions={exceptions}
+            roundId={roundId}
+          />
+          <div className="grid min-w-0 gap-5 xl:grid-cols-2">
+            <HiringAttention items={attention} now={now} roundId={roundId} />
+            <ActivityFeed entries={entries} now={now} />
           </div>
-          <section aria-labelledby="completions-heading">
-            <RecentCompletions profiles={completed} />
-          </section>
-          {workspace.length > 0 ? (
-            <section aria-labelledby="workspace-heading">
-              <WorkspaceAttention items={workspace} />
-            </section>
-          ) : null}
+          <RecentCompletions profiles={completed} roundId={roundId} />
+          <WorkspaceAttention items={workspace} />
         </>
       )}
-    </div>
+    </AdminPage>
   );
 }
