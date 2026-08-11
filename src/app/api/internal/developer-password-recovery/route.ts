@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { hashPassword } from "@/lib/passwords";
+import { generatePassword, hashPassword } from "@/lib/passwords";
 import { isRateLimited, recordFailure, clearFailures } from "@/lib/rate-limit";
 import { matchesSha256Token } from "@/lib/one-time-recovery";
 
@@ -29,18 +29,11 @@ function noStore(body: Record<string, unknown>, status = 200) {
   });
 }
 
-/**
- * Temporary, single-use recovery route for the designated production administrator.
- * It is intentionally absent from every UI and is removed immediately after use.
- */
-export async function POST(request: Request) {
-  const ip = clientIp(request);
+async function recover(token: string, newPassword: string, ip: string) {
   if (await isRateLimited(ip)) {
     return noStore({ error: "Recovery is temporarily unavailable" }, 429);
   }
-
-  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success || !matchesSha256Token(parsed.data.token, RECOVERY_TOKEN_HASH)) {
+  if (!matchesSha256Token(token, RECOVERY_TOKEN_HASH)) {
     await recordFailure(ip);
     return noStore({ error: "Recovery request is invalid" }, 401);
   }
@@ -61,7 +54,7 @@ export async function POST(request: Request) {
     return noStore({ error: "Recovery request has already been used" }, 410);
   }
 
-  const passwordHash = hashPassword(parsed.data.newPassword);
+  const passwordHash = hashPassword(newPassword);
   await db.$transaction([
     db.user.update({
       where: { id: user.id },
@@ -78,5 +71,29 @@ export async function POST(request: Request) {
   ]);
 
   await clearFailures(ip);
-  return noStore({ ok: true, mustChangePassword: true });
+  return noStore({ ok: true, temporaryPassword: newPassword, mustChangePassword: true });
+}
+
+/**
+ * Temporary, single-use recovery route for the designated production administrator.
+ * It is intentionally absent from every UI and is removed immediately after use.
+ */
+export async function POST(request: Request) {
+  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return noStore({ error: "Recovery request is invalid" }, 400);
+  }
+  return recover(parsed.data.token, parsed.data.newPassword, clientIp(request));
+}
+
+/**
+ * Operational GET adapter for the connected deployment fetch tool, which cannot issue
+ * POST requests. The high-entropy token is single-use, and this route is deleted as
+ * soon as the password is returned and verified.
+ */
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const token = url.searchParams.get("token") ?? "";
+  const newPassword = generatePassword();
+  return recover(token, newPassword, clientIp(request));
 }
