@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "dotenv -e .env.test -- playwright test",
+    "test:e2e:ci": "dotenv -e .env.test -- playwright test --reporter=line",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm exec node scripts/check-invariants.mjs && pnpm build",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
