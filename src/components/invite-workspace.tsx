@@ -316,8 +316,8 @@ export function InviteWorkspace({
         <CardContent className="pt-6">
           <Tabs defaultValue="single" className="gap-5">
             <TabsList aria-label="Candidate entry method">
-              <TabsTrigger value="single">One candidate</TabsTrigger>
-              <TabsTrigger value="bulk">Paste a list</TabsTrigger>
+              <TabsTrigger value="single">Single candidate</TabsTrigger>
+              <TabsTrigger value="bulk">Add many</TabsTrigger>
             </TabsList>
             <TabsContent value="single" className="mt-0">
               <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
@@ -349,7 +349,7 @@ export function InviteWorkspace({
                   disabled={!singleName.trim() && !singleEmail.trim()}
                 >
                   <Plus aria-hidden="true" />
-                  Add to review
+                  Review invitation
                 </Button>
               </div>
             </TabsContent>
@@ -375,7 +375,7 @@ export function InviteWorkspace({
                 disabled={!bulkText.trim()}
               >
                 <UsersRound aria-hidden="true" />
-                Review pasted list
+                Parse and review
               </Button>
             </TabsContent>
           </Tabs>
@@ -391,19 +391,11 @@ export function InviteWorkspace({
                 Only rows marked Ready will be included. Correct or remove the others.
               </CardDescription>
             </div>
-            <div className="flex flex-wrap gap-2 text-xs">
-              <Badge variant="outline">{counts.valid} ready</Badge>
-              {counts.invalid > 0 ? (
-                <Badge variant="outline" className="border-attention/35 text-attention">
-                  {counts.invalid} invalid
-                </Badge>
-              ) : null}
-              {counts.duplicate + counts.existing > 0 ? (
-                <Badge variant="secondary">
-                  {counts.duplicate + counts.existing} skipped
-                </Badge>
-              ) : null}
-            </div>
+            <p className="text-xs text-muted-foreground" aria-live="polite">
+              {counts.valid} ready · {counts.existing} already invited
+              {counts.duplicate > 0 ? ` · ${counts.duplicate} duplicate` : ""}
+              {counts.invalid > 0 ? ` · ${counts.invalid} invalid` : ""}
+            </p>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -503,7 +495,7 @@ export function InviteWorkspace({
           disabled={validEntries.length === 0 || busy}
         >
           <Send aria-hidden="true" />
-          Review and send
+          Send {validEntries.length} invitation{validEntries.length === 1 ? "" : "s"}
         </Button>
       </div>
 
@@ -555,14 +547,14 @@ function reclassify(
 function DeliveryAlert({ result }: { result: DeliveryResult }) {
   const complete = result.failed === 0;
   return (
-    <Alert variant={complete ? "default" : "destructive"}>
+    <Alert role="status" variant={complete ? "default" : "destructive"}>
       {complete ? (
         <CheckCircle2 aria-hidden="true" />
       ) : (
         <AlertTriangle aria-hidden="true" />
       )}
       <AlertTitle>
-        {complete ? "Invitation batch completed" : "Some invitations need retrying"}
+        {complete ? `Invited ${result.invited}` : "Some invitations need retrying"}
       </AlertTitle>
       <AlertDescription>
         {result.invited} sent, {result.skipped} already present, {result.failed} failed.
