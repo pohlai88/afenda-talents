@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -103,22 +103,32 @@ export function InviteWorkspace({
     () => new Set(roundExistingEmails[roundId] ?? []),
     [roundExistingEmails, roundId],
   );
-  const counts = useMemo(() => inviteRowCounts(rows), [rows]);
-  const validEntries = useMemo(() => validInviteEntries(rows), [rows]);
+  const classifiedRows = useMemo(
+    () => reclassify(rows, existingEmails),
+    [rows, existingEmails],
+  );
+  const counts = useMemo(
+    () => inviteRowCounts(classifiedRows),
+    [classifiedRows],
+  );
+  const validEntries = useMemo(
+    () => validInviteEntries(classifiedRows),
+    [classifiedRows],
+  );
   const selectedRound = openRounds.find((round) => round.id === roundId) ?? null;
 
-  useEffect(() => {
-    setRows((current) => reclassify(current, existingEmails));
+  function selectRound(value: string) {
+    setRoundId(value);
     setError(null);
     setResult(null);
-  }, [existingEmails]);
+  }
 
   function addSingleCandidate() {
     const next = [
-      ...rows,
+      ...classifiedRows,
       {
         id: globalThis.crypto?.randomUUID?.() ?? `candidate-${Date.now()}`,
-        line: rows.length + 1,
+        line: classifiedRows.length + 1,
         fullName: singleName,
         email: singleEmail,
       },
@@ -137,8 +147,11 @@ export function InviteWorkspace({
     setResult(null);
   }
 
-  function updateRow(id: string, patch: Partial<Pick<InviteRow, "fullName" | "email">>) {
-    const raw = rows.map((row) =>
+  function updateRow(
+    id: string,
+    patch: Partial<Pick<InviteRow, "fullName" | "email">>,
+  ) {
+    const raw = classifiedRows.map((row) =>
       row.id === id ? { ...row, ...patch } : row,
     );
     setRows(reclassify(raw, existingEmails));
@@ -146,9 +159,9 @@ export function InviteWorkspace({
   }
 
   function removeRow(id: string) {
-    setRows((current) =>
+    setRows(
       reclassify(
-        current.filter((row) => row.id !== id),
+        classifiedRows.filter((row) => row.id !== id),
         existingEmails,
       ),
     );
@@ -262,10 +275,7 @@ export function InviteWorkspace({
         <CardContent className="grid gap-5 pt-6 md:grid-cols-[minmax(0,1fr)_minmax(15rem,0.7fr)]">
           <div className="space-y-2">
             <Label htmlFor="invite-round">Hiring round</Label>
-            <Select
-              value={roundId}
-              onValueChange={(value) => value && setRoundId(value)}
-            >
+            <Select value={roundId} onValueChange={selectRound}>
               <SelectTrigger id="invite-round" className="w-full">
                 <SelectValue placeholder="Choose an open round" />
               </SelectTrigger>
@@ -397,7 +407,7 @@ export function InviteWorkspace({
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {rows.length === 0 ? (
+          {classifiedRows.length === 0 ? (
             <div className="flex min-h-48 flex-col items-center justify-center gap-2 px-6 py-8 text-center">
               <UsersRound aria-hidden="true" className="size-7 text-muted-foreground" />
               <p className="text-sm font-medium">No candidates in this batch</p>
@@ -408,7 +418,7 @@ export function InviteWorkspace({
             </div>
           ) : (
             <ul className="divide-y">
-              {rows.map((row) => (
+              {classifiedRows.map((row) => (
                 <li
                   key={row.id}
                   className="grid min-w-0 gap-3 px-4 py-4 md:grid-cols-[minmax(10rem,0.8fr)_minmax(13rem,1fr)_minmax(9rem,auto)_auto] md:items-start"
