@@ -23,12 +23,12 @@ export default defineConfig({
     {
       name: "admin-desktop",
       use: { ...devices["Desktop Chrome"] },
-      testMatch: /0[12678]-.*\.spec\.ts|1[01]-.*\.spec\.ts/,
+      testMatch: /0[12678]-.*\.spec\.ts|1[0-2]-.*\.spec\.ts/,
     },
     {
       name: "candidate-mobile",
       use: { ...devices["Pixel 5"] },
-      testIgnore: /0[12678]-.*\.spec\.ts|1[01]-.*\.spec\.ts/,
+      testIgnore: /0[12678]-.*\.spec\.ts|1[0-2]-.*\.spec\.ts/,
     },
   ],
 	webServer: {
