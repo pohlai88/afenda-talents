@@ -1,20 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { requireHiringUser } from "@/lib/auth-admin";
+import {
+  ADMIN_COOKIE,
+  adminCookieOptions,
+  createSessionToken,
+  requirePasswordChangeUser,
+} from "@/lib/auth-admin";
 import { verifyPassword, hashPassword } from "@/lib/passwords";
 import { isRateLimited, recordFailure, clearFailures } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
-/**
- * A signed-in hiring user replaces their own password. Both roles may call this —
- * a VIEWER owns their credential too. Proving the current password is the fine
- * check; the cookie alone is the coarse one (D7). Wrong-current attempts count
- * against the same IP rate limit as login, because this endpoint is equally
- * brute-forceable once a cookie is stolen.
- */
 const bodySchema = z.object({
   currentPassword: z.string().min(1),
   newPassword: z.string().min(12).max(200),
@@ -27,7 +25,7 @@ function clientIp(request: Request): string {
 export async function POST(request: Request) {
   let session;
   try {
-    session = await requireHiringUser();
+    session = await requirePasswordChangeUser();
   } catch {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
@@ -62,12 +60,29 @@ export async function POST(request: Request) {
     );
   }
 
-  await clearFailures(ip);
-  await db.user.update({
-    where: { id: user.id },
-    data: { passwordHash: hashPassword(parsed.data.newPassword), mustChangePassword: false },
+  const updated = await db.$transaction(async (tx) => {
+    const nextUser = await tx.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: hashPassword(parsed.data.newPassword),
+        mustChangePassword: false,
+        sessionVersion: { increment: 1 },
+      },
+      select: { id: true, sessionVersion: true },
+    });
+    await audit(nextUser.id, "user.password_changed", nextUser.id, undefined, tx);
+    return nextUser;
   });
-  await audit(user.id, "user.password_changed", user.id);
 
-  return NextResponse.json({ ok: true });
+  await clearFailures(ip);
+  const response = NextResponse.json({ ok: true });
+  response.cookies.set(
+    ADMIN_COOKIE,
+    await createSessionToken({
+      userId: updated.id,
+      sessionVersion: updated.sessionVersion,
+    }),
+    adminCookieOptions(8 * 60 * 60),
+  );
+  return response;
 }
