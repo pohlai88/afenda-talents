@@ -88,6 +88,7 @@ export function InviteWorkspace({
   receiptPreviewHtml: string;
 }) {
   const router = useRouter();
+  const [mode, setMode] = useState<"single" | "bulk">("single");
   const [roundId, setRoundId] = useState(openRounds[0]?.id ?? "");
   const [singleName, setSingleName] = useState("");
   const [singleEmail, setSingleEmail] = useState("");
@@ -314,70 +315,80 @@ export function InviteWorkspace({
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
-          <Tabs defaultValue="single" className="gap-5">
+          <Tabs
+            value={mode}
+            onValueChange={(value) => {
+              if (value === "single" || value === "bulk") setMode(value);
+            }}
+            className="gap-5"
+          >
             <TabsList aria-label="Candidate entry method">
               <TabsTrigger value="single">Single candidate</TabsTrigger>
               <TabsTrigger value="bulk">Add many</TabsTrigger>
             </TabsList>
-            <TabsContent value="single" className="mt-0">
-              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
-                <div className="space-y-2">
-                  <Label htmlFor="invite-name">Full name</Label>
-                  <Input
-                    id="invite-name"
-                    value={singleName}
-                    onChange={(event) => setSingleName(event.target.value)}
-                    autoComplete="off"
-                    maxLength={120}
-                  />
+            {mode === "single" ? (
+              <TabsContent value="single" aria-label="Single candidate" className="mt-0">
+                <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-name">Full name</Label>
+                    <Input
+                      id="invite-name"
+                      value={singleName}
+                      onChange={(event) => setSingleName(event.target.value)}
+                      autoComplete="off"
+                      maxLength={120}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-email">Email</Label>
+                    <Input
+                      id="invite-email"
+                      type="email"
+                      value={singleEmail}
+                      onChange={(event) => setSingleEmail(event.target.value)}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addSingleCandidate}
+                    disabled={!singleName.trim() && !singleEmail.trim()}
+                  >
+                    <Plus aria-hidden="true" />
+                    Review invitation
+                  </Button>
                 </div>
+              </TabsContent>
+            ) : null}
+            {mode === "bulk" ? (
+              <TabsContent value="bulk" aria-label="Add many" className="mt-0 space-y-3">
                 <div className="space-y-2">
-                  <Label htmlFor="invite-email">Email</Label>
-                  <Input
-                    id="invite-email"
-                    type="email"
-                    value={singleEmail}
-                    onChange={(event) => setSingleEmail(event.target.value)}
-                    autoComplete="off"
+                  <Label htmlFor="invite-list">One candidate per line</Label>
+                  <Textarea
+                    id="invite-list"
+                    value={bulkText}
+                    onChange={(event) => setBulkText(event.target.value)}
+                    placeholder={"Jane Candidate, jane@example.com\nAmir Candidate, amir@example.com"}
+                    className="min-h-40 font-mono text-sm"
                     spellCheck={false}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Format: <span className="font-mono">Full name, email address</span>
+                  </p>
                 </div>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={addSingleCandidate}
-                  disabled={!singleName.trim() && !singleEmail.trim()}
+                  onClick={reviewBulkList}
+                  disabled={!bulkText.trim()}
                 >
-                  <Plus aria-hidden="true" />
-                  Review invitation
+                  <UsersRound aria-hidden="true" />
+                  Parse and review
                 </Button>
-              </div>
-            </TabsContent>
-            <TabsContent value="bulk" className="mt-0 space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor="invite-list">One candidate per line</Label>
-                <Textarea
-                  id="invite-list"
-                  value={bulkText}
-                  onChange={(event) => setBulkText(event.target.value)}
-                  placeholder={"Jane Candidate, jane@example.com\nAmir Candidate, amir@example.com"}
-                  className="min-h-40 font-mono text-sm"
-                  spellCheck={false}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Format: <span className="font-mono">Full name, email address</span>
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={reviewBulkList}
-                disabled={!bulkText.trim()}
-              >
-                <UsersRound aria-hidden="true" />
-                Parse and review
-              </Button>
-            </TabsContent>
+              </TabsContent>
+            ) : null}
           </Tabs>
         </CardContent>
       </Card>
