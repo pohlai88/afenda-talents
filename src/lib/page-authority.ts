@@ -7,7 +7,12 @@ function isRole(value: string | null): value is Role {
   return value !== null && (ROLES as readonly string[]).includes(value);
 }
 
-async function pageSession(): Promise<HiringSession | null> {
+/**
+ * Reads the trusted page-authority snapshot stamped by Proxy after live Postgres
+ * session validation. Returns null for API/handler requests where Proxy deliberately
+ * does not stamp render authority headers.
+ */
+export async function readPageSession(): Promise<HiringSession | null> {
   const store = await headers();
   if (store.get(PAGE_AUTH_HEADERS.authenticated) !== "1") return null;
 
@@ -37,7 +42,7 @@ async function pageSession(): Promise<HiringSession | null> {
 
 /** Render-tree authority. Proxy has already verified this account against Postgres. */
 export async function requirePagePasswordChangeUser(): Promise<HiringSession> {
-  const session = await pageSession();
+  const session = await readPageSession();
   if (!session) throw new Error("Not authenticated");
   return session;
 }
