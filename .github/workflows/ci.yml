@@ -1,0 +1,190 @@
+name: Production quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint, types, unit, invariants, migration, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/afenda_ci?sslmode=disable
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/afenda_ci?sslmode=disable
+      APP_URL: http://127.0.0.1:3100
+      APP_SECRET: ci-only-app-secret-0123456789abcdef0123456789abcdef
+      ADMIN_EMAIL: ci-admin@example.com
+      ADMIN_PASSWORD: ci-only-generated-password-0123456789
+      RESEND_API_KEY: ""
+      MAIL_FROM: Afenda Talents CI <noreply@example.com>
+      INVITE_TTL_DAYS: "14"
+      RETENTION_DAYS: "180"
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: afenda_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d afenda_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations to a clean database
+        run: pnpm db:deploy
+
+      - name: Seed the clean database
+        run: pnpm db:seed
+
+      - name: Verify migration status
+        run: pnpm db:status
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type-check
+        run: pnpm typecheck
+
+      - name: Run unit tests
+        run: pnpm test
+
+      - name: Check product invariants
+        run: pnpm exec node scripts/check-invariants.mjs
+
+      - name: Build production application
+        run: pnpm build
+
+  e2e:
+    name: Chromium end-to-end and accessibility
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/afenda_e2e?sslmode=disable
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/afenda_e2e?sslmode=disable
+      APP_URL: http://127.0.0.1:3100
+      APP_SECRET: ci-only-app-secret-0123456789abcdef0123456789abcdef
+      ADMIN_EMAIL: ci-admin@example.com
+      ADMIN_PASSWORD: ci-only-generated-password-0123456789
+      RESEND_API_KEY: ""
+      MAIL_FROM: Afenda Talents CI <noreply@example.com>
+      INVITE_TTL_DAYS: "14"
+      RETENTION_DAYS: "180"
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: afenda_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d afenda_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Create isolated test environment
+        shell: bash
+        run: |
+          cat > .env.test <<EOF
+          DATABASE_URL="$DATABASE_URL"
+          DIRECT_URL="$DIRECT_URL"
+          APP_URL="$APP_URL"
+          APP_SECRET="$APP_SECRET"
+          ADMIN_EMAIL="$ADMIN_EMAIL"
+          ADMIN_PASSWORD="$ADMIN_PASSWORD"
+          RESEND_API_KEY=""
+          MAIL_FROM="$MAIL_FROM"
+          INVITE_TTL_DAYS="$INVITE_TTL_DAYS"
+          RETENTION_DAYS="$RETENTION_DAYS"
+          EOF
+
+      - name: Apply migrations
+        run: pnpm db:deploy
+
+      - name: Seed test database
+        run: pnpm db:seed
+
+      - name: Run end-to-end suite
+        run: pnpm test:e2e:ci
+
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-${{ github.run_id }}
+          if-no-files-found: ignore
+          retention-days: 14
+          path: |
+            playwright-report/
+            test-results/
+            server.log
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
