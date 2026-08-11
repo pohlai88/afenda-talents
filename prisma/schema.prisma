@@ -55,6 +55,7 @@ model User {
   passwordHash       String
   role               UserRole @default(VIEWER)
   mustChangePassword Boolean  @default(false)
+  sessionVersion     Int      @default(0)
   createdAt          DateTime @default(now())
 
   publishedVersions AssessmentVersion[] @relation("PublishedBy")
@@ -77,6 +78,7 @@ model Assessment {
   isSystem      Boolean          @default(false)
   status        AssessmentStatus @default(DRAFT)
   draftDocument Json?
+  draftRevision Int              @default(0)
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   versions      AssessmentVersion[]
@@ -131,6 +133,10 @@ model CandidateAssignment {
   result              Result?
 
   @@unique([candidateId, hiringRoundId])
+  @@index([hiringRoundId, status])
+  @@index([hiringRoundId, sentAt])
+  @@index([hiringRoundId, submittedAt])
+  @@index([invitedById, hiringRoundId])
 }
 
 model Response {
@@ -146,6 +152,7 @@ model Response {
 
   @@unique([assignmentId, questionId])
   @@index([assignmentId])
+  @@index([assignmentId, updatedAt])
 }
 
 model Result {
@@ -169,6 +176,8 @@ model AuditEvent {
   subjectId String?
   meta      Json?
   createdAt DateTime @default(now())
+
+  @@index([action, createdAt])
 }
 
 model LoginAttempt {
