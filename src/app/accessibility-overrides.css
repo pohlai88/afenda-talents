@@ -1,0 +1,4 @@
+#invite-single-tab[aria-selected="false"],
+#invite-bulk-tab[aria-selected="false"] {
+  color: var(--foreground);
+}
