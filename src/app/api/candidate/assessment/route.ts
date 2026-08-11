@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { AssessmentFormItem } from "@/components/assessment-form";
 import {
   currentAssignmentId,
   resolveAssignmentToken,
@@ -41,23 +42,33 @@ export async function GET(request: Request) {
 
   const doc = await loadVersionDocument(assignment.assessmentVersionId);
   const answerable = orderedAnswerableItems(doc);
-  const items = answerable.map((item, index) => {
-    const base = {
-      id: item.id,
-      order: index + 1,
-      text: item.text,
-      required: item.required,
-    };
+  const items: AssessmentFormItem[] = [];
+  let order = 0;
+  for (const item of answerable) {
     if (item.type === "likert") {
-      return { ...base, type: "likert" as const };
+      order += 1;
+      items.push({
+        id: item.id,
+        order,
+        text: item.text,
+        type: "likert",
+        required: item.required,
+      });
+      continue;
     }
-    return {
-      ...base,
-      type: item.type,
-      maxLength: item.maxLength,
-      helperText: item.helperText,
-    };
-  });
+    if (item.type === "short_text" || item.type === "long_text") {
+      order += 1;
+      items.push({
+        id: item.id,
+        order,
+        text: item.text,
+        type: item.type,
+        required: item.required,
+        maxLength: item.maxLength,
+        helperText: item.helperText,
+      });
+    }
+  }
 
   const responses = await db.response.findMany({
     where: { assignmentId: assignment.id },
