@@ -1,9 +1,7 @@
 name: Runner diagnostics
 
 on:
-  push:
-    branches:
-      - full-stack-integration-frontend-rebuild
+  pull_request:
   workflow_dispatch:
 
 permissions:
