@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
-import { requireAssignment } from "@/lib/auth-candidate";
+import {
+  currentAssignmentId,
+  requireAssignment,
+  resolveAssignmentToken,
+} from "@/lib/auth-candidate";
 import { db } from "@/lib/db";
+import { env } from "@/lib/env";
+import { orderedAnswerableItems } from "@/lib/instrument-document";
+import { loadVersionDocument } from "@/lib/version-document";
 import {
   applyStatus,
   ConcurrentStatusTransition,
@@ -8,6 +15,57 @@ import {
 import { audit } from "@/lib/audit";
 
 export const runtime = "nodejs";
+
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const token = url.searchParams.get("token");
+  if (!token) {
+    return NextResponse.json({ error: "Invitation token required" }, { status: 400 });
+  }
+
+  const [assignment, cookieAssignmentId] = await Promise.all([
+    resolveAssignmentToken(token),
+    currentAssignmentId(),
+  ]);
+  if (!assignment) {
+    return NextResponse.json(
+      { error: "Assessment is not available", action: "done" },
+      { status: 403 },
+    );
+  }
+  if (cookieAssignmentId !== assignment.id) {
+    return NextResponse.json(
+      { error: "Candidate session needs to be refreshed", action: "reenter" },
+      { status: 409 },
+    );
+  }
+  if (assignment.status === "STARTED") {
+    return NextResponse.json(
+      { error: "Assessment already started", action: "assessment" },
+      { status: 409 },
+    );
+  }
+
+  const doc = await loadVersionDocument(assignment.assessmentVersionId);
+  const itemCount = orderedAnswerableItems(doc).length;
+  const retention = doc.consent.retention.replace(
+    "{RETENTION_DAYS}",
+    String(env.RETENTION_DAYS),
+  );
+
+  return NextResponse.json({
+    fullName: assignment.candidate.fullName,
+    candidateIntroduction: doc.candidateIntroduction,
+    estimatedMinutes: doc.estimatedMinutes,
+    itemCount,
+    consent: {
+      purpose: doc.consent.purpose,
+      whatWeCollect: doc.consent.whatWeCollect,
+      whoSeesIt: doc.consent.whoSeesIt,
+      retention,
+    },
+  });
+}
 
 export async function POST() {
   let assignment;
