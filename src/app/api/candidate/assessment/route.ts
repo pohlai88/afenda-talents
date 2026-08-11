@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
   if (!token) {
-    return NextResponse.json({ error: "Invitation token required" }, { status: 400 });
+    return NextResponse.json({ error: "Invitation reference required" }, { status: 400 });
   }
 
   const [assignment, cookieAssignmentId] = await Promise.all([
