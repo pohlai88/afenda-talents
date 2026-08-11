@@ -9,6 +9,7 @@ import {
 import { verifyPassword } from "@/lib/passwords";
 import { isRateLimited, recordFailure, clearFailures } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
+import { isLoginModeAllowed } from "@/lib/developer-access";
 import { env } from "@/lib/env";
 
 export const runtime = "nodejs";
@@ -42,11 +43,16 @@ export async function POST(request: Request) {
   const normalizedEmail = parsed.data.email.toLowerCase();
   const user = await db.user.findUnique({ where: { email: normalizedEmail } });
   const passwordMatches = verifyPassword(parsed.data.password, user?.passwordHash ?? DUMMY_HASH);
-  const developerAccountMatches =
-    parsed.data.mode !== "developer" ||
-    (user?.role === "ADMIN" && normalizedEmail === env.ADMIN_EMAIL.toLowerCase());
+  const loginModeAllowed =
+    user !== null &&
+    isLoginModeAllowed({
+      mode: parsed.data.mode,
+      email: normalizedEmail,
+      role: user.role,
+      developerEmail: env.ADMIN_EMAIL,
+    });
 
-  if (!user || !passwordMatches || !developerAccountMatches) {
+  if (!user || !passwordMatches || !loginModeAllowed) {
     await recordFailure(ip);
     return NextResponse.json({ error: "Incorrect email or password" }, { status: 401 });
   }
