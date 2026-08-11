@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { audit } from "@/lib/audit";
 import { resolveHiringSession, verifyHiringSessionToken } from "@/lib/auth-session";
+import { db } from "@/lib/db";
 import { ADMIN_COOKIE } from "@/lib/hiring-roles";
 import {
   PAGE_AUTH_HEADERS,
@@ -65,6 +67,34 @@ function withPageAuthority(
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
+function isPrefetch(request: NextRequest): boolean {
+  return (
+    request.headers.get("purpose") === "prefetch" ||
+    request.headers.get("next-router-prefetch") === "1"
+  );
+}
+
+async function auditResultNavigation(
+  request: NextRequest,
+  actor: string,
+  pathname: string,
+): Promise<void> {
+  if (request.method !== "GET" || isPrefetch(request)) return;
+  const match = pathname.match(/^\/admin\/candidate\/([^/]+)$/);
+  if (!match) return;
+
+  const assignmentId = decodeURIComponent(match[1]);
+  const assignment = await db.candidateAssignment.findUnique({
+    where: { id: assignmentId },
+    select: { id: true, result: { select: { id: true } } },
+  });
+  if (assignment?.result) {
+    await audit(actor, "result.viewed", assignment.id, {
+      source: "profile-navigation",
+    });
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -111,6 +141,15 @@ export async function proxy(request: NextRequest) {
 
   if (session.mustChangePassword) {
     return NextResponse.redirect(new URL("/admin/change-password", request.url));
+  }
+
+  try {
+    await auditResultNavigation(request, session.userId, pathname);
+  } catch (error) {
+    console.error("Result view audit failed", {
+      assignmentPath: pathname,
+      error: error instanceof Error ? error.message : "Unknown audit error",
+    });
   }
 
   return withPageAuthority(request, session);
