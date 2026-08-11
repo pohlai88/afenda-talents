@@ -19,5 +19,5 @@ export default defineConfig({
       RETENTION_DAYS: "180",
     },
   },
-  resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
+  resolve: { alias: { "@": path.resolve(import.meta.dirname, "./src") } },
 });

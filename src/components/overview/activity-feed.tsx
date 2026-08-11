@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Empty, EmptyDescription } from "@/components/ui/empty";
+import { EmptyDescription } from "@/components/ui/empty";
 import { relativeTime } from "@/lib/relative-time";
 
 export type ActivityEntry = { id: string; sentence: string; at: Date };

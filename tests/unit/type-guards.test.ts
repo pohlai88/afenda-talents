@@ -2,11 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
 	assertRole,
 	assertRoundStatus,
-	assertStatus,
 	isRole,
 	isRoundStatus,
 	isStatus,
-	parseRole,
 	parseRoundStatus,
 	parseStatus,
 } from "@/lib/type-guards";

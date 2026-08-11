@@ -5,11 +5,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const token = await getAnonymousJwt();
-    return NextResponse.json({ ok: true, jwt: token.split(".").length === 3 });
-  } catch (error) {
+    await getAnonymousJwt();
+    return NextResponse.json({ ok: true, authentication: "ready" });
+  } catch {
     return NextResponse.json(
-      { ok: false, message: error instanceof Error ? error.message : "Neon authentication failed" },
+      { ok: false, message: "Verification authentication is unavailable" },
       { status: 502 },
     );
   }

@@ -1,4 +1,4 @@
-import { EXCEPTION_STAGES, WORKFLOW_STAGES } from "@/lib/status-display";
+import { EXCEPTION_STAGES } from "@/lib/status-display";
 import type { Status } from "@/lib/status-constants";
 import { isStatus } from "@/lib/type-guards";
 
@@ -28,8 +28,6 @@ export const SHORTCUT_STATUSES: Record<Shortcut, readonly Status[]> = {
 };
 
 export const PAGE_SIZE = 25;
-
-const ALL_STATUSES: readonly Status[] = [...WORKFLOW_STAGES, ...EXCEPTION_STAGES, "DRAFT"];
 
 export type CandidateQuery = {
 	search: string;

@@ -23,7 +23,7 @@ type PasswordCopy = {
 	showCancel: boolean;
 };
 
-function PasswordForm({ email, copy }: { email: string; copy: PasswordCopy }) {
+function PasswordForm({ copy }: { copy: PasswordCopy }) {
 	const router = useRouter();
 	const [currentPassword, setCurrentPassword] = useState("");
 	const [newPassword, setNewPassword] = useState("");
@@ -157,7 +157,6 @@ function PasswordForm({ email, copy }: { email: string; copy: PasswordCopy }) {
 export function ChangePasswordForm({ email }: { email: string }) {
 	return (
 		<PasswordForm
-			email={email}
 			copy={{
 				title: "Change password",
 				description: `Signed in as ${email}. Your current password stops working as soon as the new one is saved.`,
@@ -172,7 +171,6 @@ export function ChangePasswordForm({ email }: { email: string }) {
 export function ForcedChangePasswordForm({ email }: { email: string }) {
 	return (
 		<PasswordForm
-			email={email}
 			copy={{
 				title: "Set your own password",
 				description: `The password for ${email} was issued by an admin. Replace it with one only you know before continuing.`,

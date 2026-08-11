@@ -1,0 +1,12 @@
+# Default ownership for product, security, database, and deployment changes.
+* @pohlai88
+
+# Explicit high-risk surfaces.
+/.github/ @pohlai88
+/prisma/ @pohlai88
+/src/lib/auth-*.ts @pohlai88
+/src/lib/audit.ts @pohlai88
+/src/lib/status*.ts @pohlai88
+/src/app/api/ @pohlai88
+/vercel.json @pohlai88
+/next.config.ts @pohlai88

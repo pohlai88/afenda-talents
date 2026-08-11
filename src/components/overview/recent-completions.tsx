@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Empty, EmptyDescription } from "@/components/ui/empty";
+import { EmptyDescription } from "@/components/ui/empty";
 import type { UiDimension } from "@/lib/result-display";
 
 export type CompletedProfile = {
@@ -69,7 +69,7 @@ export function RecentCompletions({ profiles }: { profiles: CompletedProfile[] }
               >
                 <Avatar className="h-10 w-10">
                   <AvatarFallback className="text-xs font-medium">
-                    {p.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    {p.fullName.split(" ").map((name) => name[0]).join("").slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
