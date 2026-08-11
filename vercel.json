@@ -2,5 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "fluid": true,
   "framework": "nextjs",
+  "buildCommand": "pnpm vercel-build",
   "regions": ["sin1"]
 }
