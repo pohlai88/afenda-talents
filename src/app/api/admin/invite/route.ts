@@ -11,7 +11,11 @@ import {
   hashToken,
   inviteUrl,
 } from "@/lib/tokens";
-import { sendInvitation } from "@/lib/email";
+import {
+  invitationHtml,
+  receiptHtml,
+  sendInvitation,
+} from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -27,6 +31,63 @@ const bodySchema = z.object({
     .min(1)
     .max(200),
 });
+
+export async function GET() {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
+  const openRounds = await db.hiringRound.findMany({
+    where: { status: "OPEN" },
+    include: {
+      assessmentVersion: {
+        include: { assessment: { select: { title: true } } },
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  const assignments =
+    openRounds.length === 0
+      ? []
+      : await db.candidateAssignment.findMany({
+          where: { hiringRoundId: { in: openRounds.map((round) => round.id) } },
+          select: {
+            hiringRoundId: true,
+            candidate: { select: { email: true } },
+          },
+        });
+
+  const roundExistingEmails: Record<string, string[]> = {};
+  for (const assignment of assignments) {
+    const emails = roundExistingEmails[assignment.hiringRoundId] ?? [];
+    emails.push(assignment.candidate.email);
+    roundExistingEmails[assignment.hiringRoundId] = emails;
+  }
+
+  const sampleExpiry = new Date(
+    Date.now() + env.INVITE_TTL_DAYS * 24 * 60 * 60 * 1000,
+  );
+
+  return NextResponse.json({
+    ttlDays: env.INVITE_TTL_DAYS,
+    mailFrom: env.MAIL_FROM,
+    openRounds: openRounds.map((round) => ({
+      id: round.id,
+      name: round.name,
+      versionTitle: `${round.assessmentVersion.assessment.title} · v${round.assessmentVersion.versionNumber}`,
+    })),
+    roundExistingEmails,
+    invitationPreviewHtml: invitationHtml(
+      "Jane Candidate",
+      "#personal-one-time-link",
+      sampleExpiry,
+    ),
+    receiptPreviewHtml: receiptHtml("Jane Candidate"),
+  });
+}
 
 export async function POST(request: Request) {
   let session;
