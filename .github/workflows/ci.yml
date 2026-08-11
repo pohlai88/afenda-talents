@@ -14,8 +14,34 @@ permissions:
   contents: read
 
 jobs:
+  security:
+    name: Production dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level=high
+
   quality:
-    name: Lint, types, unit, invariants, migration, build
+    name: Migration, lint, types, unit, invariants, build
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -57,9 +83,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Audit production dependencies
-        run: pnpm audit --prod --audit-level=high
-
       - name: Apply migrations to a clean database
         run: pnpm db:deploy
 
@@ -86,7 +109,7 @@ jobs:
 
   e2e:
     name: Chromium end-to-end and accessibility
-    needs: quality
+    needs: [security, quality]
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
