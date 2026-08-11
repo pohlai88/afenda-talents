@@ -10,7 +10,19 @@
   MANAGER and MEMBER are mapped to VIEWER. The three profile-setting columns are
   unrelated to Afenda Talents and are dropped only when every existing value is null
   or still equal to the historical default. The migration fails closed otherwise.
+
+  Production historically applied 20260805100000_user_roles_settings from bytes that
+  were not preserved in Git. The repository now contains an audited reconstruction of
+  that migration. Repair its Prisma checksum here so migration history and repository
+  state converge through the normal migration chain rather than an out-of-band step.
 */
+
+UPDATE "_prisma_migrations"
+SET checksum = '8f43ca605d66562e7967c34249a1e7a94829cd7764a96a8bc8c1aaf88a7e1d70'
+WHERE migration_name = '20260805100000_user_roles_settings'
+  AND checksum = 'ae366c131890c0f0a76f9a2509e3f16f2154d460cee5a13a7ccc69773dd41679'
+  AND finished_at IS NOT NULL
+  AND rolled_back_at IS NULL;
 
 DO $$
 BEGIN
