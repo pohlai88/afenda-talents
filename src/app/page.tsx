@@ -8,11 +8,10 @@ const display = Playfair_Display({
 });
 
 /**
- * Afenda Talents — public landing, set as a poster rather than a page. Its only
- * legitimate audience is an invited candidate who typed the domain instead of opening
- * their link, so it sends them back to their email — plus the hiring manager, who gets
- * one quiet sign-in link in the bottom bar. That link points at /admin/login, which was
- * always a public route: the password is the credential, not the URL's obscurity.
+ * Afenda Talents — public landing, set as a poster rather than a page. Invited
+ * candidates are directed back to their email. Hiring users and the designated
+ * developer administrator receive separate, explicit sign-in paths; both still use
+ * password authentication, rate limiting, audited sessions, and role enforcement.
  *
  * House system inherited from The Machine: near-black sheet, bone Didone display,
  * gold at low coverage, the diamond glyph, THE set vertically beside the display
@@ -76,12 +75,15 @@ export default function HomePage() {
         <div className="af-spokes" />
         <div className="af-sweep" />
       </div>
-      {BLIPS.map((b, i) => (
+      {BLIPS.map((blip, index) => (
         <div
-          key={i}
+          key={index}
           aria-hidden="true"
           className="af-blip pointer-events-none"
-          style={{ margin: `${b.y} 0 0 ${b.x}`, animationDelay: `${i * 1.6}s` }}
+          style={{
+            margin: `${blip.y} 0 0 ${blip.x}`,
+            animationDelay: `${index * 1.6}s`,
+          }}
         />
       ))}
 
@@ -103,22 +105,30 @@ export default function HomePage() {
       </span>
 
       <div className="relative z-10 flex min-h-[100svh] flex-col px-10 py-9 sm:px-16 sm:py-12">
-        <div className="flex items-center justify-between gap-6">
-          <span className="flex items-center gap-[9px]">
+        <div className="flex items-start justify-between gap-4">
+          <span className="flex items-center gap-[9px] pt-2">
             <span aria-hidden="true" className="h-[5px] w-[5px] rotate-45 bg-[#C8A96A]" />
             <span className="font-mono text-[10px] tracking-[0.28em]">AFENDA</span>
             <span className="font-mono text-[10px] tracking-[0.28em] text-[#6E6E78]">TALENTS</span>
           </span>
-          <a
-            href="/admin/login"
-            className="group flex items-center gap-[9px] border border-[#C8A96A]/40 px-4 py-[9px] font-mono text-[9.5px] tracking-[0.22em] text-[#C8A96A] transition-colors hover:border-[#C8A96A] hover:bg-[#C8A96A] hover:text-[#07070A] focus-visible:border-[#C8A96A] focus-visible:bg-[#C8A96A] focus-visible:text-[#07070A] focus-visible:outline-none"
-          >
-            <span
-              aria-hidden="true"
-              className="h-[5px] w-[5px] rotate-45 bg-[#C8A96A] transition-colors group-hover:bg-[#07070A] group-focus-visible:bg-[#07070A]"
-            />
-            HIRING TEAM SIGN IN
-          </a>
+          <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+            <a
+              href="/admin/login"
+              className="group flex min-h-10 items-center gap-[9px] border border-[#C8A96A]/40 px-4 py-[9px] font-mono text-[9.5px] tracking-[0.22em] text-[#C8A96A] transition-colors hover:border-[#C8A96A] hover:bg-[#C8A96A] hover:text-[#07070A] focus-visible:border-[#C8A96A] focus-visible:bg-[#C8A96A] focus-visible:text-[#07070A] focus-visible:outline-none"
+            >
+              <span
+                aria-hidden="true"
+                className="h-[5px] w-[5px] rotate-45 bg-[#C8A96A] transition-colors group-hover:bg-[#07070A] group-focus-visible:bg-[#07070A]"
+              />
+              HIRING TEAM SIGN IN
+            </a>
+            <a
+              href="/admin/login?mode=developer"
+              className="flex min-h-10 items-center border border-[#E9E1D1]/15 px-4 py-[9px] font-mono text-[9.5px] tracking-[0.22em] text-[#777782] transition-colors hover:border-[#E9E1D1]/40 hover:text-[#E9E1D1] focus-visible:border-[#E9E1D1]/40 focus-visible:text-[#E9E1D1] focus-visible:outline-none"
+            >
+              DEVELOPER LOGIN
+            </a>
+          </div>
         </div>
 
         <div className="flex flex-1 flex-col justify-center py-16">
@@ -145,10 +155,10 @@ export default function HomePage() {
           <ol
             className={`${display.className} mt-14 flex flex-wrap gap-x-8 gap-y-2 text-[clamp(1.1rem,1.9vw,1.6rem)] sm:ml-9`}
           >
-            {AXES.map((axis, i) => (
-              <li key={axis} className="af-axis" style={{ animationDelay: `${i * 1.6}s` }}>
+            {AXES.map((axis, index) => (
+              <li key={axis} className="af-axis" style={{ animationDelay: `${index * 1.6}s` }}>
                 <span className="mr-[5px] align-[3px] font-mono text-[9px] tracking-[0.1em] text-[#7A6437]">
-                  {String(i + 1).padStart(2, "0")}
+                  {String(index + 1).padStart(2, "0")}
                 </span>
                 {axis}.
               </li>
