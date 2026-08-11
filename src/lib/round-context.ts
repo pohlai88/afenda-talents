@@ -40,7 +40,7 @@ export async function resolveOperationalRound(
     },
   });
 
-  const rounds = rows
+  const ordered = rows
     .map((row) => ({
       id: row.id,
       name: row.name,
@@ -53,8 +53,14 @@ export async function resolveOperationalRound(
       (left, right) =>
         STATUS_ORDER[left.status] - STATUS_ORDER[right.status] ||
         right.updatedAt.getTime() - left.updatedAt.getTime(),
-    )
-    .map(({ updatedAt: _updatedAt, ...round }) => round);
+    );
+  const rounds: OperationalRound[] = ordered.map((round) => ({
+    id: round.id,
+    name: round.name,
+    status: round.status,
+    assessmentTitle: round.assessmentTitle,
+    versionNumber: round.versionNumber,
+  }));
 
   const requested = requestedRoundId
     ? rounds.find((round) => round.id === requestedRoundId)
