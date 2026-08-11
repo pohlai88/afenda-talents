@@ -27,8 +27,12 @@ export function RoundContextSwitcher({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const requestedRoundId = searchParams.get("round");
+  const currentRoundId = rounds.some((round) => round.id === requestedRoundId)
+    ? requestedRoundId
+    : selectedRoundId;
 
-  if (rounds.length === 0 || !selectedRoundId) {
+  if (rounds.length === 0 || !currentRoundId) {
     return (
       <span className="truncate text-sm text-muted-foreground">
         No hiring round
@@ -38,9 +42,9 @@ export function RoundContextSwitcher({
 
   return (
     <Select
-      value={selectedRoundId}
+      value={currentRoundId}
       onValueChange={(roundId) => {
-        if (!roundId || roundId === selectedRoundId) return;
+        if (!roundId || roundId === currentRoundId) return;
         const params = new URLSearchParams(searchParams.toString());
         params.set("round", roundId);
         params.delete("page");
