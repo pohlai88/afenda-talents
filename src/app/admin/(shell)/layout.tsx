@@ -1,11 +1,9 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { AdminShellClient } from "@/components/admin-shell-client";
-import {
-  type HiringSession,
-  requirePasswordChangeUser,
-} from "@/lib/auth-admin";
 import { db } from "@/lib/db";
+import type { HiringSession } from "@/lib/hiring-roles";
+import { requirePagePasswordChangeUser } from "@/lib/page-authority";
 import { resolveOperationalRound } from "@/lib/round-context";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +15,7 @@ export default async function AdminShellLayout({
 }) {
   let session: HiringSession;
   try {
-    session = await requirePasswordChangeUser();
+    session = await requirePagePasswordChangeUser();
   } catch {
     redirect("/admin/login");
   }
