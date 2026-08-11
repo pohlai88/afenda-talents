@@ -14,6 +14,29 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    // TanStack Table deliberately exposes non-memoizable functions. React Compiler
+    // skips this component safely; the registry rewrite in issue #10 removes most
+    // client table state and will revisit this exception.
+    files: ["src/components/candidates/candidates-datatable.tsx"],
+    rules: {
+      "react-hooks/incompatible-library": "off",
+    },
+  },
+  {
+    // These four imports/types are legacy response-contract scaffolding in the
+    // round manager. Keep the exception exact rather than disabling unused checks.
+    files: ["src/components/rounds/round-manager.tsx"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          varsIgnorePattern:
+            "^(Role|userCreateResponseSchema|userPatchResponseSchema|UserPatchPayload)$",
+        },
+      ],
+    },
+  },
+  {
     // Temporary verification module pending extraction under issue #4. These
     // exceptions disappear when the module moves to its named-user application.
     files: [
