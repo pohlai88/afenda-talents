@@ -182,6 +182,7 @@ export async function POST() {
       await sendReceipt(
         assignment.candidate.email,
         assignment.candidate.fullName,
+        `assessment-receipt/${assignmentId}`,
       );
     } catch (error) {
       console.error("Submission receipt delivery failed", {
