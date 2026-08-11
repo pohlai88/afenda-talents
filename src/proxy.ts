@@ -9,12 +9,11 @@ import {
 
 /**
  * Page requests receive a live database-backed authority snapshot through internal
- * request headers. This keeps cookies() out of the React render tree (which currently
- * suppresses client hydration under Next.js 16.3 in this app) while preserving
+ * request headers. This keeps cookies() out of the React render tree while preserving
  * immediate role/session-version/account-state revocation.
  *
- * API handlers still perform their own DB-near requireAdmin/requireHiringUser checks;
- * Proxy remains only a coarse cryptographic pre-filter for those routes.
+ * API handlers never receive those internal headers and continue to perform their own
+ * DB-near requireAdmin/requireHiringUser checks from the signed cookie.
  */
 const CANDIDATE_COOKIE = "afenda_candidate";
 
@@ -30,6 +29,18 @@ async function candidateClaims(token: string | undefined) {
   }
 }
 
+function sanitizedRequestHeaders(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  for (const name of PAGE_AUTH_HEADER_NAMES) requestHeaders.delete(name);
+  return requestHeaders;
+}
+
+function continueWithoutPageAuthority(request: NextRequest) {
+  return NextResponse.next({
+    request: { headers: sanitizedRequestHeaders(request) },
+  });
+}
+
 function withPageAuthority(
   request: NextRequest,
   session: {
@@ -39,8 +50,7 @@ function withPageAuthority(
     mustChangePassword: boolean;
   },
 ) {
-  const requestHeaders = new Headers(request.headers);
-  for (const name of PAGE_AUTH_HEADER_NAMES) requestHeaders.delete(name);
+  const requestHeaders = sanitizedRequestHeaders(request);
   requestHeaders.set(PAGE_AUTH_HEADERS.authenticated, "1");
   requestHeaders.set(PAGE_AUTH_HEADERS.userId, session.userId);
   requestHeaders.set(PAGE_AUTH_HEADERS.role, session.role);
@@ -59,7 +69,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === "/admin/login" || pathname === "/api/admin/login") {
-    return NextResponse.next();
+    return continueWithoutPageAuthority(request);
   }
 
   if (pathname.startsWith("/api/candidate")) {
@@ -69,7 +79,7 @@ export async function proxy(request: NextRequest) {
     if (typeof payload?.assignmentId !== "string") {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    return NextResponse.next();
+    return continueWithoutPageAuthority(request);
   }
 
   const token = request.cookies.get(ADMIN_COOKIE)?.value;
@@ -79,7 +89,7 @@ export async function proxy(request: NextRequest) {
     if (!claims) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    return NextResponse.next();
+    return continueWithoutPageAuthority(request);
   }
 
   let session;
