@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { navItemIsActive } from "@/lib/nav-active";
-import { withRound } from "@/lib/round-context";
+import { withRound } from "@/lib/round-url";
 
 type ShellUser = { name: string; email: string; role: string };
 
