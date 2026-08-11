@@ -8,6 +8,12 @@ permissions:
   contents: read
 
 jobs:
+  echo:
+    name: 00 runner shell
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo runner-executed
+
   checkout:
     name: 01 checkout
     runs-on: ubuntu-latest
