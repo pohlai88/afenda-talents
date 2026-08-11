@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import {
-	ADMIN_COOKIE,
-	adminCookieOptions,
-	createSessionToken,
+  ADMIN_COOKIE,
+  adminCookieOptions,
+  createSessionToken,
 } from "@/lib/auth-admin";
 import { verifyPassword } from "@/lib/passwords";
 import { isRateLimited, recordFailure, clearFailures } from "@/lib/rate-limit";
@@ -20,10 +20,8 @@ const bodySchema = z.object({
   mode: z.enum(["hiring", "developer"]).default("hiring"),
 });
 
-// Fixed dummy hash (scrypt$salt$hash) so unknown emails take a verify pass without
-// hashing a fresh salt on every cold start of this module.
 const DUMMY_HASH =
-	"scrypt$0123456789abcdef0123456789abcdef$0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+  "scrypt$0123456789abcdef0123456789abcdef$0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 function clientIp(request: Request): string {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -42,7 +40,10 @@ export async function POST(request: Request) {
 
   const normalizedEmail = parsed.data.email.toLowerCase();
   const user = await db.user.findUnique({ where: { email: normalizedEmail } });
-  const passwordMatches = verifyPassword(parsed.data.password, user?.passwordHash ?? DUMMY_HASH);
+  const passwordMatches = verifyPassword(
+    parsed.data.password,
+    user?.passwordHash ?? DUMMY_HASH,
+  );
   const loginModeAllowed =
     user !== null &&
     isLoginModeAllowed({
@@ -63,7 +64,10 @@ export async function POST(request: Request) {
   const response = NextResponse.json({ ok: true });
   response.cookies.set(
     ADMIN_COOKIE,
-    await createSessionToken({ userId: user.id, role: user.role }),
+    await createSessionToken({
+      userId: user.id,
+      sessionVersion: user.sessionVersion,
+    }),
     adminCookieOptions(8 * 60 * 60),
   );
   return response;
