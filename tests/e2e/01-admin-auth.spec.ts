@@ -14,6 +14,16 @@ test("redirects to login when signed out", async ({ page }) => {
   await expect(page).toHaveURL(/\/admin\/login/);
 });
 
+test("offers a specific developer administrator login", async ({ page }) => {
+  await page.goto("/admin/login");
+  await page.getByRole("link", { name: "Developer administrator sign in" }).click();
+  await expect(page).toHaveURL(/\/admin\/login\?mode=developer/);
+  await expect(
+    page.getByRole("heading", { name: "Developer administrator sign in" }),
+  ).toBeVisible();
+  await expect(page.getByText("ADMIN · FULL WORKSPACE ACCESS")).toBeVisible();
+});
+
 test("rejects an unauthenticated admin API call", async ({ request }) => {
   const response = await request.post("/api/admin/invite", { data: {} });
   expect(response.status()).toBe(401);
@@ -23,6 +33,19 @@ test("loads the dashboard after signing in with email and password", async ({ pa
   await signIn(page);
   // /admin is the operational overview; the candidate registry lives at /admin/candidates.
   await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
+});
+
+test("the designated developer account receives an administrator session", async ({ request }) => {
+  const response = await request.post("/api/admin/login", {
+    headers: { "x-forwarded-for": "10.7.7.7" },
+    data: {
+      email: ADMIN_EMAIL,
+      password: PASSWORD,
+      mode: "developer",
+    },
+  });
+  expect(response.status()).toBe(200);
+  expect(response.headers()["set-cookie"]).toContain("afenda_admin=");
 });
 
 test("rejects a valid password with the wrong email", async ({ request }) => {
