@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Empty, EmptyDescription } from "@/components/ui/empty";
+import { EmptyDescription } from "@/components/ui/empty";
 import type { AttentionItem, WorkspaceAttentionItem } from "@/lib/attention";
 import { relativeTime, untilTime } from "@/lib/relative-time";
 
@@ -32,9 +32,9 @@ export function HiringAttention({ items, now }: { items: AttentionItem[]; now: D
                 className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="mb-1 flex items-center gap-2">
                     <h3 className="truncate text-sm font-medium">{item.fullName}</h3>
-                    <Badge 
+                    <Badge
                       variant={item.kind === "expiring" ? "destructive" : "secondary"}
                       className="text-xs"
                     >
@@ -91,7 +91,7 @@ export function WorkspaceAttention({ items }: { items: WorkspaceAttentionItem[] 
               className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
             >
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="mb-1 flex items-center gap-2">
                   <h3 className="truncate text-sm font-medium">{item.name}</h3>
                   <Badge variant="outline" className="text-xs">
                     Admin
