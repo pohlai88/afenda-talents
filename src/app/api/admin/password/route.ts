@@ -22,6 +22,25 @@ function clientIp(request: Request): string {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 }
 
+export async function GET() {
+  let session;
+  try {
+    session = await requirePasswordChangeUser();
+  } catch {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { email: true, mustChangePassword: true },
+  });
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  return NextResponse.json(user);
+}
+
 export async function POST(request: Request) {
   let session;
   try {
