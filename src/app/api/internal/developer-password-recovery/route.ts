@@ -88,8 +88,8 @@ export async function POST(request: Request) {
 
 /**
  * Operational GET adapter for the connected deployment fetch tool, which cannot issue
- * POST requests. The high-entropy token is single-use, and this route is deleted as
- * soon as the password is returned and verified.
+ * POST requests. The high-entropy token is single-use, and this short-lived adapter is
+ * deleted as soon as the password is returned and verified.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
