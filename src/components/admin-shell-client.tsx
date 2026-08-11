@@ -33,7 +33,11 @@ export function AdminShellClient({
     <SidebarProvider>
       <SkipLink />
       <AppSidebar user={user} />
-      <SidebarInset className="min-w-0 overflow-x-hidden bg-background">
+      <SidebarInset
+        id="main"
+        tabIndex={-1}
+        className="min-w-0 overflow-x-hidden bg-background outline-none"
+      >
         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/85 print:hidden">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-1 h-4" />
@@ -42,9 +46,7 @@ export function AdminShellClient({
             selectedRoundId={selectedRoundId}
           />
         </header>
-        <main id="main" tabIndex={-1} className="min-w-0 outline-none">
-          {children}
-        </main>
+        <div className="min-w-0">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );
