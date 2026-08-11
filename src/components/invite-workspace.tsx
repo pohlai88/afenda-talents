@@ -42,7 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   classifyInviteRows,
@@ -315,23 +315,33 @@ export function InviteWorkspace({
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
-          <Tabs
-            value={mode}
-            onValueChange={(value) => {
-              if (value === "single" || value === "bulk") setMode(value);
-            }}
-            className="gap-5"
-          >
+          <Tabs value={mode} className="gap-5">
             <TabsList aria-label="Candidate entry method">
-              <TabsTrigger value="single" onClick={() => setMode("single")}>
+              <TabsTrigger
+                id="invite-single-tab"
+                aria-controls="invite-single-panel"
+                value="single"
+                onClick={() => setMode("single")}
+              >
                 Single candidate
               </TabsTrigger>
-              <TabsTrigger value="bulk" onClick={() => setMode("bulk")}>
+              <TabsTrigger
+                id="invite-bulk-tab"
+                aria-controls="invite-bulk-panel"
+                value="bulk"
+                onClick={() => setMode("bulk")}
+              >
                 Add many
               </TabsTrigger>
             </TabsList>
             {mode === "single" ? (
-              <TabsContent value="single" aria-label="Single candidate" className="mt-0">
+              <div
+                id="invite-single-panel"
+                role="tabpanel"
+                aria-label="Single candidate"
+                aria-labelledby="invite-single-tab"
+                className="mt-0 flex-1 text-sm outline-none"
+              >
                 <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
                   <div className="space-y-2">
                     <Label htmlFor="invite-name">Full name</Label>
@@ -364,10 +374,16 @@ export function InviteWorkspace({
                     Review invitation
                   </Button>
                 </div>
-              </TabsContent>
+              </div>
             ) : null}
             {mode === "bulk" ? (
-              <TabsContent value="bulk" aria-label="Add many" className="mt-0 space-y-3">
+              <div
+                id="invite-bulk-panel"
+                role="tabpanel"
+                aria-label="Add many"
+                aria-labelledby="invite-bulk-tab"
+                className="mt-0 flex-1 space-y-3 text-sm outline-none"
+              >
                 <div className="space-y-2">
                   <Label htmlFor="invite-list">One candidate per line</Label>
                   <Textarea
@@ -391,7 +407,7 @@ export function InviteWorkspace({
                   <UsersRound aria-hidden="true" />
                   Parse and review
                 </Button>
-              </TabsContent>
+              </div>
             ) : null}
           </Tabs>
         </CardContent>
