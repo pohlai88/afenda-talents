@@ -10,19 +10,25 @@ function Progress({
   value,
   ...props
 }: ProgressPrimitive.Root.Props) {
+  const ariaLabel = props["aria-label"]
+  const ariaValueText = props["aria-valuetext"]
+
   return (
     <ProgressPrimitive.Root
       value={value}
-      role="progressbar"
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={typeof value === "number" ? value : undefined}
       data-slot="progress"
       className={cn("flex flex-wrap gap-3", className)}
       {...props}
     >
       {children}
-      <ProgressTrack>
+      <ProgressTrack
+        role="progressbar"
+        aria-label={ariaLabel}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={typeof value === "number" ? value : undefined}
+        aria-valuetext={ariaValueText}
+      >
         <ProgressIndicator />
       </ProgressTrack>
     </ProgressPrimitive.Root>
