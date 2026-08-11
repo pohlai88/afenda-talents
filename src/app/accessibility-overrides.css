@@ -2,3 +2,13 @@
 #invite-bulk-tab[aria-selected="false"] {
   color: var(--foreground);
 }
+
+[data-slot="badge"].text-progress {
+  color: var(--foreground);
+}
+
+button.bg-primary:disabled {
+  opacity: 1;
+  background-color: var(--muted);
+  color: var(--foreground);
+}
