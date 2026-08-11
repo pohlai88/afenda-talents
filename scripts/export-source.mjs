@@ -59,10 +59,14 @@ async function collect(directory, files) {
 const files = {};
 await collect(root, files);
 await fs.mkdir(path.dirname(output), { recursive: true });
+const paths = Object.keys(files).sort();
 const payload = JSON.stringify({
   generatedAt: new Date().toISOString(),
   commit: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
   files,
 });
 await fs.writeFile(output, await gzipAsync(payload, { level: 9 }));
-console.log(`Exported ${Object.keys(files).length} text files for temporary audit preview.`);
+console.log(`Exported ${paths.length} text files for temporary audit preview.`);
+console.log("AUDIT_PATHS_BEGIN");
+for (const filePath of paths) console.log(filePath);
+console.log("AUDIT_PATHS_END");
