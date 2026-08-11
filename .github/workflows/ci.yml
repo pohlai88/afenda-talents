@@ -13,24 +13,22 @@ concurrency:
 permissions:
   contents: read
 
-x-app-env: &app-env
-  DATABASE_URL: postgresql://preview:preview@127.0.0.1:1/preview
-  DIRECT_URL: postgresql://preview:preview@127.0.0.1:1/preview
-  APP_URL: http://127.0.0.1:3100
-  APP_SECRET: ci-only-app-secret-0123456789abcdef0123456789abcdef
-  ADMIN_EMAIL: ci-admin@example.com
-  ADMIN_PASSWORD: ci-only-generated-password-0123456789
-  RESEND_API_KEY: ""
-  MAIL_FROM: Afenda Talents CI <noreply@example.com>
-  INVITE_TTL_DAYS: "14"
-  RETENTION_DAYS: "180"
-
 jobs:
   security:
     name: Production dependency audit
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env: *app-env
+    env:
+      DATABASE_URL: postgresql://preview:preview@127.0.0.1:1/preview
+      DIRECT_URL: postgresql://preview:preview@127.0.0.1:1/preview
+      APP_URL: http://127.0.0.1:3100
+      APP_SECRET: ci-only-app-secret-0123456789abcdef0123456789abcdef
+      ADMIN_EMAIL: ci-admin@example.com
+      ADMIN_PASSWORD: ci-only-generated-password-0123456789
+      RESEND_API_KEY: ""
+      MAIL_FROM: Afenda Talents CI <noreply@example.com>
+      INVITE_TTL_DAYS: "14"
+      RETENTION_DAYS: "180"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -58,9 +56,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      <<: *app-env
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/afenda_ci?sslmode=disable
       DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/afenda_ci?sslmode=disable
+      APP_URL: http://127.0.0.1:3100
+      APP_SECRET: ci-only-app-secret-0123456789abcdef0123456789abcdef
+      ADMIN_EMAIL: ci-admin@example.com
+      ADMIN_PASSWORD: ci-only-generated-password-0123456789
+      RESEND_API_KEY: ""
+      MAIL_FROM: Afenda Talents CI <noreply@example.com>
+      INVITE_TTL_DAYS: "14"
+      RETENTION_DAYS: "180"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -102,7 +107,17 @@ jobs:
     name: Lint, types, unit, invariants, build
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    env: *app-env
+    env:
+      DATABASE_URL: postgresql://preview:preview@127.0.0.1:1/preview
+      DIRECT_URL: postgresql://preview:preview@127.0.0.1:1/preview
+      APP_URL: http://127.0.0.1:3100
+      APP_SECRET: ci-only-app-secret-0123456789abcdef0123456789abcdef
+      ADMIN_EMAIL: ci-admin@example.com
+      ADMIN_PASSWORD: ci-only-generated-password-0123456789
+      RESEND_API_KEY: ""
+      MAIL_FROM: Afenda Talents CI <noreply@example.com>
+      INVITE_TTL_DAYS: "14"
+      RETENTION_DAYS: "180"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -143,9 +158,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      <<: *app-env
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/afenda_e2e?sslmode=disable
       DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/afenda_e2e?sslmode=disable
+      APP_URL: http://127.0.0.1:3100
+      APP_SECRET: ci-only-app-secret-0123456789abcdef0123456789abcdef
+      ADMIN_EMAIL: ci-admin@example.com
+      ADMIN_PASSWORD: ci-only-generated-password-0123456789
+      RESEND_API_KEY: ""
+      MAIL_FROM: Afenda Talents CI <noreply@example.com>
+      INVITE_TTL_DAYS: "14"
+      RETENTION_DAYS: "180"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
