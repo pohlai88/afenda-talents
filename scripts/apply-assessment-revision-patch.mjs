@@ -1,5 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 
+// Temporary deterministic source transformation; removed after the generated editor
+// change is committed and reviewed on this integration branch.
 const path = "src/components/assessment-builder/assessment-builder.tsx";
 let source = await readFile(path, "utf8");
 
