@@ -12,6 +12,8 @@
   --color-attention: var(--attention);
   --color-attention-foreground: var(--attention-foreground);
   --color-brand-gold: var(--brand-gold);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-line-strong: var(--line-strong);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-geist-sans);
@@ -44,49 +46,48 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) * 0.65);
+  --radius-md: calc(var(--radius) * 0.85);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: calc(var(--radius) * 1.35);
+  --radius-2xl: calc(var(--radius) * 1.7);
+  --radius-3xl: calc(var(--radius) * 2.05);
+  --radius-4xl: calc(var(--radius) * 2.4);
 }
 
 :root {
-  /* Operational design system — DECISIONS.md D17. Hex, not oklch: the requirements
-     document specifies exact hex and a round-trip would introduce drift. */
-  --background: #f4f7f8;
-  --foreground: #26333c;
-  --card: #ffffff;
-  --card-foreground: #26333c;
-  --popover: #ffffff;
-  --popover-foreground: #26333c;
-  --primary: #14324a;
-  --primary-foreground: #ffffff;
-  --secondary: #e8eef0;
-  --secondary-foreground: #14324a;
-  --muted: #e8eef0;
-  --muted-foreground: #5c6b75;
-  --accent: #dce7e6;
-  --accent-foreground: #14324a;
-  --destructive: #b42318;
-  --border: #d9e2e7;
-  --input: #d9e2e7;
-  --ring: #1d5b79;
+  color-scheme: light;
 
-  /* Governance Teal. Operational progress and the "ready for review" tone.
-     Never candidate quality — see the build-skill's ninth invariant. */
+  /* Operational governance palette: restrained, current, and high-contrast. */
+  --background: #f5f7f8;
+  --foreground: #1f2d36;
+  --card: #ffffff;
+  --card-foreground: #1f2d36;
+  --popover: #ffffff;
+  --popover-foreground: #1f2d36;
+  --primary: #15344b;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf0f2;
+  --secondary-foreground: #15344b;
+  --muted: #edf2f4;
+  --muted-foreground: #596a75;
+  --accent: #deebe9;
+  --accent-foreground: #173e43;
+  --destructive: #b42318;
+  --border: #d7e0e5;
+  --input: #cfd9df;
+  --ring: #256784;
+  --surface-subtle: #f8fafb;
+  --line-strong: #b9c7cf;
+
+  /* Operational state colours. Never candidate quality or ranking. */
   --progress: #2e7d7a;
   --progress-foreground: #ffffff;
-  /* Amber. Needs human review or follow-up. Never red, never green. */
-  --attention: #b7791f;
+  --attention: #9a6519;
   --attention-foreground: #ffffff;
-  /* Compass Gold. Brand lockups only. */
   --brand-gold: #c8a96a;
 
-  /* A neutral ramp. Deliberately NOT repurposed as per-dimension colours:
-     colour must never encode a band or a score. */
+  /* Neutral data series only. */
   --chart-1: #8ea3ae;
   --chart-2: #7b929e;
   --chart-3: #68818e;
@@ -95,42 +96,41 @@
 
   --radius: 0.625rem;
 
-  /* White sidebar with a navy active row. A fully navy sidebar reads as banking
-     software, which the requirements explicitly warn against. */
   --sidebar: #ffffff;
   --sidebar-foreground: #26333c;
-  --sidebar-primary: #14324a;
+  --sidebar-primary: #15344b;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e8eef0;
-  --sidebar-accent-foreground: #14324a;
-  --sidebar-border: #d9e2e7;
-  --sidebar-ring: #1d5b79;
+  --sidebar-accent: #edf2f4;
+  --sidebar-accent-foreground: #15344b;
+  --sidebar-border: #d7e0e5;
+  --sidebar-ring: #256784;
 }
 
-/* Unreachable today: nothing adds this class and there is no theme toggle.
-   Kept in step with :root so it is not left contradicting the new system. */
 .dark {
+  color-scheme: dark;
   --background: #0f1d28;
   --foreground: #edf2f4;
   --card: #162835;
   --card-foreground: #edf2f4;
   --popover: #162835;
   --popover-foreground: #edf2f4;
-  --primary: #7fb2ce;
+  --primary: #88b9d1;
   --primary-foreground: #0f1d28;
-  --secondary: #1e3646;
+  --secondary: #1d3545;
   --secondary-foreground: #edf2f4;
-  --muted: #1e3646;
-  --muted-foreground: #9db0bc;
-  --accent: #22404f;
+  --muted: #1d3545;
+  --muted-foreground: #a4b5c0;
+  --accent: #21424a;
   --accent-foreground: #edf2f4;
   --destructive: #e5675a;
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: #7fb2ce;
-  --progress: #4fa5a1;
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 18%);
+  --ring: #88b9d1;
+  --surface-subtle: #122431;
+  --line-strong: #466070;
+  --progress: #55aaa6;
   --progress-foreground: #0f1d28;
-  --attention: #d9a441;
+  --attention: #d7a344;
   --attention-foreground: #0f1d28;
   --brand-gold: #c8a96a;
   --chart-1: #52707f;
@@ -138,30 +138,58 @@
   --chart-3: #6c8e9d;
   --chart-4: #799dac;
   --chart-5: #86acbb;
-  --sidebar: #162835;
+  --sidebar: #142631;
   --sidebar-foreground: #edf2f4;
-  --sidebar-primary: #7fb2ce;
+  --sidebar-primary: #88b9d1;
   --sidebar-primary-foreground: #0f1d28;
-  --sidebar-accent: #1e3646;
+  --sidebar-accent: #1d3545;
   --sidebar-accent-foreground: #edf2f4;
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: #7fb2ce;
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: #88b9d1;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   html {
     @apply font-sans;
+    min-width: 20rem;
     -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+    font-synthesis: none;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply min-h-screen bg-background text-foreground antialiased;
     touch-action: manipulation;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--ring) 22%, transparent);
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    scroll-margin-block: 6rem;
   }
 }
-/* WCAG 2.2 AA — honour OS reduced-motion preference (§16). */
+
+@layer utilities {
+  .enterprise-surface {
+    @apply rounded-xl border bg-card shadow-xs;
+  }
+
+  .enterprise-rule {
+    @apply border-line-strong/70;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -178,16 +206,26 @@
   .print\:hidden {
     display: none !important;
   }
+
+  html,
   body {
-    background: #fff;
-    font-size: 11pt;
+    min-width: 0;
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-size: 10.5pt;
   }
+
   main {
-    max-width: none;
-    padding: 0;
+    max-width: none !important;
+    padding: 0 !important;
   }
+
+  [data-slot="card"] {
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
   @page {
     margin: 14mm;
   }
 }
-
