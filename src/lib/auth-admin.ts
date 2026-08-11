@@ -9,14 +9,16 @@ import {
   type Role,
   ROLES,
 } from "@/lib/hiring-roles";
+import { readPageSession } from "@/lib/page-authority";
 
 /**
- * HIRING-SIDE authentication for route handlers and password flows.
+ * HIRING-SIDE authentication.
  *
- * Render-tree authorization uses page-authority.ts instead: Next.js 16 production
- * builds in this app drop client hydration when the cookies() session lookup runs in
- * a page/layout render. API handlers remain safe here and keep the DB-near authority
- * check on every mutation/export.
+ * Page requests are live-validated by Proxy and carry a trusted internal authority
+ * snapshot, so render-tree callers never need cookies(). API/handler requests do not
+ * receive those headers and therefore fall back to the signed cookie plus live DB
+ * session resolution. This keeps existing call sites compatible while preserving
+ * hydration and DB-near API authority.
  */
 export {
   ADMIN_COOKIE,
@@ -54,21 +56,21 @@ export async function createSessionToken(
 export const verifySessionToken = verifyHiringSessionToken;
 
 async function currentSession(): Promise<HiringSession | null> {
+  const pageSession = await readPageSession();
+  if (pageSession) return pageSession;
+
   const store = await cookies();
   return resolveHiringSession(store.get(ADMIN_COOKIE)?.value);
 }
 
-/**
- * Used by the password endpoint and other non-render handlers. It accepts a valid
- * current account even while a forced password change is pending.
- */
+/** Accepts a valid current account even while a forced password change is pending. */
 export async function requirePasswordChangeUser(): Promise<HiringSession> {
   const session = await currentSession();
   if (!session) throw new Error("Not authenticated");
   return session;
 }
 
-/** Any active hiring user — for API/DAL operational reads. */
+/** Any active hiring user. */
 export async function requireHiringUser(): Promise<HiringSession> {
   const session = await currentSession();
   if (!session) throw new Error("Not authenticated");
@@ -76,7 +78,7 @@ export async function requireHiringUser(): Promise<HiringSession> {
   return session;
 }
 
-/** ADMIN only — for API/DAL mutations and exports. */
+/** ADMIN only. */
 export async function requireAdmin(): Promise<HiringSession> {
   const session = await requireHiringUser();
   if (session.role !== "ADMIN") throw new Error("Not authorised");
