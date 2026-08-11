@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
   let invited = 0;
   let skipped = 0;
-  let failed = 0;
+  const failures: Array<{ fullName: string; email: string }> = [];
 
   for (const entry of parsed.data.candidates) {
     const email = entry.email.trim().toLowerCase();
@@ -90,7 +90,9 @@ export async function POST(request: Request) {
               },
             },
           });
-          if (existing && existing.status !== "DRAFT") return "skipped" as const;
+          if (existing && existing.status !== "DRAFT") {
+            return "skipped" as const;
+          }
 
           const token = generateToken();
           const tokenHash = hashToken(token);
@@ -147,7 +149,7 @@ export async function POST(request: Request) {
       if (outcome === "invited") invited += 1;
       else skipped += 1;
     } catch (error) {
-      failed += 1;
+      failures.push({ fullName, email });
       console.error("Candidate invitation delivery failed", {
         roundId: round.id,
         error: error instanceof Error ? error.message : "Unknown delivery error",
@@ -155,5 +157,10 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ invited, skipped, failed });
+  return NextResponse.json({
+    invited,
+    skipped,
+    failed: failures.length,
+    failures,
+  });
 }
