@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronsUpDown,
   ClipboardList,
@@ -14,6 +14,7 @@ import {
   Users,
   UsersRound,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Sidebar,
   SidebarContent,
@@ -30,11 +31,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { navItemIsActive } from "@/lib/nav-active";
+import { withRound } from "@/lib/round-context";
 
 type ShellUser = { name: string; email: string; role: string };
 
@@ -43,90 +46,168 @@ type NavItem = {
   href: string;
   icon: typeof LayoutDashboard;
   show: boolean;
-  /** Extra path prefixes that keep this item active (detail routes). */
   matchPrefixes?: string[];
+  preserveRound?: boolean;
+};
+
+type NavGroup = {
+  label: string;
+  items: NavItem[];
 };
 
 export function AppSidebar({ user }: { user: ShellUser }) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const roundId = searchParams.get("round");
   const isAdmin = user.role === "ADMIN";
 
   async function signOut() {
-    await fetch("/api/admin/logout", { method: "POST" });
-    router.push("/admin/login");
-    router.refresh();
+    try {
+      const response = await fetch("/api/admin/logout", { method: "POST" });
+      if (!response.ok) throw new Error("Sign out failed");
+      router.push("/admin/login");
+      router.refresh();
+    } catch {
+      toast.error("Could not sign out. Try again.");
+    }
   }
 
-  // Operational destinations only. Account utilities live in the footer menu —
-  // requirements §4.2. Export is a page action, not a destination, so it is not here.
-  const items: NavItem[] = [
-    { title: "Overview", href: "/admin", icon: LayoutDashboard, show: true },
+  const groups: NavGroup[] = [
     {
-      title: "Candidates",
-      href: "/admin/candidates",
-      icon: UsersRound,
-      show: true,
-      // List is plural; detail is /admin/candidate/[assignmentId].
-      matchPrefixes: ["/admin/candidate"],
+      label: "Operate",
+      items: [
+        {
+          title: "Overview",
+          href: "/admin",
+          icon: LayoutDashboard,
+          show: true,
+          preserveRound: true,
+        },
+        {
+          title: "Candidates",
+          href: "/admin/candidates",
+          icon: UsersRound,
+          show: true,
+          matchPrefixes: ["/admin/candidate"],
+          preserveRound: true,
+        },
+        {
+          title: "Invite candidates",
+          href: "/admin/invite",
+          icon: UserPlus,
+          show: isAdmin,
+          preserveRound: true,
+        },
+      ],
     },
-    { title: "Hiring rounds", href: "/admin/rounds", icon: ClipboardList, show: true },
-    { title: "Assessments", href: "/admin/assessments", icon: FileStack, show: true },
-    { title: "Invite", href: "/admin/invite", icon: UserPlus, show: isAdmin },
-    { title: "Team", href: "/admin/users", icon: Users, show: isAdmin },
-    { title: "Data & audit", href: "/admin/data", icon: Database, show: isAdmin },
+    {
+      label: "Configure",
+      items: [
+        {
+          title: "Hiring rounds",
+          href: "/admin/rounds",
+          icon: ClipboardList,
+          show: true,
+          preserveRound: true,
+        },
+        {
+          title: "Assessments",
+          href: "/admin/assessments",
+          icon: FileStack,
+          show: true,
+        },
+      ],
+    },
+    {
+      label: "Govern",
+      items: [
+        {
+          title: "Hiring team",
+          href: "/admin/users",
+          icon: Users,
+          show: isAdmin,
+        },
+        {
+          title: "Data & audit",
+          href: "/admin/data",
+          icon: Database,
+          show: isAdmin,
+        },
+      ],
+    },
   ];
 
   return (
-    // offcanvas, not icon: requirements §5.1 bans icon-only navigation. Desktop keeps
-    // 256px with permanent text labels; mobile gets the drawer.
-    // print:hidden — the candidate profile prints, and the global print CSS only hides <nav>.
-    <Sidebar collapsible="offcanvas" className="print:hidden">
-      <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-1.5">
-          <span aria-hidden="true" className="h-[7px] w-[7px] shrink-0 rotate-45 bg-brand-gold" />
+    <Sidebar
+      collapsible="offcanvas"
+      className="border-r border-sidebar-border print:hidden"
+    >
+      <SidebarHeader className="border-b border-sidebar-border px-2 py-3">
+        <Link
+          href={withRound("/admin", roundId)}
+          className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-1.5 outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+        >
+          <span
+            aria-hidden="true"
+            className="grid size-8 shrink-0 place-items-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-xs"
+          >
+            <span className="size-2 rotate-45 bg-brand-gold" />
+          </span>
           <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold">Afenda Talents</span>
+            <span className="block truncate text-sm font-semibold tracking-tight">
+              Afenda Talents
+            </span>
             <span className="block truncate text-xs text-muted-foreground">
               Hiring assessment workspace
             </span>
           </span>
-        </div>
+        </Link>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>This hiring round</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items
-                .filter((item) => item.show)
-                .map((item) => {
-                  const active = navItemIsActive(pathname, item);
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        isActive={active}
-                        // Three signals, as requirements §5.1 demands: background and
-                        // weight come from the primitive's data-active styles, the left
-                        // indicator is added here.
-                        className="relative data-active:before:absolute data-active:before:inset-y-1 data-active:before:left-0 data-active:before:w-0.5 data-active:before:rounded-full data-active:before:bg-primary"
-                        render={
-                          <Link href={item.href} aria-current={active ? "page" : undefined} />
-                        }
-                      >
-                        <item.icon aria-hidden="true" />
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="py-2">
+        {groups.map((group) => {
+          const visible = group.items.filter((item) => item.show);
+          if (visible.length === 0) return null;
+          return (
+            <SidebarGroup key={group.label} className="py-2">
+              <SidebarGroupLabel className="font-mono text-[0.625rem] font-medium tracking-[0.16em] uppercase">
+                {group.label}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {visible.map((item) => {
+                    const active = navItemIsActive(pathname, item);
+                    const href = item.preserveRound
+                      ? withRound(item.href, roundId)
+                      : item.href;
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton
+                          isActive={active}
+                          tooltip={item.title}
+                          className="relative min-h-9 font-medium data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:shadow-xs data-active:before:absolute data-active:before:inset-y-2 data-active:before:left-0 data-active:before:w-0.5 data-active:before:rounded-full data-active:before:bg-brand-gold"
+                          render={
+                            <Link
+                              href={href}
+                              aria-current={active ? "page" : undefined}
+                            />
+                          }
+                        >
+                          <item.icon aria-hidden="true" />
+                          <span>{item.title}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-sidebar-border p-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
@@ -135,26 +216,40 @@ export function AppSidebar({ user }: { user: ShellUser }) {
                   <SidebarMenuButton
                     size="lg"
                     aria-label={`Account menu for ${user.name}`}
-                    className="data-open:bg-sidebar-accent"
+                    className="min-h-14 data-open:bg-sidebar-accent"
                   />
                 }
               >
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
+                  {user.name
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((part) => part[0]?.toUpperCase())
+                    .join("") || "U"}
+                </span>
                 <div className="min-w-0 flex-1 text-left">
                   <span className="block truncate text-sm font-medium">{user.name}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {user.email}
+                  </span>
                 </div>
-                <Badge variant={isAdmin ? "default" : "secondary"}>
-                  {isAdmin ? "Admin" : "Viewer"}
-                </Badge>
-                <ChevronsUpDown aria-hidden="true" className="ml-1 opacity-60" />
+                <ChevronsUpDown aria-hidden="true" className="ml-1 size-4 opacity-60" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" align="start" className="w-56">
+              <DropdownMenuContent side="top" align="start" className="w-64">
+                <DropdownMenuLabel className="flex items-center justify-between gap-3">
+                  <span className="truncate">Workspace account</span>
+                  <Badge variant={isAdmin ? "default" : "secondary"}>
+                    {isAdmin ? "Admin" : "Viewer"}
+                  </Badge>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem render={<Link href="/admin/change-password" />}>
                   <KeyRound aria-hidden="true" />
                   Change password
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut}>
+                <DropdownMenuItem onClick={() => void signOut()}>
                   <LogOut aria-hidden="true" />
                   Sign out
                 </DropdownMenuItem>
