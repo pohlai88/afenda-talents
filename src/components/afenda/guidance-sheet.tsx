@@ -23,6 +23,15 @@ const GUIDANCE_ROWS: Array<{ key: keyof Pick<AfendaGuidance, "what" | "why" | "w
   { key: "how", label: "How" },
 ];
 
+function inferredManualHref(title: string): string {
+  const value = title.toLowerCase();
+  if (value.includes("payment") || value.includes("approved") || value.includes("paid") || value.includes("settlement") || value.includes("reconcil")) return "/admin/corporate/help#payments";
+  if (value.includes("invoice") || value.includes("due") || value.includes("period label") || value.includes("dispute")) return "/admin/corporate/help#due-items";
+  if (value.includes("counterpart") || value.includes("registration") || value.includes("tax id") || value.includes("payment terms")) return "/admin/corporate/help#counterparties";
+  if (value.includes("custom") || value.includes("field type") || value.includes("stable key") || value.includes("record type") || value.includes("show in list") || value.includes("select options")) return "/admin/corporate/help#custom-fields";
+  return "/admin/corporate/help#obligations";
+}
+
 function GuidanceSheet({
   title,
   guidance,
@@ -34,6 +43,7 @@ function GuidanceSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const manualHref = guidance.manualHref ?? inferredManualHref(title);
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-md">
@@ -60,11 +70,9 @@ function GuidanceSheet({
               <p className="mt-1 text-sm leading-6 text-foreground">{guidance.example}</p>
             </div>
           ) : null}
-          {guidance.manualHref ? (
-            <Button variant="outline" nativeButton={false} render={<Link href={guidance.manualHref} />}>
-              Open full manual
-            </Button>
-          ) : null}
+          <Button variant="outline" nativeButton={false} render={<Link href={manualHref} />}>
+            Open full manual
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
