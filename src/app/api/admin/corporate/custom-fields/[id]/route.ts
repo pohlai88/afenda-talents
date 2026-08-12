@@ -29,7 +29,11 @@ export async function PATCH(
   if (existing.dataType !== "SELECT" && parsed.data.options !== undefined) {
     return NextResponse.json({ error: "Only Select fields have options" }, { status: 400 });
   }
-  if (existing.dataType === "SELECT" && parsed.data.options && parsed.data.options.length === 0) {
+  if (
+    existing.dataType === "SELECT" &&
+    parsed.data.options !== undefined &&
+    (!parsed.data.options || parsed.data.options.length === 0)
+  ) {
     return NextResponse.json({ error: "Select fields need at least one option" }, { status: 400 });
   }
 
@@ -40,7 +44,7 @@ export async function PATCH(
       description: parsed.data.description === undefined ? undefined : parsed.data.description?.trim() || null,
       placeholder: parsed.data.placeholder === undefined ? undefined : parsed.data.placeholder?.trim() || null,
       required: parsed.data.required,
-      options: parsed.data.options === undefined ? undefined : parsed.data.options,
+      options: parsed.data.options ?? undefined,
       showInList: parsed.data.showInList,
       isActive: parsed.data.isActive,
       sortOrder: parsed.data.sortOrder,
