@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
+type ConfirmCallback = () => unknown | Promise<unknown>;
+
 export function AfendaConfirmAction({
   trigger,
   title,
@@ -28,7 +30,7 @@ export function AfendaConfirmAction({
   title: string;
   description: string;
   confirmLabel: string;
-  onConfirm: () => void | Promise<void>;
+  onConfirm: ConfirmCallback;
   busy?: boolean;
   destructive?: boolean;
 }) {
@@ -70,7 +72,7 @@ export function AfendaConfirmButton({
   title: string;
   description: string;
   confirmLabel: string;
-  onConfirm: () => void | Promise<void>;
+  onConfirm: ConfirmCallback;
   busy?: boolean;
   destructive?: boolean;
   variant?: ComponentProps<typeof Button>["variant"];
