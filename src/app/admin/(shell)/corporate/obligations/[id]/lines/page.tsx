@@ -5,6 +5,7 @@ import { AfendaPageFrame } from "@/components/afenda/page-frame";
 import { AfendaRecordHeader } from "@/components/afenda/record-header";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
 import { ObligationLineManager, type ObligationLineRow } from "@/components/corporate/obligation-line-manager";
+import { ObligationLineSummary, type ObligationLineSummaryRow } from "@/components/corporate/obligation-line-summary";
 import { CorporateStatusBadge } from "@/components/corporate/status";
 import { Button } from "@/components/ui/button";
 import { requireWorkspaceUser } from "@/lib/auth-workspace";
@@ -35,6 +36,24 @@ export default async function ObligationLinesPage({ params }: { params: Promise<
   });
   if (!obligation) notFound();
 
+  const summaries: ObligationLineSummaryRow[] = obligation.lines.map((line) => ({
+    id: line.id,
+    code: line.code,
+    name: line.name,
+    isActive: line.isActive,
+    recurring: line.recurring,
+    nextDueDate: line.nextDueDate ? formatDateOnly(line.nextDueDate) : null,
+    dueCount: line._count.dueItems,
+    recentDues: line.dueItems.map((due) => ({
+      id: due.id,
+      periodLabel: due.periodLabel,
+      dueDate: formatDateOnly(due.dueDate),
+      status: due.status,
+      amount: due.invoiceAmount == null ? (due.expectedAmount == null ? null : Number(due.expectedAmount)) : Number(due.invoiceAmount),
+      currency: due.currency,
+    })),
+  }));
+
   const lines: ObligationLineRow[] = obligation.lines.map((line) => ({
     id: line.id,
     code: line.code,
@@ -54,14 +73,6 @@ export default async function ObligationLinesPage({ params }: { params: Promise<
     notes: line.notes,
     isActive: line.isActive,
     dueCount: line._count.dueItems,
-    recentDues: line.dueItems.map((due) => ({
-      id: due.id,
-      periodLabel: due.periodLabel,
-      dueDate: formatDateOnly(due.dueDate),
-      status: due.status,
-      amount: due.invoiceAmount == null ? (due.expectedAmount == null ? null : Number(due.expectedAmount)) : Number(due.invoiceAmount),
-      currency: due.currency,
-    })),
   }));
 
   return (
@@ -74,6 +85,7 @@ export default async function ObligationLinesPage({ params }: { params: Promise<
         actions={<Button variant="outline" nativeButton={false} render={<Link href={`/admin/corporate/obligations/${id}`} />}>Back to obligation</Button>}
       />
       <CorporateNav />
+      <ObligationLineSummary lines={summaries} />
       <ObligationLineManager obligationId={id} obligationStatus={obligation.status} lines={lines} isAdmin={session.role === "ADMIN"} />
     </AfendaPageFrame>
   );
