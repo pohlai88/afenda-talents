@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { CircleHelp } from "lucide-react";
 
@@ -58,6 +59,11 @@ function GuidanceSheet({
               </p>
               <p className="mt-1 text-sm leading-6 text-foreground">{guidance.example}</p>
             </div>
+          ) : null}
+          {guidance.manualHref ? (
+            <Button variant="outline" nativeButton={false} render={<Link href={guidance.manualHref} />}>
+              Open full manual
+            </Button>
           ) : null}
         </div>
       </SheetContent>
