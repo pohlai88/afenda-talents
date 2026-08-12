@@ -21,6 +21,49 @@ const GUIDANCE_ROWS: Array<{ key: keyof Pick<AfendaGuidance, "what" | "why" | "w
   { key: "how", label: "How" },
 ];
 
+function GuidanceSheet({
+  title,
+  guidance,
+  open,
+  onOpenChange,
+}: {
+  title: string;
+  guidance: AfendaGuidance;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-md">
+        <SheetHeader className="border-b">
+          <SheetTitle>{title}</SheetTitle>
+          <SheetDescription>{guidance.summary}</SheetDescription>
+        </SheetHeader>
+        <div className="flex flex-col gap-5 px-4 pb-6">
+          <dl className="flex flex-col gap-4">
+            {GUIDANCE_ROWS.map(({ key, label }) => (
+              <div key={key} className="grid gap-1">
+                <dt className="font-mono text-[0.6875rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                  {label}
+                </dt>
+                <dd className="text-sm leading-6 text-foreground">{guidance[key]}</dd>
+              </div>
+            ))}
+          </dl>
+          {guidance.example ? (
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="font-mono text-[0.6875rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                Example
+              </p>
+              <p className="mt-1 text-sm leading-6 text-foreground">{guidance.example}</p>
+            </div>
+          ) : null}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export function AfendaGuidanceButton({
   title,
   guidance,
@@ -41,34 +84,29 @@ export function AfendaGuidanceButton({
       >
         <CircleHelp aria-hidden="true" />
       </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md">
-          <SheetHeader className="border-b">
-            <SheetTitle>{title}</SheetTitle>
-            <SheetDescription>{guidance.summary}</SheetDescription>
-          </SheetHeader>
-          <div className="flex flex-col gap-5 px-4 pb-6">
-            <dl className="flex flex-col gap-4">
-              {GUIDANCE_ROWS.map(({ key, label }) => (
-                <div key={key} className="grid gap-1">
-                  <dt className="font-mono text-[0.6875rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                    {label}
-                  </dt>
-                  <dd className="text-sm leading-6 text-foreground">{guidance[key]}</dd>
-                </div>
-              ))}
-            </dl>
-            {guidance.example ? (
-              <div className="rounded-lg border bg-muted/40 p-3">
-                <p className="font-mono text-[0.6875rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                  Example
-                </p>
-                <p className="mt-1 text-sm leading-6 text-foreground">{guidance.example}</p>
-              </div>
-            ) : null}
-          </div>
-        </SheetContent>
-      </Sheet>
+      <GuidanceSheet title={title} guidance={guidance} open={open} onOpenChange={setOpen} />
+    </>
+  );
+}
+
+export function AfendaPageHelp({
+  title,
+  guidance,
+  label = "How this works",
+}: {
+  title: string;
+  guidance: AfendaGuidance;
+  label?: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <CircleHelp data-icon="inline-start" aria-hidden="true" />
+        {label}
+      </Button>
+      <GuidanceSheet title={title} guidance={guidance} open={open} onOpenChange={setOpen} />
     </>
   );
 }
