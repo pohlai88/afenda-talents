@@ -54,6 +54,10 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "corporate.payment.voided": "Administrative payment voided",
   "corporate.custom_field.created": "Administrative custom field created",
   "corporate.custom_field.updated": "Administrative custom field updated",
+  "corporate.work_item.created": "Administrative work item created",
+  "corporate.work_item.updated": "Administrative work item updated",
+  "corporate.work_item.resolved": "Administrative work item resolved",
+  "corporate.work_item.escalated": "Administrative work item escalated",
 };
 
 export const AUDIT_ACTION_OPTIONS = Object.keys(AUDIT_ACTION_LABELS) as AuditAction[];
