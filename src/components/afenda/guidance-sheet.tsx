@@ -95,6 +95,8 @@ export function AfendaGuidanceButton({
         variant="ghost"
         size="icon-sm"
         aria-label={`Help for ${title}`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
         onClick={() => setOpen(true)}
       >
         <CircleHelp aria-hidden="true" />
@@ -117,7 +119,14 @@ export function AfendaPageHelp({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+      >
         <CircleHelp data-icon="inline-start" aria-hidden="true" />
         {label}
       </Button>
