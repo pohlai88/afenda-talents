@@ -1,10 +1,6 @@
 import type { AuditAction } from "@/lib/audit";
 
-/**
- * Human-readable audit labels and in-memory filtering for the Data & audit explorer.
- * Pure — no Prisma. Callers resolve actor/subject names from live tables (UI §11.2).
- */
-
+/** Human-readable audit labels for the Data & audit explorer. */
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "admin.login": "Signed in",
   "user.created": "Hiring user created",
@@ -32,11 +28,14 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "round.closed": "Hiring round closed",
   "round.archived": "Hiring round archived",
   "corporate.counterparty.created": "Administrative counterparty created",
+  "corporate.counterparty.updated": "Administrative counterparty updated",
   "corporate.obligation.created": "Administrative obligation created",
+  "corporate.obligation.updated": "Administrative obligation updated",
   "corporate.obligation.activated": "Administrative obligation activated",
   "corporate.obligation.ended": "Administrative obligation ended",
   "corporate.obligation.cancelled": "Administrative obligation cancelled",
   "corporate.due_item.created": "Administrative due item created",
+  "corporate.due_item.updated": "Administrative due item updated",
   "corporate.payment.requested": "Administrative payment requested",
   "corporate.payment.approved": "Administrative payment approved",
   "corporate.payment.rejected": "Administrative payment rejected",
@@ -47,9 +46,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "corporate.custom_field.updated": "Administrative custom field updated",
 };
 
-export const AUDIT_ACTION_OPTIONS = Object.keys(
-  AUDIT_ACTION_LABELS,
-) as AuditAction[];
+export const AUDIT_ACTION_OPTIONS = Object.keys(AUDIT_ACTION_LABELS) as AuditAction[];
 
 export type AuditDisplayRow = {
   id: string;
@@ -63,20 +60,13 @@ export type AuditDisplayRow = {
   meta: unknown;
 };
 
-export type AuditFilter = {
-  action: string | null;
-  from: Date | null;
-  to: Date | null;
-};
+export type AuditFilter = { action: string | null; from: Date | null; to: Date | null };
 
 export function auditActionLabel(action: string): string {
   return AUDIT_ACTION_LABELS[action as AuditAction] ?? action;
 }
 
-export function filterAuditRows(
-  rows: AuditDisplayRow[],
-  filter: AuditFilter,
-): AuditDisplayRow[] {
+export function filterAuditRows(rows: AuditDisplayRow[], filter: AuditFilter): AuditDisplayRow[] {
   return rows.filter((row) => {
     if (filter.action && row.action !== filter.action) return false;
     if (filter.from && row.createdAt < filter.from) return false;
@@ -97,23 +87,13 @@ export function startOfLocalDay(date: Date): Date {
   return start;
 }
 
-export function formatAuditMeta(
-  meta: unknown,
-): { key: string; value: string }[] {
+export function formatAuditMeta(meta: unknown): { key: string; value: string }[] {
   if (!meta || typeof meta !== "object" || Array.isArray(meta)) return [];
-
   const banned = new Set(["email", "fullname", "name", "token", "password"]);
   const pairs: { key: string; value: string }[] = [];
-
   for (const [key, value] of Object.entries(meta)) {
-    if (banned.has(key.toLowerCase())) continue;
-    if (value === null || value === undefined) continue;
-    if (typeof value === "object") {
-      pairs.push({ key, value: JSON.stringify(value) });
-      continue;
-    }
-    pairs.push({ key, value: String(value) });
+    if (banned.has(key.toLowerCase()) || value === null || value === undefined) continue;
+    pairs.push({ key, value: typeof value === "object" ? JSON.stringify(value) : String(value) });
   }
-
   return pairs;
 }
