@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+
+import { AfendaField } from "@/components/afenda/form-layout";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { DUE_ITEM_GUIDANCE } from "@/lib/corporate-admin/workflow-guidance";
 
 export function ObligationActions({ id, status, recurring, nextDueDate, currency, expectedAmount, isAdmin }: {
   id: string;
@@ -49,9 +51,9 @@ export function ObligationActions({ id, status, recurring, nextDueDate, currency
         <DialogContent>
           <DialogHeader><DialogTitle>Add manual due item</DialogTitle><DialogDescription>Use this for one-off charges, exceptional invoices or a schedule occurrence that should not advance recurrence.</DialogDescription></DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2"><Label htmlFor="manual-due-date">Due date</Label><Input id="manual-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
-            <div className="space-y-2"><Label htmlFor="manual-period">Period label</Label><Input id="manual-period" value={periodLabel} onChange={(e) => setPeriodLabel(e.target.value)} placeholder="2026-08 or Deposit" /></div>
-            <div className="space-y-2 sm:col-span-2"><Label htmlFor="manual-amount">Expected amount ({currency})</Label><Input id="manual-amount" type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+            <AfendaField label="Due date" id="manual-due-date" required guidance={DUE_ITEM_GUIDANCE.dueDate}><Input id="manual-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></AfendaField>
+            <AfendaField label="Period label" id="manual-period" guidance={DUE_ITEM_GUIDANCE.periodLabel}><Input id="manual-period" value={periodLabel} onChange={(e) => setPeriodLabel(e.target.value)} placeholder="2026-08 or Deposit" /></AfendaField>
+            <AfendaField label={`Expected amount (${currency})`} id="manual-amount" className="sm:col-span-2" guidance={DUE_ITEM_GUIDANCE.expectedAmount}><Input id="manual-amount" type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></AfendaField>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setManualOpen(false)} disabled={busy}>Close</Button><Button disabled={busy || !dueDate} onClick={async () => { const ok = await call(`/api/admin/corporate/obligations/${id}/due-items`, { mode: "MANUAL", dueDate, periodLabel: periodLabel || undefined, expectedAmount: amount === "" ? null : Number(amount), currency }, "POST", "Manual due item added."); if (ok) setManualOpen(false); }}>Add due item</Button></DialogFooter>
         </DialogContent>
