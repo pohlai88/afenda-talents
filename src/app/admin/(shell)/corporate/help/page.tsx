@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AfendaPageFrame } from "@/components/afenda/page-frame";
 import { AfendaSection } from "@/components/afenda/section";
 import { AfendaWorkflowStepper } from "@/components/afenda/workflow-stepper";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
@@ -25,7 +26,7 @@ function ManualRule({ title, children }: { title: string; children: React.ReactN
 export default async function CorporateHelpPage() {
   await requireWorkspaceUser();
   return (
-    <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 p-4 sm:p-6">
+    <AfendaPageFrame width="record">
       <PageHeader
         eyebrow="Corporate Administration"
         title="Help & operating manual"
@@ -57,8 +58,8 @@ export default async function CorporateHelpPage() {
       <section id="obligations" className="scroll-mt-6">
         <AfendaSection title="Obligations" description="Use one obligation for the continuing commercial or administrative commitment.">
           <div className="grid gap-4 lg:grid-cols-2">
-            <Card><CardHeader><CardTitle>When to create one</CardTitle><CardDescription>Examples include tenancy, insurance, subscriptions, licences, maintenance, fleet finance, utilities and professional services.</CardDescription></CardHeader><CardContent className="space-y-3 text-sm leading-6 text-muted-foreground"><p>Create the obligation when the commitment becomes known and its responsible organisation/counterparty can be identified.</p><p>Use the title for a human-readable description; keep external agreement references in the contract/reference fields.</p><p>If the commitment repeats, turn on Recurring and define interval + unit + next due date.</p></CardContent></Card>
-            <Card><CardHeader><CardTitle>Before activation</CardTitle><CardDescription>The readiness panel mirrors the important server-side activation conditions.</CardDescription></CardHeader><CardContent className="space-y-3 text-sm leading-6 text-muted-foreground"><p>The counterparty must be active, currency and start date must be present, and required custom fields must be populated.</p><p>If Contract required is on, a contract/document link is mandatory.</p><p>If Recurring is on, interval, unit and next due date are mandatory.</p></CardContent></Card>
+            <Card><CardHeader><CardTitle>When to create one</CardTitle><CardDescription>Examples include tenancy, insurance, subscriptions, licences, maintenance, fleet finance, utilities and professional services.</CardDescription></CardHeader><CardContent className="flex flex-col gap-3 text-sm leading-6 text-muted-foreground"><p>Create the obligation when the commitment becomes known and its responsible organisation/counterparty can be identified.</p><p>Use the title for a human-readable description; keep external agreement references in the contract/reference fields.</p><p>If the commitment repeats, turn on Recurring and define interval + unit + next due date.</p></CardContent></Card>
+            <Card><CardHeader><CardTitle>Before activation</CardTitle><CardDescription>The readiness panel mirrors the important server-side activation conditions.</CardDescription></CardHeader><CardContent className="flex flex-col gap-3 text-sm leading-6 text-muted-foreground"><p>The counterparty must be active, currency and start date must be present, and required custom fields must be populated.</p><p>If Contract required is on, a contract/document link is mandatory.</p><p>If Recurring is on, interval, unit and next due date are mandatory.</p></CardContent></Card>
           </div>
         </AfendaSection>
       </section>
@@ -119,6 +120,6 @@ export default async function CorporateHelpPage() {
           <ManualRule title="A field is missing">Use Custom fields for organisation-specific structured information. Add a product/schema field only when the concept is common enough to deserve canonical reporting and behavior.</ManualRule>
         </div>
       </AfendaSection>
-    </div>
+    </AfendaPageFrame>
   );
 }
