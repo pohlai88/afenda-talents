@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 
 import { AfendaGuidanceButton } from "@/components/afenda/guidance-sheet";
 import { useAfendaGuidedMode } from "@/components/afenda/guided-mode";
@@ -10,7 +10,6 @@ import {
   FieldContent,
   FieldDescription,
   FieldLabel,
-  FieldTitle,
 } from "@/components/ui/field";
 import type { AfendaGuidance } from "@/lib/afenda-guidance";
 import { cn } from "@/lib/utils";
@@ -34,18 +33,24 @@ export function AfendaField({
 }) {
   const { enabled } = useAfendaGuidedMode();
   const helper = guidance?.summary ?? description;
+  const labelId = `${id}-label`;
+  const descriptionId = `${id}-description`;
 
   return (
-    <Field className={className}>
+    <Field
+      className={className}
+      aria-labelledby={labelId}
+      aria-describedby={enabled && helper ? descriptionId : undefined}
+    >
       <div className="flex min-w-0 items-start justify-between gap-2">
-        <FieldLabel htmlFor={id} className="pt-1">
+        <FieldLabel id={labelId} htmlFor={id} className="pt-1">
           <span>{label}</span>
-          {required ? <span aria-hidden="true"> *</span> : null}
+          {required ? <><span aria-hidden="true"> *</span><span className="sr-only"> (required)</span></> : null}
         </FieldLabel>
         {guidance ? <AfendaGuidanceButton title={label} guidance={guidance} /> : null}
       </div>
       {children}
-      {enabled && helper ? <FieldDescription>{helper}</FieldDescription> : null}
+      {enabled && helper ? <FieldDescription id={descriptionId}>{helper}</FieldDescription> : null}
     </Field>
   );
 }
@@ -65,18 +70,26 @@ export function AfendaCheckField({
   description?: string;
   className?: string;
 }) {
+  const generatedId = useId();
   const { enabled } = useAfendaGuidedMode();
   const helper = guidance?.summary ?? description;
+  const controlId = `afenda-check-${generatedId.replaceAll(":", "")}`;
+  const descriptionId = `${controlId}-description`;
 
   return (
     <Field orientation="horizontal" className={cn("rounded-lg border p-3", className)}>
-      <Checkbox checked={checked} onCheckedChange={(value) => onChange(value === true)} />
+      <Checkbox
+        id={controlId}
+        checked={checked}
+        onCheckedChange={(value) => onChange(value === true)}
+        aria-describedby={enabled && helper ? descriptionId : undefined}
+      />
       <FieldContent>
         <div className="flex min-w-0 items-start justify-between gap-2">
-          <FieldTitle>{label}</FieldTitle>
+          <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
           {guidance ? <AfendaGuidanceButton title={label} guidance={guidance} /> : null}
         </div>
-        {enabled && helper ? <FieldDescription>{helper}</FieldDescription> : null}
+        {enabled && helper ? <FieldDescription id={descriptionId}>{helper}</FieldDescription> : null}
       </FieldContent>
     </Field>
   );
