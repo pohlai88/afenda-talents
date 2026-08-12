@@ -35,7 +35,10 @@ export default async function CorporateDataQualityPage() {
   ]);
 
   const snapshot: QualitySnapshot = {
-    sites,
+    sites: sites.map(site=>({
+      id:site.id,code:site.code,name:site.name,type:site.type,isActive:site.isActive,organization:site.organization,city:site.city,countryCode:site.countryCode,timezone:site.timezone,
+      coverage:site.serviceCoverage,
+    })),
     counterparties,
     obligations: obligations.map(ob=>({...ob,status:String(ob.status),lines:ob.lines.map(line=>({...line,nextDueDate:line.nextDueDate?formatDateOnly(line.nextDueDate):null}))})),
   };
