@@ -1,17 +1,32 @@
+import type { ReactNode } from "react";
 import { CircleAlert, Inbox } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
-export function AfendaEmptyState({ title, description }: { title: string; description: string }) {
+export function AfendaEmptyState({
+  title,
+  description,
+  action,
+  compact = false,
+  className,
+}: {
+  title: string;
+  description: string;
+  action?: ReactNode;
+  compact?: boolean;
+  className?: string;
+}) {
   return (
-    <Empty className="border border-dashed">
+    <Empty className={cn("border border-dashed", compact && "p-5", className)}>
       <EmptyHeader>
         <Inbox aria-hidden="true" />
         <EmptyTitle>{title}</EmptyTitle>
         <EmptyDescription>{description}</EmptyDescription>
       </EmptyHeader>
+      {action ? <EmptyContent>{action}</EmptyContent> : null}
     </Empty>
   );
 }
