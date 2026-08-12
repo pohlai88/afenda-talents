@@ -1,63 +1,18 @@
 import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 
-/**
- * Audit rows carry identifiers, never identities or secrets.
- *
- * They survive the end-of-round purge as proof the purge happened, so a name or an email
- * here would make the consent text's retention promise false. Raw invitation tokens are
- * banned everywhere. See DECISIONS.md D9; build-skill invariants 2 and 6.
- */
 export type AuditAction =
-  | "admin.login"
-  | "user.created"
-  | "user.role_changed"
-  | "user.password_reset"
-  | "user.password_changed"
-  | "user.removed"
-  | "invite.created"
-  | "invite.resent"
-  | "invite.revoked"
-  | "candidate.consented"
-  | "assessment.submitted"
-  | "result.viewed"
-  | "export.downloaded"
-  | "candidate.deleted"
-  | "data.purged"
-  | "assessment.seeded"
-  | "assessment.created"
-  | "assessment.duplicated"
-  | "assessment.published"
-  | "assessment.archived"
-  | "draft.validated"
-  | "round.created"
-  | "round.opened"
-  | "round.closed"
-  | "round.archived"
-  | "corporate.counterparty.created"
-  | "corporate.counterparty.updated"
-  | "corporate.counterparty.contact.created"
-  | "corporate.site.created"
-  | "corporate.site.updated"
-  | "corporate.site.coverage.created"
-  | "corporate.site.coverage.updated"
-  | "corporate.obligation.created"
-  | "corporate.obligation.updated"
-  | "corporate.obligation.activated"
-  | "corporate.obligation.ended"
-  | "corporate.obligation.cancelled"
-  | "corporate.obligation.site.linked"
-  | "corporate.obligation.party.linked"
-  | "corporate.due_item.created"
-  | "corporate.due_item.updated"
-  | "corporate.payment.requested"
-  | "corporate.payment.approved"
-  | "corporate.payment.rejected"
-  | "corporate.payment.recorded"
-  | "corporate.payment.reconciled"
-  | "corporate.payment.voided"
-  | "corporate.custom_field.created"
-  | "corporate.custom_field.updated";
+  | "admin.login" | "user.created" | "user.role_changed" | "user.password_reset" | "user.password_changed" | "user.removed"
+  | "invite.created" | "invite.resent" | "invite.revoked" | "candidate.consented" | "assessment.submitted" | "result.viewed"
+  | "export.downloaded" | "candidate.deleted" | "data.purged" | "assessment.seeded" | "assessment.created" | "assessment.duplicated"
+  | "assessment.published" | "assessment.archived" | "draft.validated" | "round.created" | "round.opened" | "round.closed" | "round.archived"
+  | "corporate.counterparty.created" | "corporate.counterparty.updated" | "corporate.counterparty.contact.created"
+  | "corporate.site.created" | "corporate.site.updated" | "corporate.site.coverage.created" | "corporate.site.coverage.updated"
+  | "corporate.obligation.created" | "corporate.obligation.updated" | "corporate.obligation.activated" | "corporate.obligation.ended" | "corporate.obligation.cancelled"
+  | "corporate.obligation.site.linked" | "corporate.obligation.party.linked" | "corporate.obligation.line.created" | "corporate.obligation.line.updated"
+  | "corporate.due_item.created" | "corporate.due_item.updated" | "corporate.payment.requested" | "corporate.payment.approved"
+  | "corporate.payment.rejected" | "corporate.payment.recorded" | "corporate.payment.reconciled" | "corporate.payment.voided"
+  | "corporate.custom_field.created" | "corporate.custom_field.updated";
 
 const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 const TOKEN_ALPHABET = /^[A-Za-z0-9_-]{40,}$/;
