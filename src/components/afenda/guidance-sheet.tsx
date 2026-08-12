@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CircleHelp } from "lucide-react";
 
+import { AfendaGuidedModeToggle } from "@/components/afenda/guided-mode";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -101,12 +102,13 @@ export function AfendaPageHelp({
   const [open, setOpen] = useState(false);
 
   return (
-    <>
+    <div className="flex flex-wrap items-center gap-2">
       <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
         <CircleHelp data-icon="inline-start" aria-hidden="true" />
         {label}
       </Button>
+      <AfendaGuidedModeToggle />
       <GuidanceSheet title={title} guidance={guidance} open={open} onOpenChange={setOpen} />
-    </>
+    </div>
   );
 }
