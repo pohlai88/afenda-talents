@@ -8,6 +8,7 @@ const items: AfendaSubnavItem[] = [
   { href: "/admin/corporate/payments", label: "Payments" },
   { href: "/admin/corporate/counterparties", label: "Counterparties" },
   { href: "/admin/corporate/custom-fields", label: "Custom fields" },
+  { href: "/admin/corporate/help", label: "Help" },
 ];
 
 export function CorporateNav() {
