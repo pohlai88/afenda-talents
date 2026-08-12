@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactElement, ReactNode } from "react";
 
 import {
   AlertDialog,
@@ -24,7 +24,7 @@ export function AfendaConfirmAction({
   busy = false,
   destructive = false,
 }: {
-  trigger: ReactNode;
+  trigger: ReactElement;
   title: string;
   description: string;
   confirmLabel: string;
@@ -34,7 +34,7 @@ export function AfendaConfirmAction({
 }) {
   return (
     <AlertDialog>
-      <AlertDialogTrigger render={trigger as React.ReactElement} />
+      <AlertDialogTrigger render={trigger} />
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
@@ -73,8 +73,8 @@ export function AfendaConfirmButton({
   onConfirm: () => void | Promise<void>;
   busy?: boolean;
   destructive?: boolean;
-  variant?: React.ComponentProps<typeof Button>["variant"];
-  size?: React.ComponentProps<typeof Button>["size"];
+  variant?: ComponentProps<typeof Button>["variant"];
+  size?: ComponentProps<typeof Button>["size"];
 }) {
   return (
     <AfendaConfirmAction
