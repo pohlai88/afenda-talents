@@ -51,8 +51,8 @@ export function ObligationActions({ id, status, recurring, nextDueDate, currency
     <>
       <AfendaActionBar label="Obligation actions">
         {status === "DRAFT" ? <Button disabled={busy || !canActivate} onClick={() => void call(`/api/admin/corporate/obligations/${id}`, { action: "ACTIVATE" }, "PATCH", "Obligation activated.")}>Activate</Button> : null}
-        {status === "ACTIVE" && recurring && nextDueDate ? <Button disabled={busy} onClick={() => void call(`/api/admin/corporate/obligations/${id}/due-items`, { mode: "NEXT" }, "POST", `Due item ${nextDueDate} created.`)}>Generate next due</Button> : null}
-        {status === "ACTIVE" ? <Button variant="outline" disabled={busy} onClick={() => setManualOpen(true)}>Add manual due</Button> : null}
+        {status === "ACTIVE" && recurring && nextDueDate ? <Button disabled={busy} onClick={() => void call(`/api/admin/corporate/obligations/${id}/due-items`, { mode: "NEXT" }, "POST", `GENERAL due item ${nextDueDate} created.`)}>Generate GENERAL due</Button> : null}
+        {status === "ACTIVE" ? <Button variant="outline" disabled={busy} onClick={() => setManualOpen(true)}>Add GENERAL manual due</Button> : null}
         {status === "ACTIVE" ? (
           <AfendaConfirmButton
             busy={busy}
@@ -79,13 +79,13 @@ export function ObligationActions({ id, status, recurring, nextDueDate, currency
       <AfendaResponsiveOverlay
         open={manualOpen}
         onOpenChange={setManualOpen}
-        title="Add manual due item"
-        description="Use this for one-off charges, exceptional invoices or a schedule occurrence that should not advance recurrence."
+        title="Add GENERAL manual due item"
+        description="Compatibility action for the GENERAL line. For rent, parking, service charge or another specific component, use Agreement Lines & Schedules and add the manual due from that line."
         contentClassName="sm:max-w-2xl"
         footer={
           <>
             <Button variant="outline" onClick={() => setManualOpen(false)} disabled={busy}>Close</Button>
-            <Button disabled={busy || !dueDate} onClick={async () => { const ok = await call(`/api/admin/corporate/obligations/${id}/due-items`, { mode: "MANUAL", dueDate, periodLabel: periodLabel || undefined, expectedAmount: amount === "" ? null : Number(amount), currency }, "POST", "Manual due item added."); if (ok) setManualOpen(false); }}>Add due item</Button>
+            <Button disabled={busy || !dueDate} onClick={async () => { const ok = await call(`/api/admin/corporate/obligations/${id}/due-items`, { mode: "MANUAL", dueDate, periodLabel: periodLabel || undefined, expectedAmount: amount === "" ? null : Number(amount), currency }, "POST", "GENERAL manual due item added."); if (ok) setManualOpen(false); }}>Add due item</Button>
           </>
         }
       >
