@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+
+import { AfendaPageFrame } from "@/components/afenda/page-frame";
+import type { CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
 import { ObligationForm } from "@/components/corporate/obligation-form";
-import type { CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
 import { PageHeader } from "@/components/page-header";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { requireWorkspaceAdmin } from "@/lib/auth-workspace";
 import { db } from "@/lib/db";
 
@@ -19,7 +21,7 @@ export default async function NewObligationPage() {
   ]);
   const definitions: CorporateCustomFieldDefinitionDto[] = fields.map((field) => ({ id: field.id, scope: field.scope, key: field.key, label: field.label, dataType: field.dataType, description: field.description, placeholder: field.placeholder, required: field.required, options: Array.isArray(field.options) ? field.options.filter((value): value is string => typeof value === "string") : [], showInList: field.showInList, isActive: field.isActive, sortOrder: field.sortOrder }));
   return (
-    <div className="mx-auto flex w-full max-w-5xl min-w-0 flex-col gap-6 p-4 sm:p-6">
+    <AfendaPageFrame width="form">
       <PageHeader eyebrow="Corporate Administration" title="New obligation" description="Register the governing terms now; recurring due items and payments are managed from the resulting record." />
       <CorporateNav />
       {counterparties.length === 0 ? (
@@ -27,6 +29,6 @@ export default async function NewObligationPage() {
       ) : (
         <ObligationForm counterparties={counterparties.map((item) => ({ id: item.id, label: `${item.code} · ${item.name}`, currency: item.defaultCurrency }))} users={users.map((item) => ({ id: item.id, label: item.name }))} customFields={definitions} />
       )}
-    </div>
+    </AfendaPageFrame>
   );
 }
