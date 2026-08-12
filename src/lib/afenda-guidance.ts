@@ -6,4 +6,5 @@ export type AfendaGuidance = {
   when: string;
   how: string;
   example?: string;
+  manualHref?: string;
 };
