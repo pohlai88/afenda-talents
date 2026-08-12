@@ -31,6 +31,20 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "round.opened": "Hiring round opened",
   "round.closed": "Hiring round closed",
   "round.archived": "Hiring round archived",
+  "corporate.counterparty.created": "Administrative counterparty created",
+  "corporate.obligation.created": "Administrative obligation created",
+  "corporate.obligation.activated": "Administrative obligation activated",
+  "corporate.obligation.ended": "Administrative obligation ended",
+  "corporate.obligation.cancelled": "Administrative obligation cancelled",
+  "corporate.due_item.created": "Administrative due item created",
+  "corporate.payment.requested": "Administrative payment requested",
+  "corporate.payment.approved": "Administrative payment approved",
+  "corporate.payment.rejected": "Administrative payment rejected",
+  "corporate.payment.recorded": "Administrative payment recorded",
+  "corporate.payment.reconciled": "Administrative payment reconciled",
+  "corporate.payment.voided": "Administrative payment voided",
+  "corporate.custom_field.created": "Administrative custom field created",
+  "corporate.custom_field.updated": "Administrative custom field updated",
 };
 
 export const AUDIT_ACTION_OPTIONS = Object.keys(

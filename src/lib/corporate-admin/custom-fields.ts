@@ -86,7 +86,7 @@ export async function validateAdministrativeCustomFields(
     if (!byKey.has(key)) throw new Error(`Unknown custom field: ${key}`);
   }
 
-  const output: Prisma.InputJsonObject = {};
+  const output: Record<string, Prisma.InputJsonValue> = {};
   for (const definition of definitions) {
     const value = source[definition.key];
     const empty = value == null || value === "";
@@ -96,5 +96,5 @@ export async function validateAdministrativeCustomFields(
     }
     output[definition.key] = normalizeOne(definition, value);
   }
-  return output;
+  return output as Prisma.InputJsonObject;
 }
