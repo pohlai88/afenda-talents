@@ -10,7 +10,7 @@ export type AfendaWorkflowStep = {
 
 export function AfendaWorkflowStepper({ steps, className }: { steps: AfendaWorkflowStep[]; className?: string }) {
   return (
-    <ol className={cn("grid gap-3 sm:grid-cols-2 xl:grid-cols-5", className)}>
+    <ol className={cn("grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6", className)}>
       {steps.map((step, index) => (
         <li key={`${index}-${step.label}`} className="relative min-w-0">
           <div
