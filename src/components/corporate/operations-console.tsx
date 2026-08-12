@@ -95,10 +95,15 @@ export function CorporateOperationsConsole({
   const [viewName, setViewName] = useState("");
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(SAVED_VIEWS_KEY);
-      if (raw) setSavedViews(JSON.parse(raw) as SavedView[]);
-    } catch { setSavedViews([]); }
+    const timer = window.setTimeout(() => {
+      try {
+        const raw = window.localStorage.getItem(SAVED_VIEWS_KEY);
+        setSavedViews(raw ? JSON.parse(raw) as SavedView[] : []);
+      } catch {
+        setSavedViews([]);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const filteredGrid = useMemo(() => {
