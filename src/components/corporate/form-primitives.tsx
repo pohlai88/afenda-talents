@@ -1,17 +1,64 @@
 "use client";
 
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import type { ReactNode } from "react";
 
-export function CorporateField({ label, id, children, className = "" }: { label: string; id: string; children: React.ReactNode; className?: string }) {
-  return <div className={`flex min-w-0 flex-col gap-2 ${className}`}><Label htmlFor={id}>{label}</Label>{children}</div>;
+import { AfendaCheckField, AfendaField } from "@/components/afenda/form-layout";
+import type { AfendaGuidance } from "@/lib/afenda-guidance";
+
+export function CorporateField({
+  label,
+  id,
+  children,
+  className,
+  required,
+  guidance,
+  description,
+}: {
+  label: string;
+  id: string;
+  children: ReactNode;
+  className?: string;
+  required?: boolean;
+  guidance?: AfendaGuidance;
+  description?: string;
+}) {
+  return (
+    <AfendaField
+      label={label}
+      id={id}
+      className={className}
+      required={required}
+      guidance={guidance}
+      description={description}
+    >
+      {children}
+    </AfendaField>
+  );
 }
 
-export function CorporateCheckField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
+export function CorporateCheckField({
+  label,
+  checked,
+  onChange,
+  guidance,
+  description,
+  className,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  guidance?: AfendaGuidance;
+  description?: string;
+  className?: string;
+}) {
   return (
-    <label className="flex min-h-9 items-center gap-3 rounded-lg border px-3 py-2 text-sm">
-      <Checkbox checked={checked} onCheckedChange={(value) => onChange(value === true)} />
-      <span>{label}</span>
-    </label>
+    <AfendaCheckField
+      label={label}
+      checked={checked}
+      onChange={onChange}
+      guidance={guidance}
+      description={description}
+      className={className}
+    />
   );
 }
