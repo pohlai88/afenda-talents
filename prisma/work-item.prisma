@@ -1,0 +1,55 @@
+enum AdministrativeWorkItemStatus {
+  OPEN
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESOLVED
+  CANCELLED
+}
+
+enum AdministrativeWorkItemPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum AdministrativeWorkItemSourceType {
+  SITE
+  COUNTERPARTY
+  OBLIGATION
+  LINE
+  DUE_ITEM
+  PAYMENT
+  DATA_QUALITY
+}
+
+model AdministrativeWorkItem {
+  id                 String                           @id
+  title              String
+  description        String?
+  status             AdministrativeWorkItemStatus    @default(OPEN)
+  priority           AdministrativeWorkItemPriority  @default(NORMAL)
+  ownerId            String?
+  sourceType         AdministrativeWorkItemSourceType
+  sourceId           String?
+  sourceKey          String?                          @unique
+  sourceHref         String?
+  dueDate             DateTime?                       @db.Date
+  escalationLevel    Int                              @default(0)
+  escalateAfter      DateTime?                        @db.Date
+  escalatedAt        DateTime?
+  acknowledgedAt     DateTime?
+  acknowledgedById   String?
+  resolvedAt         DateTime?
+  resolvedById       String?
+  resolutionNote     String?
+  createdById        String?
+  createdAt          DateTime                         @default(now())
+  updatedAt          DateTime                         @updatedAt
+
+  @@index([status, dueDate])
+  @@index([ownerId, status])
+  @@index([priority, status])
+  @@index([escalateAfter, status])
+  @@index([sourceType, sourceId])
+}
