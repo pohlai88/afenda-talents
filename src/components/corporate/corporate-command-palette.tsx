@@ -28,6 +28,7 @@ export function CorporateCommandPalette() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CorporateSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const activeQuery = open && query.trim().length >= 2;
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -41,11 +42,7 @@ export function CorporateCommandPalette() {
   }, []);
 
   useEffect(() => {
-    if (!open || query.trim().length < 2) {
-      setResults([]);
-      setLoading(false);
-      return;
-    }
+    if (!activeQuery) return;
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       setLoading(true);
@@ -53,6 +50,7 @@ export function CorporateCommandPalette() {
         const response = await fetch(`/api/admin/corporate/search?q=${encodeURIComponent(query.trim())}`, { signal: controller.signal });
         const body = await response.json().catch(() => ({}));
         if (response.ok && Array.isArray(body.results)) setResults(body.results as CorporateSearchResult[]);
+        else setResults([]);
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) setResults([]);
       } finally {
@@ -63,13 +61,14 @@ export function CorporateCommandPalette() {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [open, query]);
+  }, [activeQuery, query]);
 
   const grouped = useMemo(() => {
+    if (!activeQuery) return [];
     const groups = new Map<string, CorporateSearchResult[]>();
     for (const result of results) groups.set(result.kind, [...(groups.get(result.kind) ?? []), result]);
     return Array.from(groups.entries());
-  }, [results]);
+  }, [activeQuery, results]);
 
   return (
     <>
@@ -87,7 +86,7 @@ export function CorporateCommandPalette() {
             <Input autoFocus type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, code, invoice, contract reference…" aria-label="Search Corporate Administration" />
           </div>
           <div className="max-h-[60vh] overflow-y-auto p-3">
-            {query.trim().length < 2 ? (
+            {!activeQuery ? (
               <div className="flex flex-col gap-3 p-2">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Quick actions</p>
                 {quickActions.map((action) => <Button key={action.href} variant="ghost" className="justify-start" nativeButton={false} render={<Link href={action.href} onClick={() => setOpen(false)} />}>{action.label}</Button>)}
