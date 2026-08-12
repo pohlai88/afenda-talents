@@ -54,6 +54,7 @@ export function AfendaResponsiveOverlay({
   contentClassName?: string;
 }) {
   const mobile = useSyncExternalStore(subscribeMobile, getMobileSnapshot, getServerSnapshot);
+  const accessibleDescription = description ?? `Complete the ${title.toLowerCase()} task, then save or close this panel.`;
 
   if (mobile) {
     return (
@@ -61,7 +62,7 @@ export function AfendaResponsiveOverlay({
         <SheetContent side="bottom" className={cn("max-h-[92dvh] rounded-t-xl", contentClassName)}>
           <SheetHeader className="border-b">
             <SheetTitle>{title}</SheetTitle>
-            {description ? <SheetDescription>{description}</SheetDescription> : null}
+            <SheetDescription className={description ? undefined : "sr-only"}>{accessibleDescription}</SheetDescription>
           </SheetHeader>
           <div className="overflow-y-auto px-4 pb-4">{children}</div>
           {footer ? <SheetFooter className="border-t bg-muted/50">{footer}</SheetFooter> : null}
@@ -75,7 +76,7 @@ export function AfendaResponsiveOverlay({
       <DialogContent className={contentClassName}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          {description ? <DialogDescription>{description}</DialogDescription> : null}
+          <DialogDescription className={description ? undefined : "sr-only"}>{accessibleDescription}</DialogDescription>
         </DialogHeader>
         {children}
         {footer ? <DialogFooter>{footer}</DialogFooter> : null}
