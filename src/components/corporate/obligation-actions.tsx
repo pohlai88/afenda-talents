@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { AfendaConfirmButton } from "@/components/afenda/confirm-action";
 import { AfendaField } from "@/components/afenda/form-layout";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -33,9 +34,15 @@ export function ObligationActions({ id, status, recurring, nextDueDate, currency
       const response = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : "Operation failed");
-      toast.success(success); router.refresh(); return true;
-    } catch (error) { toast.error(error instanceof Error ? error.message : "Operation failed"); return false; }
-    finally { setBusy(false); }
+      toast.success(success);
+      router.refresh();
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Operation failed");
+      return false;
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (!isAdmin) return null;
@@ -45,8 +52,29 @@ export function ObligationActions({ id, status, recurring, nextDueDate, currency
         {status === "DRAFT" ? <Button disabled={busy || !canActivate} onClick={() => void call(`/api/admin/corporate/obligations/${id}`, { action: "ACTIVATE" }, "PATCH", "Obligation activated.")}>Activate</Button> : null}
         {status === "ACTIVE" && recurring && nextDueDate ? <Button disabled={busy} onClick={() => void call(`/api/admin/corporate/obligations/${id}/due-items`, { mode: "NEXT" }, "POST", `Due item ${nextDueDate} created.`)}>Generate next due</Button> : null}
         {status === "ACTIVE" ? <Button variant="outline" disabled={busy} onClick={() => setManualOpen(true)}>Add manual due</Button> : null}
-        {status === "ACTIVE" ? <Button variant="outline" disabled={busy} onClick={() => void call(`/api/admin/corporate/obligations/${id}`, { action: "END" }, "PATCH", "Obligation ended.")}>Mark ended</Button> : null}
-        {status === "DRAFT" || status === "ACTIVE" ? <Button variant="outline" disabled={busy} onClick={() => void call(`/api/admin/corporate/obligations/${id}`, { action: "CANCEL" }, "PATCH", "Obligation cancelled.")}>Cancel obligation</Button> : null}
+        {status === "ACTIVE" ? (
+          <AfendaConfirmButton
+            busy={busy}
+            title="Mark this obligation as ended?"
+            description="This closes the obligation lifecycle. Existing due items and payment history remain available, but no further scheduled action should be generated from this record."
+            confirmLabel="Mark ended"
+            onConfirm={() => call(`/api/admin/corporate/obligations/${id}`, { action: "END" }, "PATCH", "Obligation ended.")}
+          >
+            Mark ended
+          </AfendaConfirmButton>
+        ) : null}
+        {status === "DRAFT" || status === "ACTIVE" ? (
+          <AfendaConfirmButton
+            busy={busy}
+            destructive
+            title="Cancel this obligation?"
+            description="Cancellation stops this obligation from progressing normally. Historical information remains for audit and reference, but the obligation cannot be reactivated in the current lifecycle."
+            confirmLabel="Cancel obligation"
+            onConfirm={() => call(`/api/admin/corporate/obligations/${id}`, { action: "CANCEL" }, "PATCH", "Obligation cancelled.")}
+          >
+            Cancel obligation
+          </AfendaConfirmButton>
+        ) : null}
       </div>
       <Dialog open={manualOpen} onOpenChange={setManualOpen}>
         <DialogContent>
