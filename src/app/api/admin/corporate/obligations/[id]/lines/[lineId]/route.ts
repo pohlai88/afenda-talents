@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { audit } from "@/lib/audit";
 import { requireWorkspaceAdmin } from "@/lib/auth-workspace";
-import { cleanOptionalString } from "@/lib/corporate-admin/domain";
+import { cleanOptionalString, parseDateOnly } from "@/lib/corporate-admin/domain";
 import { patchObligationLineSchema } from "@/lib/corporate-admin/obligation-lines";
 import { db } from "@/lib/db";
 
@@ -34,8 +34,15 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             lineType: parsed.data.lineType ?? undefined,
             expectedAmount: parsed.data.expectedAmount === undefined ? undefined : parsed.data.expectedAmount,
             currency: parsed.data.currency ?? undefined,
+            recurring: parsed.data.recurring ?? undefined,
+            recurrenceInterval: parsed.data.recurrenceInterval === undefined ? undefined : parsed.data.recurrenceInterval,
+            recurrenceUnit: parsed.data.recurrenceUnit === undefined ? undefined : parsed.data.recurrenceUnit,
+            firstDueDate: parsed.data.firstDueDate === undefined ? undefined : parsed.data.firstDueDate ? parseDateOnly(parsed.data.firstDueDate) : null,
+            nextDueDate: parsed.data.nextDueDate === undefined ? undefined : parsed.data.nextDueDate ? parseDateOnly(parsed.data.nextDueDate) : null,
             invoiceRequired: parsed.data.invoiceRequired ?? undefined,
             paymentTermsDays: parsed.data.paymentTermsDays === undefined ? undefined : parsed.data.paymentTermsDays,
+            startDate: parsed.data.startDate === undefined ? undefined : parsed.data.startDate ? parseDateOnly(parsed.data.startDate) : null,
+            endDate: parsed.data.endDate === undefined ? undefined : parsed.data.endDate ? parseDateOnly(parsed.data.endDate) : null,
             notes: parsed.data.notes === undefined ? undefined : cleanOptionalString(parsed.data.notes),
           },
     });
