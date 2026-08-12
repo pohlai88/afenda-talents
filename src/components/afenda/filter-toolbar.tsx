@@ -29,6 +29,7 @@ export function AfendaFilterToolbar({
         <div className="relative min-w-0 flex-1 sm:max-w-md">
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            type="search"
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder={searchPlaceholder}
