@@ -33,7 +33,21 @@ export type AuditAction =
   | "round.created"
   | "round.opened"
   | "round.closed"
-  | "round.archived";
+  | "round.archived"
+  | "corporate.counterparty.created"
+  | "corporate.obligation.created"
+  | "corporate.obligation.activated"
+  | "corporate.obligation.ended"
+  | "corporate.obligation.cancelled"
+  | "corporate.due_item.created"
+  | "corporate.payment.requested"
+  | "corporate.payment.approved"
+  | "corporate.payment.rejected"
+  | "corporate.payment.recorded"
+  | "corporate.payment.reconciled"
+  | "corporate.payment.voided"
+  | "corporate.custom_field.created"
+  | "corporate.custom_field.updated";
 
 const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 const TOKEN_ALPHABET = /^[A-Za-z0-9_-]{40,}$/;

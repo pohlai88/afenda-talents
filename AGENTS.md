@@ -8,15 +8,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-# Afenda Talents
+# Afenda
 
-Pre-employment self-assessment. Invitation only. Single hiring round, single admin.
+Internal operating workspace. Current bounded contexts:
 
-Requirements: `afenda-talents-mvp-build-spec.md`.
-Architecture and amendments: `docs/superpowers/specs/2026-08-04-afenda-talents-architecture-design.md`.
-Implementation plan: `docs/superpowers/plans/2026-08-04-afenda-talents-mvp.md`.
-Where the spec and the design document disagree, the design document wins. Deviations are
-logged in `DECISIONS.md`.
+- **Talents** — invitation-only hiring assessments.
+- **Corporate Administration** — counterparties, obligations, recurring due items and administrative payments (D19).
+
+Talents requirements: `afenda-talents-mvp-build-spec.md`.
+Talents architecture and amendments: `docs/superpowers/specs/2026-08-04-afenda-talents-architecture-design.md`.
+Corporate Administration design: `docs/superpowers/specs/2026-08-12-corporate-administration-design.md`.
+Deviations and decisions are logged in `DECISIONS.md` and the accepted domain design documents.
 
 ## Commands
 
@@ -33,14 +35,15 @@ pnpm exec node scripts/check-invariants.mjs
 
 ## Rules
 
-- Hiring users have roles: ADMIN acts, VIEWER reads. Every mutating handler calls requireAdmin(); read surfaces call requireHiringUser(). Candidates are never users — their token is their credential (D15).
-- Two auth systems, never mixed: `lib/auth-admin.ts` and `lib/auth-candidate.ts`. No shared
-  helper, no handler importing both.
-- Every request-level gate is coarse. Every handler and every `/a/[token]/*` page re-reads the
-  candidate row and re-checks status and expiry before acting.
-- On `/a/[token]/*`, the assignment resolved from the token hash must equal the cookie's
-  `assignmentId`. Mismatch re-enters `/a/[token]` to re-mint the cookie (not `/done`).
-- Status changes only via `lib/status.ts`.
+- Internal workspace users have roles: ADMIN acts, VIEWER reads. Talents code may call `requireAdmin()` / `requireHiringUser()`; non-Talents domains use `requireWorkspaceAdmin()` / `requireWorkspaceUser()` from `lib/auth-workspace.ts`.
+- Candidates are never users — their emailed token remains their credential.
+- Two auth systems, never mixed: `lib/auth-admin.ts` and `lib/auth-candidate.ts`. No handler imports both.
+- Every request-level gate is coarse. Every handler re-checks current database-backed authority before acting.
+- On `/a/[token]/*`, the assignment resolved from the token hash must equal the cookie's `assignmentId`. Mismatch re-enters `/a/[token]` to re-mint the cookie (not `/done`).
+- Talents assignment status changes only via `lib/status.ts`.
+- Corporate Administration lifecycle rules live in `lib/corporate-admin/domain.ts`; do not persist UPCOMING/DUE/OVERDUE because those are derived from due dates.
+- Corporate custom fields are defined through `AdministrativeCustomFieldDefinition` and validated server-side. Do not accept unknown ad-hoc JSON keys.
+- Acting corporate approver/requester/reconciler identities come from the authenticated session, never from client-submitted email/name fields.
 - Zod-validate every API body.
 - Never log, store, or audit a raw invitation token.
 - `AuditEvent` never stores a name or an email — ids and non-identifying meta only.
@@ -49,6 +52,5 @@ pnpm exec node scripts/check-invariants.mjs
 - Timing is client-reported. HR-facing copy says "self-reported".
 - Candidate UI is mobile-first: assume a mid-range Android on mobile data.
 - No pass/fail, no ranking, no single overall score anywhere.
-- Check the spec's Non-goals list (§12) before adding any feature.
-- Run typecheck and tests before declaring a phase done, and paste the output. A phase is not
-  done because it looks done.
+- Corporate Administration does not become accounting/AP/GL by implication. See D19 design boundary before adding financial posting features.
+- Run typecheck and tests before declaring a phase done, and paste the output. A phase is not done because it looks done.
