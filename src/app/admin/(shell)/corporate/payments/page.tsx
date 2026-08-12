@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AfendaPageHelp } from "@/components/afenda/guidance-sheet";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
 import { CorporateStatusBadge, formatMoney } from "@/components/corporate/status";
 import { PageHeader } from "@/components/page-header";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requireWorkspaceUser } from "@/lib/auth-workspace";
+import { CORPORATE_PAGE_GUIDANCE } from "@/lib/corporate-admin/page-guidance";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +23,12 @@ export default async function PaymentsPage() {
   });
   return (
     <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6">
-      <PageHeader eyebrow="Corporate Administration" title="Payments" description="Operational queue for requested, approved, recorded and reconciled administrative payments." />
+      <PageHeader
+        eyebrow="Corporate Administration"
+        title="Payments"
+        description="Operational queue for requested, approved, recorded and reconciled administrative payments."
+        actions={<AfendaPageHelp title="Administrative payments" guidance={CORPORATE_PAGE_GUIDANCE.payments} />}
+      />
       <CorporateNav />
       <Card>
         <CardHeader><CardTitle>Payment register</CardTitle><CardDescription>Use the obligation record to approve, record evidence, reconcile or void a payment.</CardDescription></CardHeader>
