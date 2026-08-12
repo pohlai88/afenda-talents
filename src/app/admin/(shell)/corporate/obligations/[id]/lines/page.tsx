@@ -35,8 +35,13 @@ export default async function ObligationLinesPage({ params }: { params: Promise<
     recurring: line.recurring,
     recurrenceInterval: line.recurrenceInterval,
     recurrenceUnit: line.recurrenceUnit,
+    firstDueDate: line.firstDueDate ? formatDateOnly(line.firstDueDate) : null,
     nextDueDate: line.nextDueDate ? formatDateOnly(line.nextDueDate) : null,
     invoiceRequired: line.invoiceRequired,
+    paymentTermsDays: line.paymentTermsDays,
+    startDate: line.startDate ? formatDateOnly(line.startDate) : null,
+    endDate: line.endDate ? formatDateOnly(line.endDate) : null,
+    notes: line.notes,
     isActive: line.isActive,
     dueCount: line._count.dueItems,
   }));
