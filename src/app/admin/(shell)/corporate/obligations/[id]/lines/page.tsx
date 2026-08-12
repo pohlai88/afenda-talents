@@ -38,7 +38,7 @@ export default async function ObligationLinesPage({ params }: { params: Promise<
     nextDueDate: line.nextDueDate ? formatDateOnly(line.nextDueDate) : null,
     invoiceRequired: line.invoiceRequired,
     isActive: line.isActive,
-    dueItems: line._count.dueItems,
+    dueCount: line._count.dueItems,
   }));
 
   return (
@@ -51,13 +51,7 @@ export default async function ObligationLinesPage({ params }: { params: Promise<
         actions={<Button variant="outline" nativeButton={false} render={<Link href={`/admin/corporate/obligations/${id}`} />}>Back to obligation</Button>}
       />
       <CorporateNav />
-      <ObligationLineManager
-        obligationId={id}
-        obligationStatus={obligation.status}
-        currency={obligation.currency}
-        lines={lines}
-        isAdmin={session.role === "ADMIN"}
-      />
+      <ObligationLineManager obligationId={id} obligationStatus={obligation.status} lines={lines} isAdmin={session.role === "ADMIN"} />
     </AfendaPageFrame>
   );
 }
