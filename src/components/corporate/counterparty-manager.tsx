@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { AfendaFilterToolbar } from "@/components/afenda/filter-toolbar";
+import { AfendaEmptyState } from "@/components/afenda/page-state";
 import { AfendaResponsiveDataView } from "@/components/afenda/responsive-data-view";
+import { AfendaResponsiveOverlay } from "@/components/afenda/responsive-overlay";
 import { AfendaRowActions } from "@/components/afenda/row-actions";
 import { AfendaSection } from "@/components/afenda/section";
 import { AfendaSelectFilter } from "@/components/afenda/select-filter";
@@ -13,8 +15,6 @@ import { CounterpartyFormFields, EMPTY_COUNTERPARTY, type CounterpartyDraft } fr
 import type { CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export type CounterpartyRow = CounterpartyDraft & { id: string; obligations: number };
@@ -119,16 +119,11 @@ export function CounterpartyManager({ rows, definitions, isAdmin }: {
         actions={isAdmin ? <Button onClick={openCreate}>Add counterparty</Button> : undefined}
       >
         {rows.length === 0 ? (
-          <Empty className="border border-dashed"><EmptyHeader><EmptyTitle>No counterparties yet</EmptyTitle><EmptyDescription>Create one before registering an obligation.</EmptyDescription></EmptyHeader></Empty>
+          <AfendaEmptyState title="No counterparties yet" description="Create one before registering an obligation." />
         ) : (
           <div className="flex flex-col gap-4">
             <AfendaFilterToolbar search={search} onSearchChange={setSearch} searchPlaceholder="Search counterparties…" resultCount={filteredRows.length}>
-              <AfendaSelectFilter
-                ariaLabel="Filter counterparties by type"
-                value={typeFilter}
-                onValueChange={setTypeFilter}
-                options={typeOptions}
-              />
+              <AfendaSelectFilter ariaLabel="Filter counterparties by type" value={typeFilter} onValueChange={setTypeFilter} options={typeOptions} />
               <AfendaSelectFilter
                 ariaLabel="Filter counterparties by status"
                 value={statusFilter}
@@ -141,18 +136,26 @@ export function CounterpartyManager({ rows, definitions, isAdmin }: {
               />
               {hasFilters ? <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>Clear filters</Button> : null}
             </AfendaFilterToolbar>
-            {filteredRows.length === 0 ? <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No counterparties match the current filters.</p> : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
+            {filteredRows.length === 0 ? <AfendaEmptyState title="No matching counterparties" description="Adjust or clear the current search and filters." /> : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
           </div>
         )}
       </AfendaSection>
 
-      <Dialog open={dialog !== null} onOpenChange={(open) => !open && setDialog(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
-          <DialogHeader><DialogTitle>{editingId ? "Edit counterparty" : "Add counterparty"}</DialogTitle><DialogDescription>Core fields stay reportable; custom fields cover organisation-specific details.</DialogDescription></DialogHeader>
-          <CounterpartyFormFields draft={draft} set={set} definitions={definitions} />
-          <DialogFooter><Button variant="outline" onClick={() => setDialog(null)} disabled={busy}>Cancel</Button><Button onClick={() => void save()} disabled={busy || !draft.name.trim()}>{busy ? "Saving…" : "Save"}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AfendaResponsiveOverlay
+        open={dialog !== null}
+        onOpenChange={(open) => !open && setDialog(null)}
+        title={editingId ? "Edit counterparty" : "Add counterparty"}
+        description="Core fields stay reportable; custom fields cover organisation-specific details."
+        contentClassName="sm:max-w-3xl"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDialog(null)} disabled={busy}>Cancel</Button>
+            <Button onClick={() => void save()} disabled={busy || !draft.name.trim()}>{busy ? "Saving…" : "Save"}</Button>
+          </>
+        }
+      >
+        <CounterpartyFormFields draft={draft} set={set} definitions={definitions} />
+      </AfendaResponsiveOverlay>
     </>
   );
 }
