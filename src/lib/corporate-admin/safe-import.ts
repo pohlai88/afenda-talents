@@ -20,6 +20,35 @@ export const CORPORATE_IMPORT_HEADERS = [
   "site_codes",
 ] as const;
 
+type ImportHeader = (typeof CORPORATE_IMPORT_HEADERS)[number];
+
+export const CORPORATE_IMPORT_HEADER_ALIASES: Record<string, ImportHeader> = {
+  agreement_code: "obligation_code",
+  contract_code: "obligation_code",
+  component_code: "line_code",
+  charge_code: "line_code",
+  component_name: "line_name",
+  charge_name: "line_name",
+  component_type: "line_type",
+  charge_type: "line_type",
+  amount: "expected_amount",
+  is_recurring: "recurring",
+  interval: "recurrence_interval",
+  frequency_unit: "recurrence_unit",
+  first_due: "first_due_date",
+  due_date: "next_due_date",
+  next_due: "next_due_date",
+  requires_invoice: "invoice_required",
+  payment_terms: "payment_terms_days",
+  effective_from: "start_date",
+  effective_to: "end_date",
+  memo: "notes",
+  remark: "notes",
+  remarks: "notes",
+  site_code: "site_codes",
+  sites: "site_codes",
+};
+
 const optionalDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD").optional();
 
 export const corporateImportRowSchema = z.object({
@@ -89,6 +118,11 @@ function splitDelimitedLine(line: string, delimiter: string): string[] {
   return values;
 }
 
+function normalizeHeader(value: string): string {
+  const normalized = value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  return CORPORATE_IMPORT_HEADER_ALIASES[normalized] ?? normalized;
+}
+
 function bool(value?: string): boolean | undefined {
   if (!value?.trim()) return undefined;
   const normalized = value.trim().toLowerCase();
@@ -110,12 +144,15 @@ export function parseCorporateImportText(text: string): { rows: CorporateImportR
   const lines = normalized.split("\n").filter((line) => line.trim());
   if (lines.length < 2) return { rows: [], errors: ["Include a header row and at least one data row."] };
   const delimiter = lines[0].includes("\t") ? "\t" : ",";
-  const headers = splitDelimitedLine(lines[0], delimiter).map((header) => header.trim().toLowerCase());
+  const rawHeaders = splitDelimitedLine(lines[0], delimiter);
+  const headers = rawHeaders.map(normalizeHeader);
   const required = ["obligation_code", "line_code"];
   const missing = required.filter((header) => !headers.includes(header));
   if (missing.length) return { rows: [], errors: [`Missing required column${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}`] };
-  const unknown = headers.filter((header) => header && !CORPORATE_IMPORT_HEADERS.includes(header as (typeof CORPORATE_IMPORT_HEADERS)[number]));
+  const unknown = headers.filter((header) => header && !CORPORATE_IMPORT_HEADERS.includes(header as ImportHeader));
   if (unknown.length) return { rows: [], errors: [`Unknown column${unknown.length === 1 ? "" : "s"}: ${unknown.join(", ")}`] };
+  const duplicateCanonical = Array.from(new Set(headers.filter((header, index) => header && headers.indexOf(header) !== index)));
+  if (duplicateCanonical.length) return { rows: [], errors: [`Multiple pasted columns map to the same Afenda field: ${duplicateCanonical.join(", ")}`] };
 
   const rows: CorporateImportRow[] = [];
   const errors: string[] = [];
