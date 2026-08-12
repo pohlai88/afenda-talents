@@ -6,8 +6,8 @@ import { toast } from "sonner";
 
 import { AfendaConfirmButton } from "@/components/afenda/confirm-action";
 import { AfendaField } from "@/components/afenda/form-layout";
+import { AfendaResponsiveOverlay } from "@/components/afenda/responsive-overlay";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { DUE_ITEM_GUIDANCE } from "@/lib/corporate-admin/workflow-guidance";
 
@@ -76,17 +76,26 @@ export function ObligationActions({ id, status, recurring, nextDueDate, currency
           </AfendaConfirmButton>
         ) : null}
       </div>
-      <Dialog open={manualOpen} onOpenChange={setManualOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Add manual due item</DialogTitle><DialogDescription>Use this for one-off charges, exceptional invoices or a schedule occurrence that should not advance recurrence.</DialogDescription></DialogHeader>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <AfendaField label="Due date" id="manual-due-date" required guidance={DUE_ITEM_GUIDANCE.dueDate}><Input id="manual-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></AfendaField>
-            <AfendaField label="Period label" id="manual-period" guidance={DUE_ITEM_GUIDANCE.periodLabel}><Input id="manual-period" value={periodLabel} onChange={(e) => setPeriodLabel(e.target.value)} placeholder="2026-08 or Deposit" /></AfendaField>
-            <AfendaField label={`Expected amount (${currency})`} id="manual-amount" className="sm:col-span-2" guidance={DUE_ITEM_GUIDANCE.expectedAmount}><Input id="manual-amount" type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></AfendaField>
-          </div>
-          <DialogFooter><Button variant="outline" onClick={() => setManualOpen(false)} disabled={busy}>Close</Button><Button disabled={busy || !dueDate} onClick={async () => { const ok = await call(`/api/admin/corporate/obligations/${id}/due-items`, { mode: "MANUAL", dueDate, periodLabel: periodLabel || undefined, expectedAmount: amount === "" ? null : Number(amount), currency }, "POST", "Manual due item added."); if (ok) setManualOpen(false); }}>Add due item</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+      <AfendaResponsiveOverlay
+        open={manualOpen}
+        onOpenChange={setManualOpen}
+        title="Add manual due item"
+        description="Use this for one-off charges, exceptional invoices or a schedule occurrence that should not advance recurrence."
+        contentClassName="sm:max-w-2xl"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setManualOpen(false)} disabled={busy}>Close</Button>
+            <Button disabled={busy || !dueDate} onClick={async () => { const ok = await call(`/api/admin/corporate/obligations/${id}/due-items`, { mode: "MANUAL", dueDate, periodLabel: periodLabel || undefined, expectedAmount: amount === "" ? null : Number(amount), currency }, "POST", "Manual due item added."); if (ok) setManualOpen(false); }}>Add due item</Button>
+          </>
+        }
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <AfendaField label="Due date" id="manual-due-date" required guidance={DUE_ITEM_GUIDANCE.dueDate}><Input id="manual-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></AfendaField>
+          <AfendaField label="Period label" id="manual-period" guidance={DUE_ITEM_GUIDANCE.periodLabel}><Input id="manual-period" value={periodLabel} onChange={(e) => setPeriodLabel(e.target.value)} placeholder="2026-08 or Deposit" /></AfendaField>
+          <AfendaField label={`Expected amount (${currency})`} id="manual-amount" className="sm:col-span-2" guidance={DUE_ITEM_GUIDANCE.expectedAmount}><Input id="manual-amount" type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></AfendaField>
+        </div>
+      </AfendaResponsiveOverlay>
     </>
   );
 }
