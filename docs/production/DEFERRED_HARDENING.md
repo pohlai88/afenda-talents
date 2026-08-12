@@ -58,7 +58,7 @@ Until then, revisioned batch autosave is network-resilience enhancement work.
 
 ### GitHub-hosted Actions and branch protection — archived from issue #12
 
-**Current position:** The application release gate is enforced through the Vercel production build plus clean PostgreSQL migration rehearsal and browser/accessibility validation. The GitHub-hosted runner problem is an account/repository infrastructure restriction, not an application-code defect.
+**Current position:** The application release gate is enforced through the Vercel production build plus clean PostgreSQL migration rehearsal and browser/accessibility validation. GitHub-hosted runners are currently unavailable for this repository/account, so `.github/workflows/ci.yml` is intentionally manual-only and the temporary runner-diagnostic workflow has been removed. This prevents known runner-control-plane failures from marking ordinary future PRs red.
 
 **Reconsider when:**
 
@@ -66,7 +66,7 @@ Until then, revisioned batch autosave is network-resilience enhancement work.
 - required status checks and protected-branch enforcement are being configured;
 - repository governance requires GitHub Actions to become a mandatory merge gate.
 
-Until then, do not debug application code to solve runner-control-plane failures.
+When re-enabling automatic GitHub Actions, restore pull-request/main triggers and the full migration + browser jobs from Git history or a newly reviewed workflow. Until then, do not debug application code to solve runner-control-plane failures.
 
 ## Completed historical P0s
 
