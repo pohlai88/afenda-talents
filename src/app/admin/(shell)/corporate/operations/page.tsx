@@ -1,10 +1,12 @@
 import { AfendaPageFrame } from "@/components/afenda/page-frame";
 import { CorporateCommandPalette } from "@/components/corporate/corporate-command-palette";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
+import { OperationsAttention } from "@/components/corporate/operations-attention";
 import { CorporateOperationsConsole, type OperationsAgendaItem, type OperationsGridRow, type OperationsMatrixRow } from "@/components/corporate/operations-console";
 import { PageHeader } from "@/components/page-header";
 import { requireWorkspaceUser } from "@/lib/auth-workspace";
 import { formatDateOnly } from "@/lib/corporate-admin/domain";
+import { deriveOperationsReviewSignals } from "@/lib/corporate-admin/operations-intelligence";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -127,9 +129,7 @@ export default async function CorporateOperationsPage() {
   const matrixCategories = Array.from(new Set(sites.flatMap((site) => site.serviceCoverage.map((coverage) => coverage.serviceCategory)))).sort();
   const matrixRows: OperationsMatrixRow[] = sites.map((site) => {
     const providers: OperationsMatrixRow["providers"] = {};
-    for (const coverage of site.serviceCoverage) {
-      providers[coverage.serviceCategory] = [...(providers[coverage.serviceCategory] ?? []), coverage.counterparty];
-    }
+    for (const coverage of site.serviceCoverage) providers[coverage.serviceCategory] = [...(providers[coverage.serviceCategory] ?? []), coverage.counterparty];
     return { siteId: site.id, siteCode: site.code, siteName: site.name, providers };
   });
 
@@ -158,6 +158,11 @@ export default async function CorporateOperationsPage() {
     };
   });
 
+  const signals = deriveOperationsReviewSignals(
+    sites.map((site) => ({ id: site.id, name: site.name, activeCoverageCount: site.serviceCoverage.length })),
+    gridRows.map((line) => ({ id: line.id, obligationId: line.obligationId, obligationTitle: line.obligationTitle, code: line.lineCode, name: line.lineName, active: line.lineActive, obligationActive: line.obligationStatus === "ACTIVE", recurring: line.recurring, nextDueDate: line.nextDueDate, overdueDueCount: line.overdueDueCount })),
+  );
+
   return (
     <AfendaPageFrame width="wide">
       <PageHeader
@@ -167,6 +172,7 @@ export default async function CorporateOperationsPage() {
         actions={<div className="md:hidden"><CorporateCommandPalette /></div>}
       />
       <CorporateNav />
+      <OperationsAttention signals={signals} />
       <CorporateOperationsConsole agenda={agenda} matrixRows={matrixRows} matrixCategories={matrixCategories} gridRows={gridRows} />
     </AfendaPageFrame>
   );
