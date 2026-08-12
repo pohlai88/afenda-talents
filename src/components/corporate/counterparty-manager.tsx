@@ -8,6 +8,7 @@ import { AfendaFilterToolbar } from "@/components/afenda/filter-toolbar";
 import { AfendaResponsiveDataView } from "@/components/afenda/responsive-data-view";
 import { AfendaRowActions } from "@/components/afenda/row-actions";
 import { AfendaSection } from "@/components/afenda/section";
+import { AfendaSelectFilter } from "@/components/afenda/select-filter";
 import { CounterpartyFormFields, EMPTY_COUNTERPARTY, type CounterpartyDraft } from "@/components/corporate/counterparty-form-fields";
 import type { CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,8 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export type CounterpartyRow = CounterpartyDraft & { id: string; obligations: number };
+
+type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
 export function CounterpartyManager({ rows, definitions, isAdmin }: {
   rows: CounterpartyRow[];
@@ -29,13 +32,32 @@ export function CounterpartyManager({ rows, definitions, isAdmin }: {
   const [draft, setDraft] = useState<CounterpartyDraft>(EMPTY_COUNTERPARTY);
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");
   const set = <K extends keyof CounterpartyDraft>(key: K, value: CounterpartyDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
+
+  const typeOptions = useMemo(() => {
+    const unique = Array.from(new Set(rows.map((row) => row.type))).sort();
+    return [{ value: "ALL", label: "All types" }, ...unique.map((value) => ({ value, label: value.replaceAll("_", " ") }))];
+  }, [rows]);
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return rows;
-    return rows.filter((row) => [row.code, row.name, row.type, row.registrationNo, row.contactName, row.contactEmail].some((value) => value.toLowerCase().includes(query)));
-  }, [rows, search]);
+    return rows.filter((row) => {
+      const matchesSearch = !query || [row.code, row.name, row.type, row.registrationNo, row.contactName, row.contactEmail].some((value) => value.toLowerCase().includes(query));
+      const matchesStatus = statusFilter === "ALL" || (statusFilter === "ACTIVE" ? row.isActive : !row.isActive);
+      const matchesType = typeFilter === "ALL" || row.type === typeFilter;
+      return matchesSearch && matchesStatus && matchesType;
+    });
+  }, [rows, search, statusFilter, typeFilter]);
+
+  const hasFilters = search.trim() !== "" || statusFilter !== "ALL" || typeFilter !== "ALL";
+
+  function clearFilters() {
+    setSearch("");
+    setStatusFilter("ALL");
+    setTypeFilter("ALL");
+  }
 
   function openCreate() { setDraft(EMPTY_COUNTERPARTY); setEditingId(null); setDialog("create"); }
   function openEdit(row: CounterpartyRow) {
@@ -56,9 +78,13 @@ export function CounterpartyManager({ rows, definitions, isAdmin }: {
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : "Could not save counterparty");
       toast.success(editingId ? "Counterparty updated." : "Counterparty created.");
-      setDialog(null); router.refresh();
-    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not save counterparty"); }
-    finally { setBusy(false); }
+      setDialog(null);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save counterparty");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const desktop = (
@@ -95,9 +121,27 @@ export function CounterpartyManager({ rows, definitions, isAdmin }: {
         {rows.length === 0 ? (
           <Empty className="border border-dashed"><EmptyHeader><EmptyTitle>No counterparties yet</EmptyTitle><EmptyDescription>Create one before registering an obligation.</EmptyDescription></EmptyHeader></Empty>
         ) : (
-          <div className="space-y-4">
-            <AfendaFilterToolbar search={search} onSearchChange={setSearch} searchPlaceholder="Search counterparties…" resultCount={filteredRows.length} />
-            {filteredRows.length === 0 ? <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No counterparties match this search.</p> : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
+          <div className="flex flex-col gap-4">
+            <AfendaFilterToolbar search={search} onSearchChange={setSearch} searchPlaceholder="Search counterparties…" resultCount={filteredRows.length}>
+              <AfendaSelectFilter
+                ariaLabel="Filter counterparties by type"
+                value={typeFilter}
+                onValueChange={setTypeFilter}
+                options={typeOptions}
+              />
+              <AfendaSelectFilter
+                ariaLabel="Filter counterparties by status"
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+                options={[
+                  { value: "ALL", label: "All statuses" },
+                  { value: "ACTIVE", label: "Active" },
+                  { value: "INACTIVE", label: "Inactive" },
+                ]}
+              />
+              {hasFilters ? <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>Clear filters</Button> : null}
+            </AfendaFilterToolbar>
+            {filteredRows.length === 0 ? <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No counterparties match the current filters.</p> : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
           </div>
         )}
       </AfendaSection>
