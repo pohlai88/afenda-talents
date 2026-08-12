@@ -7,6 +7,7 @@ const items: AfendaSubnavItem[] = [
   { href: "/admin/corporate/operations", label: "Operations", exact: true },
   { href: "/admin/corporate/operations/spreadsheet", label: "Spreadsheet" },
   { href: "/admin/corporate/operations/import", label: "Import" },
+  { href: "/admin/corporate/data-quality", label: "Data quality" },
   { href: "/admin/corporate/sites", label: "Sites" },
   { href: "/admin/corporate/obligations", label: "Obligations" },
   { href: "/admin/corporate/payments", label: "Payments" },
