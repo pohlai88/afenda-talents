@@ -130,7 +130,7 @@ export function SafeImportAssistant() {
       <CardContent className="flex flex-col gap-3">
         {committed ? <Alert><AlertTitle>Import committed</AlertTitle><AlertDescription>{committed.created} created · {committed.updated} updated · {committed.siteLinks} Site links · {committed.noChange} unchanged.</AlertDescription></Alert> : null}
         <div className="flex flex-wrap items-center gap-3">
-          <AfendaConfirmButton busy={busy} disabled={!canCommit} title="Commit this Corporate import?" description={preview ? `This will commit ${preview.summary.create} creates, ${preview.summary.update} updates and ${preview.summary.siteLinks} Site links from ${changedRows} changed rows. The entire transaction is rejected if the preview is stale or any row is invalid.` : "Preview the import first."} confirmLabel="Commit import" onConfirm={commitImport}>Commit reviewed import</AfendaConfirmButton>
+          {canCommit ? <AfendaConfirmButton busy={busy} title="Commit this Corporate import?" description={`This will commit ${preview!.summary.create} creates, ${preview!.summary.update} updates and ${preview!.summary.siteLinks} Site links from ${changedRows} changed rows. The entire transaction is rejected if the preview is stale or any row is invalid.`} confirmLabel="Commit import" onConfirm={commitImport}>Commit reviewed import</AfendaConfirmButton> : <Button disabled>Commit reviewed import</Button>}
           <span className="text-xs text-muted-foreground">No row-level partial success. One invalid/stale plan blocks the transaction.</span>
         </div>
       </CardContent>
