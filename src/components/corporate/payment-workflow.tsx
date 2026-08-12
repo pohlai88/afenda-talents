@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { AfendaConfirmButton } from "@/components/afenda/confirm-action";
 import { AfendaField } from "@/components/afenda/form-layout";
 import { AfendaMetadataGrid } from "@/components/afenda/metadata-grid";
+import { AfendaEmptyState } from "@/components/afenda/page-state";
 import { AfendaResponsiveOverlay } from "@/components/afenda/responsive-overlay";
 import { CustomFieldControls, type CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
 import { CorporateStatusBadge, formatMoney, todayDateOnly } from "@/components/corporate/status";
@@ -60,7 +61,13 @@ export function PaymentWorkflow({ dueItem, fields, isAdmin }: { dueItem: DueItem
         {isAdmin && dueItem.status === "OPEN" && (outstanding == null || outstanding > 0) ? <Button size="sm" onClick={() => { setRequestAmount(outstanding == null ? "" : String(outstanding)); setRequestOpen(true); }}>Request payment</Button> : null}
       </div>
 
-      {dueItem.payments.length === 0 ? <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">No payment requests yet.</p> : (
+      {dueItem.payments.length === 0 ? (
+        <AfendaEmptyState
+          title="No payment requests yet"
+          description="Request a payment when this due item is ready to move into approval and settlement."
+          compact
+        />
+      ) : (
         <ul className="flex flex-col gap-2">{dueItem.payments.map((payment) => (
           <li key={payment.id} className="rounded-lg border p-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
