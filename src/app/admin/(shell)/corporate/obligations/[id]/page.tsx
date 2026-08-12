@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AfendaActivityTimeline, type AfendaActivityItem } from "@/components/afenda/activity-timeline";
+import { AfendaEvidenceList } from "@/components/afenda/evidence-list";
 import { AfendaPageHelp } from "@/components/afenda/guidance-sheet";
+import { AfendaMetadataGrid, type AfendaMetadataItem } from "@/components/afenda/metadata-grid";
 import { AfendaNextAction } from "@/components/afenda/next-action";
+import { AfendaEmptyState } from "@/components/afenda/page-state";
 import { AfendaReadinessChecklist } from "@/components/afenda/readiness-checklist";
 import { AfendaRecordHeader } from "@/components/afenda/record-header";
 import { AfendaSection } from "@/components/afenda/section";
@@ -15,6 +19,7 @@ import { CorporateStatusBadge, formatMoney, todayDateOnly } from "@/components/c
 import type { DueItemDto } from "@/components/corporate/workflow-types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { auditActionLabel } from "@/lib/audit-display";
 import { requireWorkspaceUser } from "@/lib/auth-workspace";
 import { deriveDueState, formatDateOnly } from "@/lib/corporate-admin/domain";
 import { CORPORATE_PAGE_GUIDANCE } from "@/lib/corporate-admin/page-guidance";
@@ -26,6 +31,20 @@ export const dynamic = "force-dynamic";
 function objectValue(value: unknown): Record<string, unknown> { return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
 function fieldDto(field: { id: string; scope: "COUNTERPARTY" | "OBLIGATION" | "DUE_ITEM" | "PAYMENT"; key: string; label: string; dataType: "TEXT" | "LONG_TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "URL" | "EMAIL" | "PHONE"; description: string | null; placeholder: string | null; required: boolean; options: unknown; showInList: boolean; isActive: boolean; sortOrder: number }): CorporateCustomFieldDefinitionDto { return { ...field, options: Array.isArray(field.options) ? field.options.filter((value): value is string => typeof value === "string") : [] }; }
 function renderValue(value: unknown): string { if (value == null || value === "") return "—"; if (typeof value === "boolean") return value ? "Yes" : "No"; return String(value); }
+
+function formatActivityTime(value: Date): string {
+  return new Intl.DateTimeFormat("en-MY", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Kuala_Lumpur",
+  }).format(value);
+}
+
+function activityContext(action: string): string {
+  if (action.includes("payment")) return "Payment";
+  if (action.includes("due_item")) return "Due item";
+  return "Obligation";
+}
 
 function latestWorkflowSteps(status: "DRAFT" | "ACTIVE" | "ENDED" | "CANCELLED", dueItems: DueItemDto[]): AfendaWorkflowStep[] {
   const due = dueItems[0];
@@ -65,6 +84,7 @@ export default async function ObligationDetailPage({ params }: { params: Promise
     db.administrativeCustomFieldDefinition.findMany({ where: { isActive: true, scope: { in: ["OBLIGATION", "DUE_ITEM", "PAYMENT"] } }, orderBy: [{ scope: "asc" }, { sortOrder: "asc" }, { label: "asc" }] }),
   ]);
   if (!obligation) notFound();
+
   const isAdmin = session.role === "ADMIN";
   const dueFields = definitions.filter((field) => field.scope === "DUE_ITEM").map(fieldDto);
   const paymentFields = definitions.filter((field) => field.scope === "PAYMENT").map(fieldDto);
@@ -73,6 +93,29 @@ export default async function ObligationDetailPage({ params }: { params: Promise
   const dueItems: DueItemDto[] = obligation.dueItems.map((due) => ({
     id: due.id, periodLabel: due.periodLabel, dueDate: formatDateOnly(due.dueDate), expectedAmount: due.expectedAmount == null ? null : Number(due.expectedAmount), invoiceAmount: due.invoiceAmount == null ? null : Number(due.invoiceAmount), currency: due.currency, invoiceRequired: due.invoiceRequired, invoiceNumber: due.invoiceNumber, invoiceFileUrl: due.invoiceFileUrl, status: due.status, disputeFlag: due.disputeFlag, notes: due.notes, customFields: objectValue(due.customFields),
     payments: due.payments.map((payment) => ({ id: payment.id, requestedAmount: Number(payment.requestedAmount), approvalStatus: payment.approvalStatus, approvedAmount: payment.approvedAmount == null ? null : Number(payment.approvedAmount), paymentStatus: payment.paymentStatus, paidAmount: payment.paidAmount == null ? null : Number(payment.paidAmount), paymentDate: payment.paymentDate ? payment.paymentDate.toISOString().slice(0, 10) : null, paymentMethod: payment.paymentMethod, paymentReference: payment.paymentReference, paymentProofUrl: payment.paymentProofUrl, reconciledAt: payment.reconciledAt?.toISOString() ?? null, notes: payment.notes, customFields: objectValue(payment.customFields) })),
+  }));
+
+  const subjectIds = [
+    id,
+    ...dueItems.map((due) => due.id),
+    ...dueItems.flatMap((due) => due.payments.map((payment) => payment.id)),
+  ];
+  const auditEvents = await db.auditEvent.findMany({
+    where: { subjectId: { in: subjectIds }, action: { startsWith: "corporate." } },
+    orderBy: { createdAt: "desc" },
+    take: 30,
+  });
+  const actorIds = Array.from(new Set(auditEvents.map((event) => event.actor)));
+  const actors = actorIds.length > 0
+    ? await db.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, name: true } })
+    : [];
+  const actorNames = new Map(actors.map((actor) => [actor.id, actor.name]));
+  const activity: AfendaActivityItem[] = auditEvents.map((event) => ({
+    id: event.id,
+    title: auditActionLabel(event.action).replace("Administrative ", ""),
+    timestamp: formatActivityTime(event.createdAt),
+    actor: actorNames.get(event.actor) ?? "Workspace user",
+    context: activityContext(event.action),
   }));
 
   const today = todayDateOnly();
@@ -103,6 +146,25 @@ export default async function ObligationDetailPage({ params }: { params: Promise
   const canActivate = obligationCanActivate(uiInput);
   const nextAction = obligationNextAction(uiInput);
 
+  const termItems: AfendaMetadataItem[] = [
+    { label: "Category", value: obligation.category.replaceAll("_", " ") },
+    { label: "Counterparty", value: obligation.counterparty.name },
+    { label: "Owner", value: obligation.owner?.name ?? "—" },
+    { label: "Asset / location", value: obligation.assetReference ?? "—" },
+    { label: "Start", value: formatDateOnly(obligation.startDate) },
+    { label: "End", value: obligation.endDate ? formatDateOnly(obligation.endDate) : "Open-ended" },
+    { label: "Expected amount", value: formatMoney(obligation.currency, obligation.expectedAmount == null ? null : Number(obligation.expectedAmount)) },
+    { label: "Next due", value: obligation.nextDueDate ? formatDateOnly(obligation.nextDueDate) : "—" },
+    { label: "Schedule", value: obligation.recurring && obligation.recurrenceInterval && obligation.recurrenceUnit ? `Every ${obligation.recurrenceInterval} ${obligation.recurrenceUnit.toLowerCase()}${obligation.recurrenceInterval === 1 ? "" : "s"}` : "One-off / manual" },
+    { label: "Renewal", value: obligation.renewalDate ? formatDateOnly(obligation.renewalDate) : obligation.autoRenew ? "Auto-renew enabled" : "—" },
+    { label: "Notice", value: obligation.noticeDays == null ? "—" : `${obligation.noticeDays} days` },
+    { label: "Payment method", value: obligation.paymentMethod?.replaceAll("_", " ") ?? "—" },
+    ...obligationFields.map((field) => ({ label: field.label, value: renderValue(obligationCustom[field.key]) })),
+  ];
+
+  const latestDue = dueItems[0];
+  const latestPayment = latestDue?.payments[0];
+
   const headerActions = (
     <div className="flex flex-wrap items-center gap-2">
       <AfendaPageHelp title="Obligation record" guidance={CORPORATE_PAGE_GUIDANCE.obligations} />
@@ -124,20 +186,61 @@ export default async function ObligationDetailPage({ params }: { params: Promise
       </AfendaSection>
 
       <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
-        <Card><CardHeader><CardTitle>Terms</CardTitle><CardDescription>Governing dates, recurrence and money.</CardDescription></CardHeader><CardContent className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-          <Fact label="Category" value={obligation.category.replaceAll("_", " ")} /><Fact label="Counterparty" value={obligation.counterparty.name} /><Fact label="Owner" value={obligation.owner?.name ?? "—"} /><Fact label="Asset / location" value={obligation.assetReference ?? "—"} /><Fact label="Start" value={formatDateOnly(obligation.startDate)} /><Fact label="End" value={obligation.endDate ? formatDateOnly(obligation.endDate) : "Open-ended"} /><Fact label="Expected amount" value={formatMoney(obligation.currency, obligation.expectedAmount == null ? null : Number(obligation.expectedAmount))} /><Fact label="Next due" value={obligation.nextDueDate ? formatDateOnly(obligation.nextDueDate) : "—"} /><Fact label="Schedule" value={obligation.recurring && obligation.recurrenceInterval && obligation.recurrenceUnit ? `Every ${obligation.recurrenceInterval} ${obligation.recurrenceUnit.toLowerCase()}${obligation.recurrenceInterval === 1 ? "" : "s"}` : "One-off / manual"} /><Fact label="Renewal" value={obligation.renewalDate ? formatDateOnly(obligation.renewalDate) : obligation.autoRenew ? "Auto-renew enabled" : "—"} /><Fact label="Notice" value={obligation.noticeDays == null ? "—" : `${obligation.noticeDays} days`} /><Fact label="Payment method" value={obligation.paymentMethod?.replaceAll("_", " ") ?? "—"} />
-          {obligationFields.map((field) => <Fact key={field.id} label={field.label} value={renderValue(obligationCustom[field.key])} />)}
-        </CardContent></Card>
+        <Card>
+          <CardHeader><CardTitle>Terms & metadata</CardTitle><CardDescription>Governing dates, recurrence, commercial terms and configured record metadata.</CardDescription></CardHeader>
+          <CardContent><AfendaMetadataGrid items={termItems} /></CardContent>
+        </Card>
         <div className="grid gap-6">
           <AfendaReadinessChecklist title="Record readiness" description={obligation.status === "DRAFT" ? "Resolve required items before activation." : "Ongoing quality checks for this operational record."} items={readiness} />
-          <Card><CardHeader><CardTitle>Contract & references</CardTitle><CardDescription>Source evidence and administrative references.</CardDescription></CardHeader><CardContent className="space-y-4"><Fact label="Contract required" value={obligation.contractRequired ? "Yes" : "No"} /><Fact label="Contract reference" value={obligation.contractReference ?? "—"} />{obligation.contractFileUrl ? <div><p className="text-xs text-muted-foreground">Contract document</p><a href={obligation.contractFileUrl} target="_blank" rel="noreferrer" className="text-sm font-medium underline underline-offset-4">Open linked document</a></div> : <Fact label="Contract document" value="—" />}<Fact label="Notes" value={obligation.notes ?? "—"} /></CardContent></Card>
+          <AfendaEvidenceList
+            title="Evidence & references"
+            description="Primary contract and latest operational evidence at a glance. Full evidence remains on each due item below."
+            items={[
+              {
+                label: "Contract document",
+                reference: obligation.contractReference,
+                href: obligation.contractFileUrl,
+                required: obligation.contractRequired,
+                note: obligation.contractRequired ? "Required by this obligation before activation." : "Optional contract or agreement evidence.",
+              },
+              ...(latestDue ? [{
+                label: "Latest invoice / support",
+                reference: latestDue.invoiceNumber,
+                href: latestDue.invoiceFileUrl,
+                required: latestDue.invoiceRequired,
+                note: `Latest due item: ${latestDue.periodLabel}.`,
+              }] : []),
+              ...(latestPayment && (latestPayment.paymentReference || latestPayment.paymentProofUrl) ? [{
+                label: "Latest payment evidence",
+                reference: latestPayment.paymentReference,
+                href: latestPayment.paymentProofUrl,
+                note: latestPayment.paymentDate ? `Settlement recorded ${latestPayment.paymentDate}.` : "Latest settlement evidence.",
+              }] : []),
+            ]}
+          />
+          {obligation.notes ? (
+            <Card>
+              <CardHeader><CardTitle>Record notes</CardTitle><CardDescription>Operational context that does not belong in a structured field.</CardDescription></CardHeader>
+              <CardContent><p className="text-sm leading-6 text-muted-foreground">{obligation.notes}</p></CardContent>
+            </Card>
+          ) : null}
         </div>
       </div>
 
       <AfendaSection title="Due schedule & payments" description="Each due item keeps its own invoice evidence, dispute flag and payment history.">
-        {dueItems.length === 0 ? <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No due items yet. {obligation.status === "ACTIVE" ? "Generate the next scheduled due or add one manually." : "Activate the obligation first."}</CardContent></Card> : <div className="space-y-4">{dueItems.map((due) => <DueItemPanel key={due.id} dueItem={due} dueFields={dueFields} paymentFields={paymentFields} isAdmin={isAdmin} />)}</div>}
+        {dueItems.length === 0 ? (
+          <AfendaEmptyState
+            title="No due items yet"
+            description={obligation.status === "ACTIVE" ? "Generate the next scheduled due or add one manually." : "Activate the obligation first."}
+          />
+        ) : <div className="flex flex-col gap-4">{dueItems.map((due) => <DueItemPanel key={due.id} dueItem={due} dueFields={dueFields} paymentFields={paymentFields} isAdmin={isAdmin} />)}</div>}
       </AfendaSection>
+
+      <AfendaActivityTimeline
+        items={activity}
+        title="Activity history"
+        description="Audit-backed changes across this obligation, its due items and payment records."
+      />
     </div>
   );
 }
-function Fact({ label, value }: { label: string; value: string }) { return <div className="min-w-0"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 break-words text-sm font-medium">{value}</p></div>; }
