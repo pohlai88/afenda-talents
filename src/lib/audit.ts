@@ -12,7 +12,8 @@ export type AuditAction =
   | "corporate.obligation.site.linked" | "corporate.obligation.party.linked" | "corporate.obligation.line.created" | "corporate.obligation.line.updated"
   | "corporate.due_item.created" | "corporate.due_item.updated" | "corporate.payment.requested" | "corporate.payment.approved"
   | "corporate.payment.rejected" | "corporate.payment.recorded" | "corporate.payment.reconciled" | "corporate.payment.voided"
-  | "corporate.custom_field.created" | "corporate.custom_field.updated";
+  | "corporate.custom_field.created" | "corporate.custom_field.updated"
+  | "corporate.work_item.created" | "corporate.work_item.updated" | "corporate.work_item.resolved" | "corporate.work_item.escalated";
 
 const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 const TOKEN_ALPHABET = /^[A-Za-z0-9_-]{40,}$/;
