@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -32,12 +33,12 @@ function initialColumns(): Record<ColumnKey, boolean> {
   } catch { return DEFAULT_COLUMNS; }
 }
 
-export function SpreadsheetOperationsGrid({ rows, sites, isAdmin, onMutated }: {
+export function SpreadsheetOperationsGrid({ rows, sites, isAdmin }: {
   rows: OperationsGridRow[];
   sites: Pick<OperationsMatrixRow, "siteId" | "siteCode" | "siteName">[];
   isAdmin: boolean;
-  onMutated: () => void;
 }) {
+  const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [columns, setColumns] = useState<Record<ColumnKey, boolean>>(initialColumns);
   const [columnOpen, setColumnOpen] = useState(false);
@@ -72,7 +73,7 @@ export function SpreadsheetOperationsGrid({ rows, sites, isAdmin, onMutated }: {
       if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : "Bulk operation failed");
       toast.success(success);
       setSelected(new Set());
-      onMutated();
+      router.refresh();
     } catch (error) { toast.error(error instanceof Error ? error.message : "Bulk operation failed"); }
     finally { setBusy(false); }
   }
@@ -89,7 +90,7 @@ export function SpreadsheetOperationsGrid({ rows, sites, isAdmin, onMutated }: {
       if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : "Could not update line");
       toast.success(`${row.lineName} updated.`);
       setEditing(null);
-      onMutated();
+      router.refresh();
     } catch (error) { toast.error(error instanceof Error ? error.message : "Could not update line"); }
     finally { setBusy(false); }
   }
