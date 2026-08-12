@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AfendaAttentionList } from "@/components/afenda/attention-list";
 import { AfendaPageHelp } from "@/components/afenda/guidance-sheet";
 import { AfendaMetricCard } from "@/components/afenda/metric-card";
+import { AfendaPageFrame } from "@/components/afenda/page-frame";
 import { AfendaSection } from "@/components/afenda/section";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
 import { CorporateStatusBadge, formatMoney, todayDateOnly } from "@/components/corporate/status";
@@ -58,7 +59,7 @@ export default async function CorporateOverviewPage() {
   });
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6">
+    <AfendaPageFrame>
       <PageHeader
         eyebrow="Corporate Administration"
         title="Administration control centre"
@@ -86,6 +87,6 @@ export default async function CorporateOverviewPage() {
           emptyDescription="There is nothing in the current due-attention queue."
         />
       </AfendaSection>
-    </div>
+    </AfendaPageFrame>
   );
 }
