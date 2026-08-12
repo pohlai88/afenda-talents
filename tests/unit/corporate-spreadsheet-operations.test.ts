@@ -10,6 +10,8 @@ describe("Corporate spreadsheet operations", () => {
 
   it("deduplicates repeated selected identifiers", () => {
     const parsed = corporateBulkOperationSchema.parse({ action: "SET_LINE_ACTIVE", lineIds: ["line-a", "line-a", "line-b"], isActive: true });
+    expect(parsed.action).toBe("SET_LINE_ACTIVE");
+    if (parsed.action !== "SET_LINE_ACTIVE") throw new Error("Expected line activation batch");
     expect(parsed.lineIds).toEqual(["line-a", "line-b"]);
   });
 
