@@ -41,6 +41,8 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "corporate.obligation.cancelled": "Administrative obligation cancelled",
   "corporate.obligation.site.linked": "Obligation linked to site",
   "corporate.obligation.party.linked": "Counterparty role linked to obligation",
+  "corporate.obligation.line.created": "Agreement line created",
+  "corporate.obligation.line.updated": "Agreement line updated",
   "corporate.due_item.created": "Administrative due item created",
   "corporate.due_item.updated": "Administrative due item updated",
   "corporate.payment.requested": "Administrative payment requested",
@@ -69,10 +71,7 @@ export type AuditDisplayRow = {
 
 export type AuditFilter = { action: string | null; from: Date | null; to: Date | null };
 
-export function auditActionLabel(action: string): string {
-  return AUDIT_ACTION_LABELS[action as AuditAction] ?? action;
-}
-
+export function auditActionLabel(action: string): string { return AUDIT_ACTION_LABELS[action as AuditAction] ?? action; }
 export function filterAuditRows(rows: AuditDisplayRow[], filter: AuditFilter): AuditDisplayRow[] {
   return rows.filter((row) => {
     if (filter.action && row.action !== filter.action) return false;
@@ -81,19 +80,8 @@ export function filterAuditRows(rows: AuditDisplayRow[], filter: AuditFilter): A
     return true;
   });
 }
-
-export function endOfLocalDay(date: Date): Date {
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
-  return end;
-}
-
-export function startOfLocalDay(date: Date): Date {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  return start;
-}
-
+export function endOfLocalDay(date: Date): Date { const end = new Date(date); end.setHours(23, 59, 59, 999); return end; }
+export function startOfLocalDay(date: Date): Date { const start = new Date(date); start.setHours(0, 0, 0, 0); return start; }
 export function formatAuditMeta(meta: unknown): { key: string; value: string }[] {
   if (!meta || typeof meta !== "object" || Array.isArray(meta)) return [];
   const banned = new Set(["email", "fullname", "name", "token", "password"]);
