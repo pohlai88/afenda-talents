@@ -11,6 +11,18 @@ describe("Corporate safe paste import", () => {
     expect(result.rows[0]).toMatchObject({ obligationCode: "ADM-001", lineCode: "RENT", expectedAmount: 15000, recurring: true, recurrenceInterval: 1, recurrenceUnit: "MONTH", invoiceRequired: true, siteCodes: ["SITE-A", "SITE-B"] });
   });
 
+  it("normalizes unambiguous spreadsheet header aliases", () => {
+    const result = parseCorporateImportText("Agreement Code\tCharge Code\tAmount\tDue Date\tSites\nADM-001\tRENT\t15000\t2026-09-01\tSITE-A;SITE-B");
+    expect(result.errors).toEqual([]);
+    expect(result.rows[0]).toMatchObject({ obligationCode: "ADM-001", lineCode: "RENT", expectedAmount: 15000, nextDueDate: "2026-09-01", siteCodes: ["SITE-A", "SITE-B"] });
+  });
+
+  it("rejects two pasted headers that map to the same Afenda field", () => {
+    const result = parseCorporateImportText("obligation_code\tagreement_code\tline_code\nADM-001\tADM-001\tRENT");
+    expect(result.rows).toEqual([]);
+    expect(result.errors[0]).toContain("same Afenda field");
+  });
+
   it("requires stable identifiers", () => {
     const result = parseCorporateImportText("line_code\tline_name\nRENT\tMonthly rent");
     expect(result.rows).toEqual([]);
