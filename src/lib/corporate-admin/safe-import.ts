@@ -89,16 +89,16 @@ function splitDelimitedLine(line: string, delimiter: string): string[] {
   return values;
 }
 
-function bool(value: string): boolean | undefined {
-  if (!value.trim()) return undefined;
+function bool(value?: string): boolean | undefined {
+  if (!value?.trim()) return undefined;
   const normalized = value.trim().toLowerCase();
   if (["true", "yes", "y", "1"].includes(normalized)) return true;
   if (["false", "no", "n", "0"].includes(normalized)) return false;
   throw new Error(`Invalid boolean \"${value}\"`);
 }
 
-function number(value: string): number | undefined {
-  if (!value.trim()) return undefined;
+function number(value?: string): number | undefined {
+  if (!value?.trim()) return undefined;
   const parsed = Number(value.replaceAll(",", ""));
   if (!Number.isFinite(parsed)) throw new Error(`Invalid number \"${value}\"`);
   return parsed;
