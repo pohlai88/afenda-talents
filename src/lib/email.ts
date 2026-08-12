@@ -4,23 +4,16 @@ import { env } from "@/lib/env";
 
 export { INVITATION_SUBJECT, RECEIPT_SUBJECT } from "@/lib/email-copy";
 
-/**
- * Two templates: invitation (also used for resend, per DECISIONS.md D12 — a reminder with
- * a working link IS a resend, since only token hashes are stored) and submission receipt.
- *
- * The console transport is not a nicety — it is how the whole flow is tested locally and
- * how the e2e suite captures invitation links, so it must print the full message.
- */
 type Message = { to: string; subject: string; html: string };
 
 const shell = (body: string) =>
   `<div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#111">${body}</div>`;
 
-async function send(message: Message): Promise<void> {
+async function send(message: Message, idempotencyKey?: string): Promise<void> {
   if (!env.RESEND_API_KEY) {
-    // Stripping tags would also strip the href attributes, and the invitation URL lives
-    // in one — so links are extracted and printed explicitly. The e2e suite reads them.
-    const links = [...message.html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
+    const links = [...message.html.matchAll(/href="([^"]+)"/g)].map(
+      (match) => match[1],
+    );
     console.log(
       [
         "",
@@ -37,17 +30,29 @@ async function send(message: Message): Promise<void> {
     );
     return;
   }
+
   const resend = new Resend(env.RESEND_API_KEY);
-  await resend.emails.send({ from: env.MAIL_FROM, ...message });
+  const { error } = await resend.emails.send(
+    { from: env.MAIL_FROM, ...message },
+    idempotencyKey ? { idempotencyKey } : undefined,
+  );
+  if (error) {
+    throw new Error(`Email provider rejected the request: ${error.message}`);
+  }
 }
 
 const formatDate = (date: Date) =>
-  date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
-// The HTML builders are exported so the admin preview renders the exact markup that is
-// sent — one source of truth, no copy drift. They never see a real token: the sender
-// passes the invitation URL in, the preview passes a placeholder.
-export function invitationHtml(fullName: string, url: string, expiresAt: Date): string {
+export function invitationHtml(
+  fullName: string,
+  url: string,
+  expiresAt: Date,
+): string {
   return shell(`
       <p>Hello ${fullName},</p>
       <p>As part of our hiring process, we would like you to complete a short self-assessment.
@@ -75,18 +80,29 @@ export async function sendInvitation(
   fullName: string,
   url: string,
   expiresAt: Date,
+  idempotencyKey?: string,
 ): Promise<void> {
-  await send({
-    to,
-    subject: INVITATION_SUBJECT,
-    html: invitationHtml(fullName, url, expiresAt),
-  });
+  await send(
+    {
+      to,
+      subject: INVITATION_SUBJECT,
+      html: invitationHtml(fullName, url, expiresAt),
+    },
+    idempotencyKey,
+  );
 }
 
-export async function sendReceipt(to: string, fullName: string): Promise<void> {
-  await send({
-    to,
-    subject: RECEIPT_SUBJECT,
-    html: receiptHtml(fullName),
-  });
+export async function sendReceipt(
+  to: string,
+  fullName: string,
+  idempotencyKey?: string,
+): Promise<void> {
+  await send(
+    {
+      to,
+      subject: RECEIPT_SUBJECT,
+      html: receiptHtml(fullName),
+    },
+    idempotencyKey,
+  );
 }

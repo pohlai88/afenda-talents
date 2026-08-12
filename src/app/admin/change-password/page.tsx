@@ -1,39 +1,23 @@
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
-import { requireHiringUser } from "@/lib/auth-admin";
-import {
-  ChangePasswordForm,
-  ForcedChangePasswordForm,
-} from "@/components/change-password-form";
+import { PasswordChangeWorkspaceLoader } from "@/components/password-change-workspace-loader";
+import { requirePagePasswordChangeUser } from "@/lib/page-authority";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Sits outside the (shell) route group on purpose: the shell refuses to render while
- * mustChangePassword is set and redirects here, so this page must not be wrapped by it.
- * Reachable voluntarily from the sidebar as well.
+ * This page sits outside the admin shell so a forced change can be completed before
+ * operational navigation becomes available.
  */
 export default async function ChangePasswordPage() {
-  let session;
   try {
-    session = await requireHiringUser();
+    await requirePagePasswordChangeUser();
   } catch {
     redirect("/admin/login");
   }
 
-  const user = await db.user.findUnique({
-    where: { id: session.userId },
-    select: { email: true, mustChangePassword: true },
-  });
-  if (!user) redirect("/admin/login");
-
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
-      {user.mustChangePassword ? (
-        <ForcedChangePasswordForm email={user.email} />
-      ) : (
-        <ChangePasswordForm email={user.email} />
-      )}
+      <PasswordChangeWorkspaceLoader />
     </main>
   );
 }

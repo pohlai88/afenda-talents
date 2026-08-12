@@ -1,23 +1,20 @@
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth-admin";
-import { UserManager } from "@/components/user-manager";
 import { PageHeader } from "@/components/page-header";
+import { UserManagerLoader } from "@/components/user-manager-loader";
+import { requirePageAdmin } from "@/lib/page-authority";
 
 export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
   let session;
   try {
-    session = await requireAdmin();
+    session = await requirePageAdmin();
   } catch {
     redirect("/admin");
   }
 
-  const users = await db.user.findMany({
-    orderBy: { createdAt: "asc" },
-    select: { id: true, email: true, name: true, role: true },
-  });
+  // eslint-disable-next-line react-hooks/purity -- force-dynamic request marker; router.refresh() must reload user context.
+  const refreshNonce = Date.now();
 
   return (
     <div className="mx-auto w-full max-w-3xl p-6">
@@ -26,9 +23,9 @@ export default async function UsersPage() {
         title="Hiring team"
         description="Admins invite, revoke, export and manage this list. Viewers can open the dashboard and candidate profiles, and change nothing."
       />
-      <UserManager
-        users={users}
+      <UserManagerLoader
         currentUserId={session.userId}
+        refreshNonce={refreshNonce}
       />
     </div>
   );

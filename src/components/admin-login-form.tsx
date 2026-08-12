@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 export function AdminLoginForm({ developerMode }: { developerMode: boolean }) {
   const router = useRouter();
@@ -64,6 +65,12 @@ export function AdminLoginForm({ developerMode }: { developerMode: boolean }) {
   const description = developerMode
     ? "Restricted to the designated developer administrator. Normal password, rate-limit, session, and audit controls still apply."
     : "Candidates don’t sign in — their emailed link is their access.";
+  const switchHref = developerMode
+    ? "/admin/login"
+    : "/admin/login?mode=developer";
+  const switchLabel = developerMode
+    ? "Use hiring team sign in"
+    : "Developer administrator sign in";
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
@@ -126,17 +133,12 @@ export function AdminLoginForm({ developerMode }: { developerMode: boolean }) {
             <Button type="submit" className="w-full" size="lg" disabled={busy}>
               {busy ? "Signing in…" : developerMode ? "Open developer administration" : "Sign in"}
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full"
-              nativeButton={false}
-              render={
-                <Link href={developerMode ? "/admin/login" : "/admin/login?mode=developer"} />
-              }
+            <Link
+              href={switchHref}
+              className={cn(buttonVariants({ variant: "ghost" }), "w-full")}
             >
-              {developerMode ? "Use hiring team sign in" : "Developer administrator sign in"}
-            </Button>
+              {switchLabel}
+            </Link>
           </CardFooter>
         </Card>
       </form>

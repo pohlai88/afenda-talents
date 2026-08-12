@@ -1,0 +1,76 @@
+name: Runner diagnostics
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  echo:
+    name: 00 runner shell
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo runner-executed
+
+  checkout:
+    name: 01 checkout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+  node:
+    name: 02 node setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --version
+
+  pnpm:
+    name: 03 pnpm setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          corepack enable
+          corepack prepare pnpm@10.33.4 --activate
+          pnpm --version
+
+  install:
+    name: 04 frozen install
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://preview:preview@127.0.0.1:1/preview
+      DIRECT_URL: postgresql://preview:preview@127.0.0.1:1/preview
+      APP_URL: http://127.0.0.1:3100
+      APP_SECRET: ci-only-app-secret-0123456789abcdef0123456789abcdef
+      ADMIN_EMAIL: ci-admin@example.com
+      ADMIN_PASSWORD: ci-only-generated-password-0123456789
+      MAIL_FROM: "Afenda Talents CI <noreply@example.com>"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          corepack enable
+          corepack prepare pnpm@10.33.4 --activate
+      - run: pnpm install --frozen-lockfile
+
+  postgres:
+    name: 05 PostgreSQL runner service
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "ALTER USER postgres PASSWORD 'postgres';"
+          sudo -u postgres dropdb --if-exists afenda_diag
+          sudo -u postgres createdb afenda_diag
+          pg_isready -h 127.0.0.1 -U postgres -d afenda_diag

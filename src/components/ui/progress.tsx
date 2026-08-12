@@ -10,6 +10,9 @@ function Progress({
   value,
   ...props
 }: ProgressPrimitive.Root.Props) {
+  const ariaLabel = props["aria-label"]
+  const ariaValueText = props["aria-valuetext"]
+
   return (
     <ProgressPrimitive.Root
       value={value}
@@ -18,7 +21,14 @@ function Progress({
       {...props}
     >
       {children}
-      <ProgressTrack>
+      <ProgressTrack
+        role="progressbar"
+        aria-label={ariaLabel}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={typeof value === "number" ? value : undefined}
+        aria-valuetext={ariaValueText}
+      >
         <ProgressIndicator />
       </ProgressTrack>
     </ProgressPrimitive.Root>

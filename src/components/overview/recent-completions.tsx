@@ -1,9 +1,16 @@
 import Link from "next/link";
+import { ArrowUpRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { EmptyDescription } from "@/components/ui/empty";
 import type { UiDimension } from "@/lib/result-display";
+import { withRound } from "@/lib/round-context";
 
 export type CompletedProfile = {
   id: string;
@@ -14,88 +21,113 @@ export type CompletedProfile = {
 };
 
 /**
- * Five separate dimension readings — never a total, a rank, or an ordering by score
- * (build-skill invariant 9). Colour encodes nothing: every bar uses the same neutral
- * tone, and the value and band are text, so the meaning survives greyscale printing
- * and colour-blind readers alike.
+ * Five separate dimension readings. There is no total, rank, ordering by score, or
+ * colour encoding of candidate quality.
  */
-function DimensionPips({ dimensions }: { dimensions: UiDimension[] }) {
+function DimensionReadings({ dimensions }: { dimensions: UiDimension[] }) {
   return (
-    <ul className="flex flex-wrap gap-3">
-      {dimensions.map((d) => (
-        <li key={d.code} className="min-w-14">
-          <span className="sr-only">
-            {d.code}: {d.scaled} out of 100, {d.band} band.
-          </span>
-          <span aria-hidden="true" className="block font-mono text-[10px] text-muted-foreground">
-            {d.code}
-          </span>
-          <span aria-hidden="true" className="mt-1 block h-1 w-full rounded-full bg-muted">
-            <span
-              className="block h-1 rounded-full bg-chart-5"
-              style={{ width: `${Math.max(0, Math.min(100, d.scaled))}%` }}
-            />
-          </span>
-          <span aria-hidden="true" className="mt-1 block text-xs tabular-nums">
-            {d.scaled}
-          </span>
-        </li>
+    <dl className="grid grid-cols-5 gap-2" aria-label="Dimension readings">
+      {dimensions.map((dimension) => (
+        <div key={dimension.code} className="min-w-0">
+          <dt className="font-mono text-[0.625rem] font-medium tracking-[0.08em] text-muted-foreground">
+            {dimension.code}
+          </dt>
+          <dd className="mt-1 space-y-1.5">
+            <span className="block text-sm font-medium tabular-nums">
+              {dimension.scaled}
+            </span>
+            <span className="block h-1 overflow-hidden rounded-full bg-muted">
+              <span
+                className="block h-full rounded-full bg-chart-5"
+                style={{
+                  width: `${Math.max(0, Math.min(100, dimension.scaled))}%`,
+                }}
+              />
+            </span>
+            <span className="sr-only">{dimension.band} band</span>
+          </dd>
+        </div>
       ))}
-    </ul>
+    </dl>
   );
 }
 
-export function RecentCompletions({ profiles }: { profiles: CompletedProfile[] }) {
+export function RecentCompletions({
+  profiles,
+  roundId,
+}: {
+  profiles: CompletedProfile[];
+  roundId?: string | null;
+}) {
   return (
-    <Card>
-      <CardHeader>
+    <Card className="shadow-none">
+      <CardHeader className="border-b bg-surface-subtle">
         <CardTitle id="completions-heading">Recently completed</CardTitle>
         <CardDescription>
-          Five dimensions per candidate. There is no overall score and no ranking — each
-          profile is one input into a hiring decision.
+          Separate dimension readings for human review. No overall score or ranking is
+          produced.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0">
         {profiles.length === 0 ? (
-          <EmptyDescription className="py-4">
-            No completed assessments yet.
-          </EmptyDescription>
+          <div className="flex min-h-40 flex-col items-center justify-center gap-2 px-6 py-8 text-center">
+            <CheckCircle2 aria-hidden="true" className="size-6 text-muted-foreground" />
+            <p className="text-sm font-medium">No completed profiles yet</p>
+            <p className="max-w-md text-xs leading-5 text-muted-foreground">
+              Completed candidate assessments will appear here when a profile is ready
+              for review.
+            </p>
+          </div>
         ) : (
           <ul className="divide-y">
-            {profiles.map((p) => (
+            {profiles.map((profile) => (
               <li
-                key={p.id}
-                className="flex items-start gap-4 py-4 first:pt-0 last:pb-0"
+                key={profile.id}
+                className="grid min-w-0 gap-4 px-5 py-5 lg:grid-cols-[minmax(12rem,0.8fr)_minmax(18rem,1.3fr)_auto] lg:items-center"
               >
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback className="text-xs font-medium">
-                    {p.fullName.split(" ").map((name) => name[0]).join("").slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-sm font-medium">{p.fullName}</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Completed {p.submittedAt?.toLocaleDateString("en-GB") ?? "—"} ·{" "}
-                        {p.contextCount === 0
-                          ? "no response-context indicators"
-                          : `${p.contextCount} of 4 response-context indicators to review`}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      nativeButton={false}
-                      render={<Link href={`/admin/candidate/${p.id}`} />}
-                    >
-                      Review profile
-                    </Button>
-                  </div>
-                  <div className="mt-3">
-                    <DimensionPips dimensions={p.dimensions} />
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar className="size-10 border">
+                    <AvatarFallback className="text-xs font-semibold">
+                      {profile.fullName
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((name) => name[0]?.toUpperCase())
+                        .join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <h3 className="truncate text-sm font-medium">
+                      {profile.fullName}
+                    </h3>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Completed {profile.submittedAt?.toLocaleDateString("en-GB") ?? "—"}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {profile.contextCount === 0
+                        ? "No response-context indicators"
+                        : `${profile.contextCount} of 4 context indicators to review`}
+                    </p>
                   </div>
                 </div>
+                <DimensionReadings dimensions={profile.dimensions} />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-fit lg:justify-self-end"
+                  nativeButton={false}
+                  render={
+                    <Link
+                      href={withRound(
+                        `/admin/candidate/${profile.id}`,
+                        roundId,
+                      )}
+                    />
+                  }
+                >
+                  Review profile
+                  <ArrowUpRight aria-hidden="true" />
+                </Button>
               </li>
             ))}
           </ul>

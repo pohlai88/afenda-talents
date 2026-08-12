@@ -1,31 +1,48 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import {
-	assertTransition,
-	type Status,
-	type StatusTransitionExtra,
+  assertTransition,
+  type Status,
+  type StatusTransitionExtra,
 } from "@/lib/status-constants";
 
+export class AssignmentNotFound extends Error {
+  constructor(id: string) {
+    super(`Assignment not found: ${id}`);
+    this.name = "AssignmentNotFound";
+  }
+}
+
+export class ConcurrentStatusTransition extends Error {
+  constructor(id: string) {
+    super(`Assignment changed during status transition: ${id}`);
+    this.name = "ConcurrentStatusTransition";
+  }
+}
+
 /**
- * Assignment status machine (D18). ONLY writer of CandidateAssignment.status.
- * Spec §3; build-skill invariant 3.
+ * The single write boundary for CandidateAssignment.status.
  *
- * Server-only — imports Prisma. Client code must use status-constants.ts.
+ * The transition is validated from the latest visible row and written with a
+ * compare-and-set predicate. Callers may pass a Prisma transaction so the status,
+ * result, and audit entry commit as one operation.
  */
 export async function applyStatus(
-	assignmentId: string,
-	to: Status,
-	extra: StatusTransitionExtra = {},
+  id: string,
+  to: Status,
+  extra: StatusTransitionExtra = {},
+  client: Prisma.TransactionClient | typeof db = db,
 ): Promise<void> {
-	const assignment = await db.candidateAssignment.findUnique({
-		where: { id: assignmentId },
-		select: { status: true },
-	});
-	if (!assignment) throw new Error(`Assignment not found: ${assignmentId}`);
+  const current = await client.candidateAssignment.findUnique({
+    where: { id },
+    select: { status: true },
+  });
+  if (!current) throw new AssignmentNotFound(id);
+  assertTransition(current.status, to);
 
-	assertTransition(assignment.status, to);
-
-	await db.candidateAssignment.update({
-		where: { id: assignmentId },
-		data: { status: to, ...extra },
-	});
+  const updated = await client.candidateAssignment.updateMany({
+    where: { id, status: current.status },
+    data: { status: to, ...extra },
+  });
+  if (updated.count !== 1) throw new ConcurrentStatusTransition(id);
 }

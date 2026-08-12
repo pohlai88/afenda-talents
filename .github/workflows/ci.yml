@@ -14,10 +14,48 @@ permissions:
   contents: read
 
 jobs:
-  quality:
-    name: Lint, types, unit, invariants, migration, build
+  security:
+    name: Production dependency audit
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://preview:preview@127.0.0.1:1/preview
+      DIRECT_URL: postgresql://preview:preview@127.0.0.1:1/preview
+      APP_URL: http://127.0.0.1:3100
+      APP_SECRET: ci-only-app-secret-0123456789abcdef0123456789abcdef
+      ADMIN_EMAIL: ci-admin@example.com
+      ADMIN_PASSWORD: ci-only-generated-password-0123456789
+      RESEND_API_KEY: ""
+      MAIL_FROM: "Afenda Talents CI <noreply@example.com>"
+      INVITE_TTL_DAYS: "14"
+      RETENTION_DAYS: "180"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pinned pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.4 --activate
+          node --version
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level=high
+
+  migration:
+    name: Clean PostgreSQL migration and seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/afenda_ci?sslmode=disable
       DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/afenda_ci?sslmode=disable
@@ -26,24 +64,25 @@ jobs:
       ADMIN_EMAIL: ci-admin@example.com
       ADMIN_PASSWORD: ci-only-generated-password-0123456789
       RESEND_API_KEY: ""
-      MAIL_FROM: Afenda Talents CI <noreply@example.com>
+      MAIL_FROM: "Afenda Talents CI <noreply@example.com>"
       INVITE_TTL_DAYS: "14"
       RETENTION_DAYS: "180"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.4
-          run_install: false
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: pnpm
+          node-version: 22
+
+      - name: Enable pinned pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.4 --activate
+          node --version
+          pnpm --version
 
       - name: Start isolated PostgreSQL database
         shell: bash
@@ -57,9 +96,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Audit production dependencies
-        run: pnpm audit --prod --audit-level=high
-
       - name: Apply migrations to a clean database
         run: pnpm db:deploy
 
@@ -68,6 +104,41 @@ jobs:
 
       - name: Verify migration status
         run: pnpm db:status
+
+  application:
+    name: Lint, types, unit, invariants, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DATABASE_URL: postgresql://preview:preview@127.0.0.1:1/preview
+      DIRECT_URL: postgresql://preview:preview@127.0.0.1:1/preview
+      APP_URL: http://127.0.0.1:3100
+      APP_SECRET: ci-only-app-secret-0123456789abcdef0123456789abcdef
+      ADMIN_EMAIL: ci-admin@example.com
+      ADMIN_PASSWORD: ci-only-generated-password-0123456789
+      RESEND_API_KEY: ""
+      MAIL_FROM: "Afenda Talents CI <noreply@example.com>"
+      INVITE_TTL_DAYS: "14"
+      RETENTION_DAYS: "180"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pinned pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.4 --activate
+          node --version
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Lint
         run: pnpm lint
@@ -86,7 +157,7 @@ jobs:
 
   e2e:
     name: Chromium end-to-end and accessibility
-    needs: quality
+    needs: [security, migration, application]
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
@@ -97,24 +168,25 @@ jobs:
       ADMIN_EMAIL: ci-admin@example.com
       ADMIN_PASSWORD: ci-only-generated-password-0123456789
       RESEND_API_KEY: ""
-      MAIL_FROM: Afenda Talents CI <noreply@example.com>
+      MAIL_FROM: "Afenda Talents CI <noreply@example.com>"
       INVITE_TTL_DAYS: "14"
       RETENTION_DAYS: "180"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.4
-          run_install: false
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: pnpm
+          node-version: 22
+
+      - name: Enable pinned pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.4 --activate
+          node --version
+          pnpm --version
 
       - name: Start isolated PostgreSQL database
         shell: bash

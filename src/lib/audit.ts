@@ -10,7 +10,11 @@ import type { Prisma } from "@/generated/prisma/client";
  */
 export type AuditAction =
   | "admin.login"
+  | "user.created"
+  | "user.role_changed"
+  | "user.password_reset"
   | "user.password_changed"
+  | "user.removed"
   | "invite.created"
   | "invite.resent"
   | "invite.revoked"
@@ -32,8 +36,6 @@ export type AuditAction =
   | "round.archived";
 
 const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/;
-// A 32-byte base64url token is 43 chars of this alphabet. A sha256 hex digest (the stored,
-// safe form) also matches the alphabet, so pure lowercase hex is exempted.
 const TOKEN_ALPHABET = /^[A-Za-z0-9_-]{40,}$/;
 const HEX_DIGEST = /^[0-9a-f]{64}$/;
 const BANNED_KEYS = new Set(["email", "fullname", "name", "token", "password"]);
@@ -50,15 +52,15 @@ export function assertNoPii(meta: unknown): void {
       return;
     }
     if (Array.isArray(value)) {
-      value.forEach((v, i) => walk(v, `${path}[${i}]`));
+      value.forEach((item, index) => walk(item, `${path}[${index}]`));
       return;
     }
     if (value && typeof value === "object") {
-      for (const [key, v] of Object.entries(value)) {
+      for (const [key, child] of Object.entries(value)) {
         if (BANNED_KEYS.has(key.toLowerCase())) {
           throw new Error(`Audit meta must not contain the key "${key}"`);
         }
-        walk(v, path ? `${path}.${key}` : key);
+        walk(child, path ? `${path}.${key}` : key);
       }
     }
   };
@@ -70,9 +72,15 @@ export async function audit(
   action: AuditAction,
   subjectId?: string,
   meta?: Prisma.InputJsonObject,
+  client: Prisma.TransactionClient | typeof db = db,
 ): Promise<void> {
   assertNoPii(meta);
-  await db.auditEvent.create({
-    data: { actor, action, subjectId: subjectId ?? null, meta: meta ?? undefined },
+  await client.auditEvent.create({
+    data: {
+      actor,
+      action,
+      subjectId: subjectId ?? null,
+      meta: meta ?? undefined,
+    },
   });
 }

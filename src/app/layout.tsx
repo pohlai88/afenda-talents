@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
+import "./accessibility-overrides.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

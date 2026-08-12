@@ -1,72 +1,86 @@
 import { cookies } from "next/headers";
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT } from "jose";
+import { resolveHiringSession, verifyHiringSessionToken } from "@/lib/auth-session";
 import { env } from "@/lib/env";
 import {
-	ADMIN_COOKIE,
-	type HiringSession,
-	type Role,
-	ROLES,
+  ADMIN_COOKIE,
+  type HiringSession,
+  type HiringSessionClaims,
+  type Role,
+  ROLES,
 } from "@/lib/hiring-roles";
+import { readPageSession } from "@/lib/page-authority";
 
 /**
- * HIRING-SIDE authentication only. This file must never reference the other auth
- * system's cookie or claims — the two systems share no code, so a wrong import is
- * visible in review. Spec §6; build-skill invariant 7.
+ * HIRING-SIDE authentication.
  *
- * Two roles (DECISIONS.md D15): ADMIN acts, VIEWER reads. Candidates are not users.
+ * Page requests are live-validated by Proxy and carry a trusted internal authority
+ * snapshot, so render-tree callers never need cookies(). API/handler requests do not
+ * receive those headers and therefore fall back to the signed cookie plus live DB
+ * session resolution. This keeps existing call sites compatible while preserving
+ * hydration and DB-near API authority.
  */
-export { ADMIN_COOKIE, ROLES, type HiringSession, type Role };
+export {
+  ADMIN_COOKIE,
+  ROLES,
+  type HiringSession,
+  type HiringSessionClaims,
+  type Role,
+};
 
 const secret = () => new TextEncoder().encode(env.APP_SECRET);
 
-/** Cookie attrs for set/clear — keep Secure in sync with APP_URL scheme. */
 export function adminCookieOptions(maxAge: number) {
-	return {
-		httpOnly: true,
-		secure: env.APP_URL.startsWith("https"),
-		sameSite: "lax" as const,
-		path: "/",
-		maxAge,
-	};
+  return {
+    httpOnly: true,
+    secure: env.APP_URL.startsWith("https"),
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge,
+  };
 }
 
-export async function createSessionToken(session: HiringSession): Promise<string> {
-  return new SignJWT({ userId: session.userId, role: session.role })
+export async function createSessionToken(
+  claims: HiringSessionClaims,
+): Promise<string> {
+  return new SignJWT({
+    userId: claims.userId,
+    sessionVersion: claims.sessionVersion,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("8h")
     .sign(secret());
 }
 
-export async function verifySessionToken(
-  token: string | undefined,
-): Promise<HiringSession | null> {
-  if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, secret());
-    if (typeof payload.userId !== "string") return null;
-    if (payload.role !== "ADMIN" && payload.role !== "VIEWER") return null;
-    return { userId: payload.userId, role: payload.role };
-  } catch {
-    return null;
-  }
-}
+export const verifySessionToken = verifyHiringSessionToken;
 
 async function currentSession(): Promise<HiringSession | null> {
+  const pageSession = await readPageSession();
+  if (pageSession) return pageSession;
+
   const store = await cookies();
-  return verifySessionToken(store.get(ADMIN_COOKIE)?.value);
+  return resolveHiringSession(store.get(ADMIN_COOKIE)?.value);
 }
 
-/** Any signed-in hiring user — for read surfaces (dashboard, profiles). */
-export async function requireHiringUser(): Promise<HiringSession> {
+/** Accepts a valid current account even while a forced password change is pending. */
+export async function requirePasswordChangeUser(): Promise<HiringSession> {
   const session = await currentSession();
   if (!session) throw new Error("Not authenticated");
   return session;
 }
 
-/** ADMIN only — for anything that mutates or exports. */
-export async function requireAdmin(): Promise<HiringSession> {
+/** Any active hiring user. */
+export async function requireHiringUser(): Promise<HiringSession> {
   const session = await currentSession();
-  if (!session || session.role !== "ADMIN") throw new Error("Not authorised");
+  if (!session) throw new Error("Not authenticated");
+  if (session.mustChangePassword) throw new Error("Password change required");
+  return session;
+}
+
+/** ADMIN only. */
+export async function requireAdmin(): Promise<HiringSession> {
+  const session = await requireHiringUser();
+  if (session.role !== "ADMIN") throw new Error("Not authorised");
   return session;
 }

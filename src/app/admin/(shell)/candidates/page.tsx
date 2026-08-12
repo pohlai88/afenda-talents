@@ -1,115 +1,33 @@
-import { Suspense } from "react";
-import Link from "next/link";
-import {
-	CandidatesDatatable,
-} from "@/components/candidates/candidates-datatable";
-import type { CandidateTableItem } from "@/components/candidates/types";
-import {
-	InviteCandidatesAction,
-	NoCandidates,
-} from "@/components/candidates/empty-states";
-import { relativeTime } from "@/lib/relative-time";
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import { requireHiringUser } from "@/lib/auth-admin";
-import { db } from "@/lib/db";
+import { AdminPage } from "@/components/admin-page";
+import { CandidatesWorkspaceLoader } from "@/components/candidates/candidates-workspace-loader";
+import { requirePageHiringUser } from "@/lib/page-authority";
 
 export const dynamic = "force-dynamic";
 
-export default async function CandidatesPage() {
-	const session = await requireHiringUser();
-	const isAdmin = session.role === "ADMIN";
-	const now = new Date();
+type SearchParams = Promise<{
+  round?: string | string[];
+}>;
 
-	// One row per assignment (D18): the same person may hold more than one assignment
-	// across hiring rounds, and status chips must reflect the assignment, not a
-	// legacy candidate-level status.
-	const [assignments, responseActivity, users] = await Promise.all([
-		db.candidateAssignment.findMany({
-			include: { candidate: true },
-			orderBy: { createdAt: "asc" },
-		}),
-		db.response.groupBy({ by: ["assignmentId"], _max: { updatedAt: true } }),
-		db.user.findMany({ select: { id: true, name: true } }),
-	]);
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
 
-	const lastResponseAt = new Map(
-		responseActivity.map((r) => [r.assignmentId, r._max.updatedAt]),
-	);
-	const userNames = new Map(users.map((u) => [u.id, u.name]));
+export default async function CandidatesPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  await requirePageHiringUser();
+  const requestedRoundId = first((await searchParams).round) ?? null;
+  // eslint-disable-next-line react-hooks/purity -- force-dynamic request marker; router.refresh() must reload registry context.
+  const refreshNonce = Date.now();
 
-	const items: CandidateTableItem[] = assignments.map((a) => {
-		const lastActivityAt =
-			[lastResponseAt.get(a.id) ?? null, a.submittedAt, a.openedAt, a.sentAt]
-				.filter((d): d is Date => d instanceof Date)
-				.sort((a2, b2) => b2.getTime() - a2.getTime())[0] ?? null;
-
-		return {
-			id: a.candidateId,
-			assignmentId: a.id,
-			fullName: a.candidate.fullName,
-			email: a.candidate.email,
-			status: a.status,
-			sentAt: a.sentAt?.toISOString() ?? null,
-			submittedAt: a.submittedAt?.toISOString() ?? null,
-			lastActivityAt: lastActivityAt?.toISOString() ?? null,
-			lastActivityLabel: lastActivityAt
-				? relativeTime(lastActivityAt, now)
-				: "—",
-			invitedByName: a.invitedById
-				? (userNames.get(a.invitedById) ?? null)
-				: null,
-		};
-	});
-
-	return (
-		<div className="flex min-w-0 max-w-full flex-col gap-6 overflow-x-hidden p-6">
-			<PageHeader
-				eyebrow="This hiring round"
-				title="Candidates"
-				description="Find a candidate, check where they are, and act on their invitation."
-				actions={
-					isAdmin ? (
-						<>
-							<Button
-								variant="outline"
-								nativeButton={false}
-								render={<a href="/api/admin/export" />}
-							>
-								Export CSV
-							</Button>
-							<Button
-								nativeButton={false}
-								render={<Link href="/admin/invite" />}
-							>
-								Invite candidates
-							</Button>
-						</>
-					) : null
-				}
-			/>
-
-			{assignments.length === 0 ? (
-				<NoCandidates>
-					{isAdmin ? <InviteCandidatesAction /> : null}
-				</NoCandidates>
-			) : (
-				<Suspense
-					fallback={
-						<div
-							className="flex flex-col gap-3"
-							aria-busy="true"
-							aria-live="polite"
-						>
-							<span className="sr-only">Loading candidates…</span>
-							<div className="h-10 w-full max-w-md animate-pulse rounded-md bg-muted" />
-							<div className="h-64 w-full animate-pulse rounded-xl bg-muted" />
-						</div>
-					}
-				>
-					<CandidatesDatatable data={items} isAdmin={isAdmin} />
-				</Suspense>
-			)}
-		</div>
-	);
+  return (
+    <AdminPage width="wide">
+      <CandidatesWorkspaceLoader
+        requestedRoundId={requestedRoundId}
+        refreshNonce={refreshNonce}
+      />
+    </AdminPage>
+  );
 }

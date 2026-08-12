@@ -1,24 +1,27 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { audit } from "@/lib/audit";
+import { resolveHiringSession, verifyHiringSessionToken } from "@/lib/auth-session";
+import { db } from "@/lib/db";
+import { ADMIN_COOKIE } from "@/lib/hiring-roles";
+import {
+  PAGE_AUTH_HEADERS,
+  PAGE_AUTH_HEADER_NAMES,
+} from "@/lib/page-auth-headers";
 
 /**
- * Coarse gate — BY CHOICE, not by constraint. See DECISIONS.md D7.
+ * Page requests receive a live database-backed authority snapshot through internal
+ * request headers. This keeps cookies() out of the React render tree while preserving
+ * immediate role/session-version/account-state revocation.
  *
- * This checks only that a cookie's signature is valid and unexpired. It deliberately does
- * not query the database, so it cannot know that an assignment was revoked or has already
- * submitted. Every handler behind this gate re-reads the assignment (or admin) row and
- * re-checks status and expiry. Do not move authorisation logic here.
- *
- * Cookie names are string literals rather than imports so this file depends on neither
- * auth module — importing either would blur the admin/candidate separation this repo
- * enforces (build-skill invariant 7).
+ * API handlers never receive those internal headers and continue to perform their own
+ * DB-near requireAdmin/requireHiringUser checks from the signed cookie.
  */
-const ADMIN_COOKIE = "afenda_admin";
 const CANDIDATE_COOKIE = "afenda_candidate";
 
 const secret = () => new TextEncoder().encode(process.env.APP_SECRET!);
 
-async function claims(token: string | undefined) {
+async function candidateClaims(token: string | undefined) {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret());
@@ -28,32 +31,128 @@ async function claims(token: string | undefined) {
   }
 }
 
+function sanitizedRequestHeaders(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  for (const name of PAGE_AUTH_HEADER_NAMES) requestHeaders.delete(name);
+  return requestHeaders;
+}
+
+function continueWithoutPageAuthority(request: NextRequest) {
+  return NextResponse.next({
+    request: { headers: sanitizedRequestHeaders(request) },
+  });
+}
+
+function withPageAuthority(
+  request: NextRequest,
+  session: {
+    userId: string;
+    role: "ADMIN" | "VIEWER";
+    sessionVersion: number;
+    mustChangePassword: boolean;
+  },
+) {
+  const requestHeaders = sanitizedRequestHeaders(request);
+  requestHeaders.set(PAGE_AUTH_HEADERS.authenticated, "1");
+  requestHeaders.set(PAGE_AUTH_HEADERS.userId, session.userId);
+  requestHeaders.set(PAGE_AUTH_HEADERS.role, session.role);
+  requestHeaders.set(
+    PAGE_AUTH_HEADERS.sessionVersion,
+    String(session.sessionVersion),
+  );
+  requestHeaders.set(
+    PAGE_AUTH_HEADERS.mustChangePassword,
+    session.mustChangePassword ? "1" : "0",
+  );
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
+function isPrefetch(request: NextRequest): boolean {
+  return (
+    request.headers.get("purpose") === "prefetch" ||
+    request.headers.get("next-router-prefetch") === "1"
+  );
+}
+
+async function auditResultNavigation(
+  request: NextRequest,
+  actor: string,
+  pathname: string,
+): Promise<void> {
+  if (request.method !== "GET" || isPrefetch(request)) return;
+  const match = pathname.match(/^\/admin\/candidate\/([^/]+)$/);
+  if (!match) return;
+
+  const assignmentId = decodeURIComponent(match[1]);
+  const assignment = await db.candidateAssignment.findUnique({
+    where: { id: assignmentId },
+    select: { id: true, result: { select: { id: true } } },
+  });
+  if (assignment?.result) {
+    await audit(actor, "result.viewed", assignment.id, {
+      source: "profile-navigation",
+    });
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // The door itself must stay reachable.
   if (pathname === "/admin/login" || pathname === "/api/admin/login") {
-    return NextResponse.next();
+    return continueWithoutPageAuthority(request);
   }
 
   if (pathname.startsWith("/api/candidate")) {
-    const payload = await claims(request.cookies.get(CANDIDATE_COOKIE)?.value);
-    // D18: cookie claim is assignmentId (not legacy candidateId).
-    if (!payload?.assignmentId) {
+    const payload = await candidateClaims(
+      request.cookies.get(CANDIDATE_COOKIE)?.value,
+    );
+    if (typeof payload?.assignmentId !== "string") {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    return NextResponse.next();
+    return continueWithoutPageAuthority(request);
   }
 
-  // Any hiring role passes the gate; ADMIN-only actions re-check in their handlers
-  // via requireAdmin(), consistent with this gate being coarse by design.
-  const payload = await claims(request.cookies.get(ADMIN_COOKIE)?.value);
-  if (payload?.role === "ADMIN" || payload?.role === "VIEWER") return NextResponse.next();
+  const token = request.cookies.get(ADMIN_COOKIE)?.value;
 
   if (pathname.startsWith("/api/admin")) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    const claims = await verifyHiringSessionToken(token);
+    if (!claims) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+    return continueWithoutPageAuthority(request);
   }
-  return NextResponse.redirect(new URL("/admin/login", request.url));
+
+  let session;
+  try {
+    session = await resolveHiringSession(token);
+  } catch {
+    return new NextResponse("Service temporarily unavailable", { status: 503 });
+  }
+  if (!session) {
+    return NextResponse.redirect(new URL("/admin/login", request.url));
+  }
+
+  if (pathname === "/admin/change-password") {
+    if (!session.mustChangePassword) {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
+    return withPageAuthority(request, session);
+  }
+
+  if (session.mustChangePassword) {
+    return NextResponse.redirect(new URL("/admin/change-password", request.url));
+  }
+
+  try {
+    await auditResultNavigation(request, session.userId, pathname);
+  } catch (error) {
+    console.error("Result view audit failed", {
+      assignmentPath: pathname,
+      error: error instanceof Error ? error.message : "Unknown audit error",
+    });
+  }
+
+  return withPageAuthority(request, session);
 }
 
 export const config = {
