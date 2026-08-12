@@ -6,6 +6,7 @@ import { AfendaEvidenceList } from "@/components/afenda/evidence-list";
 import { AfendaPageHelp } from "@/components/afenda/guidance-sheet";
 import { AfendaMetadataGrid, type AfendaMetadataItem } from "@/components/afenda/metadata-grid";
 import { AfendaNextAction } from "@/components/afenda/next-action";
+import { AfendaPageFrame } from "@/components/afenda/page-frame";
 import { AfendaEmptyState } from "@/components/afenda/page-state";
 import { AfendaReadinessChecklist } from "@/components/afenda/readiness-checklist";
 import { AfendaRecordHeader } from "@/components/afenda/record-header";
@@ -19,7 +20,7 @@ import { CorporateStatusBadge, formatMoney, todayDateOnly } from "@/components/c
 import type { DueItemDto } from "@/components/corporate/workflow-types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { auditActionLabel } from "@/lib/audit-display";
+import { auditActionLabel, formatAuditMeta } from "@/lib/audit-display";
 import { requireWorkspaceUser } from "@/lib/auth-workspace";
 import { deriveDueState, formatDateOnly } from "@/lib/corporate-admin/domain";
 import { CORPORATE_PAGE_GUIDANCE } from "@/lib/corporate-admin/page-guidance";
@@ -44,6 +45,14 @@ function activityContext(action: string): string {
   if (action.includes("payment")) return "Payment";
   if (action.includes("due_item")) return "Due item";
   return "Obligation";
+}
+
+function auditMetaLabel(key: string): string {
+  const words = key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replaceAll("_", " ")
+    .trim();
+  return words ? words[0].toUpperCase() + words.slice(1) : key;
 }
 
 function latestWorkflowSteps(status: "DRAFT" | "ACTIVE" | "ENDED" | "CANCELLED", dueItems: DueItemDto[]): AfendaWorkflowStep[] {
@@ -116,6 +125,7 @@ export default async function ObligationDetailPage({ params }: { params: Promise
     timestamp: formatActivityTime(event.createdAt),
     actor: actorNames.get(event.actor) ?? "Workspace user",
     context: activityContext(event.action),
+    metadata: formatAuditMeta(event.meta).map(({ key, value }) => ({ label: auditMetaLabel(key), value })),
   }));
 
   const today = todayDateOnly();
@@ -173,7 +183,10 @@ export default async function ObligationDetailPage({ params }: { params: Promise
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 p-4 sm:p-6">
+    <AfendaPageFrame
+      width="record"
+      reserveMobileActions={isAdmin && (obligation.status === "DRAFT" || obligation.status === "ACTIVE")}
+    >
       <AfendaRecordHeader context="Corporate Administration" title={obligation.title} identity={`${obligation.code} · ${obligation.organization} · ${obligation.counterparty.name}`} status={<CorporateStatusBadge status={obligation.status} />} actions={headerActions} />
       <CorporateNav />
 
@@ -241,6 +254,6 @@ export default async function ObligationDetailPage({ params }: { params: Promise
         title="Activity history"
         description="Audit-backed changes across this obligation, its due items and payment records."
       />
-    </div>
+    </AfendaPageFrame>
   );
 }
