@@ -20,7 +20,17 @@ export default async function ObligationLinesPage({ params }: { params: Promise<
     where: { id },
     include: {
       counterparty: { select: { name: true } },
-      lines: { orderBy: [{ isActive: "desc" }, { code: "asc" }], include: { _count: { select: { dueItems: true } } } },
+      lines: {
+        orderBy: [{ isActive: "desc" }, { code: "asc" }],
+        include: {
+          _count: { select: { dueItems: true } },
+          dueItems: {
+            orderBy: { dueDate: "desc" },
+            take: 4,
+            select: { id: true, periodLabel: true, dueDate: true, status: true, expectedAmount: true, invoiceAmount: true, currency: true },
+          },
+        },
+      },
     },
   });
   if (!obligation) notFound();
@@ -44,6 +54,14 @@ export default async function ObligationLinesPage({ params }: { params: Promise<
     notes: line.notes,
     isActive: line.isActive,
     dueCount: line._count.dueItems,
+    recentDues: line.dueItems.map((due) => ({
+      id: due.id,
+      periodLabel: due.periodLabel,
+      dueDate: formatDateOnly(due.dueDate),
+      status: due.status,
+      amount: due.invoiceAmount == null ? (due.expectedAmount == null ? null : Number(due.expectedAmount)) : Number(due.invoiceAmount),
+      currency: due.currency,
+    })),
   }));
 
   return (
