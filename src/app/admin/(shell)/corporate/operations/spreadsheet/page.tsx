@@ -1,6 +1,6 @@
 import { AfendaPageFrame } from "@/components/afenda/page-frame";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
-import { SpreadsheetOperationsGrid } from "@/components/corporate/spreadsheet-operations-grid";
+import { SpreadsheetOperationsWorkspace } from "@/components/corporate/spreadsheet-operations-workspace";
 import type { OperationsGridRow, OperationsMatrixRow } from "@/components/corporate/operations-console";
 import { PageHeader } from "@/components/page-header";
 import { requireWorkspaceUser } from "@/lib/auth-workspace";
@@ -78,10 +78,10 @@ export default async function CorporateSpreadsheetOperationsPage() {
       <PageHeader
         eyebrow="Corporate Administration · Operations"
         title="Spreadsheet workspace"
-        description="Scan, select, edit and copy agreement-line operations at spreadsheet speed while every change still passes Afenda validation, relationship rules, permissions and audit logging."
+        description="Scan, filter, select, edit and copy agreement-line operations at spreadsheet speed while every change still passes Afenda validation, relationship rules, permissions and audit logging."
       />
       <CorporateNav />
-      <SpreadsheetOperationsGrid rows={rows} sites={siteOptions} isAdmin={session.role === "ADMIN"} />
+      <SpreadsheetOperationsWorkspace rows={rows} sites={siteOptions} isAdmin={session.role === "ADMIN"} />
     </AfendaPageFrame>
   );
 }
