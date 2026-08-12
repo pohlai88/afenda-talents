@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { AfendaGuidanceButton, type AfendaGuidance } from "@/components/afenda/guidance-sheet";
+import { AfendaGuidanceButton } from "@/components/afenda/guidance-sheet";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
@@ -11,6 +11,7 @@ import {
   FieldLabel,
   FieldTitle,
 } from "@/components/ui/field";
+import type { AfendaGuidance } from "@/lib/afenda-guidance";
 import { cn } from "@/lib/utils";
 
 export function AfendaField({
