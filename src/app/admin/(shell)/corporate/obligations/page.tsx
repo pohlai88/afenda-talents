@@ -4,7 +4,7 @@ import { AfendaPageHelp } from "@/components/afenda/guidance-sheet";
 import { AfendaSection } from "@/components/afenda/section";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
 import { ObligationRegister, type ObligationRegisterRow } from "@/components/corporate/obligation-register";
-import { CorporateStatusBadge, todayDateOnly } from "@/components/corporate/status";
+import { todayDateOnly } from "@/components/corporate/status";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
