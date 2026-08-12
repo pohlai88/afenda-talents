@@ -1,9 +1,11 @@
+import { AfendaPageHelp } from "@/components/afenda/guidance-sheet";
+import type { CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
 import { CustomFieldCreateForm } from "@/components/corporate/custom-field-create-form";
 import { CustomFieldList } from "@/components/corporate/custom-field-list";
-import type { CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
 import { PageHeader } from "@/components/page-header";
 import { requireWorkspaceUser } from "@/lib/auth-workspace";
+import { CORPORATE_PAGE_GUIDANCE } from "@/lib/corporate-admin/page-guidance";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +21,12 @@ export default async function CustomFieldsPage() {
   }));
   return (
     <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 p-4 sm:p-6">
-      <PageHeader eyebrow="Corporate Administration" title="Custom fields" description="Extend operational records safely without waiting for a schema migration or development ticket." />
+      <PageHeader
+        eyebrow="Corporate Administration"
+        title="Custom fields"
+        description="Extend operational records safely without waiting for a schema migration or development ticket."
+        actions={<AfendaPageHelp title="Custom fields" guidance={CORPORATE_PAGE_GUIDANCE.customFields} />}
+      />
       <CorporateNav />
       {session.role === "ADMIN" ? <CustomFieldCreateForm /> : null}
       <CustomFieldList fields={rows} isAdmin={session.role === "ADMIN"} />
