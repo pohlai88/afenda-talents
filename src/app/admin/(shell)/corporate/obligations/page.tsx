@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { AfendaPageHelp } from "@/components/afenda/guidance-sheet";
+import { AfendaResponsiveDataView } from "@/components/afenda/responsive-data-view";
+import { AfendaSection } from "@/components/afenda/section";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
 import { CorporateStatusBadge, formatMoney, todayDateOnly } from "@/components/corporate/status";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requireWorkspaceUser } from "@/lib/auth-workspace";
@@ -27,6 +28,61 @@ export default async function ObligationsPage() {
     db.administrativeCustomFieldDefinition.findMany({ where: { scope: "OBLIGATION", isActive: true, showInList: true }, orderBy: [{ sortOrder: "asc" }, { label: "asc" }], take: 4 }),
   ]);
   const today = todayDateOnly();
+
+  const desktop = (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Reference</TableHead><TableHead>Obligation</TableHead><TableHead>Status</TableHead><TableHead>Next attention</TableHead><TableHead>Expected</TableHead><TableHead>Owner</TableHead>
+          {listFields.map((field) => <TableHead key={field.id}>{field.label}</TableHead>)}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {obligations.map((row) => {
+          const openDue = row.dueItems[0];
+          const date = openDue ? formatDateOnly(openDue.dueDate) : row.nextDueDate ? formatDateOnly(row.nextDueDate) : null;
+          const dueState = date ? deriveDueState("OPEN", date, today) : null;
+          const extras = customObject(row.customFields);
+          return (
+            <TableRow key={row.id}>
+              <TableCell><Link className="font-mono text-xs underline-offset-4 hover:underline" href={`/admin/corporate/obligations/${row.id}`}>{row.code}</Link></TableCell>
+              <TableCell><Link className="font-medium underline-offset-4 hover:underline" href={`/admin/corporate/obligations/${row.id}`}>{row.title}</Link><p className="text-xs text-muted-foreground">{row.organization} · {row.counterparty.name}</p></TableCell>
+              <TableCell><CorporateStatusBadge status={row.status} /></TableCell>
+              <TableCell>{date ? <div className="flex flex-col gap-1"><p className="text-sm tabular-nums">{date}</p>{dueState ? <CorporateStatusBadge status={dueState} /> : null}</div> : "—"}</TableCell>
+              <TableCell className="tabular-nums">{formatMoney(row.currency, row.expectedAmount == null ? null : Number(row.expectedAmount))}</TableCell>
+              <TableCell>{row.owner?.name ?? "—"}</TableCell>
+              {listFields.map((field) => <TableCell key={field.id}>{customValue(extras[field.key])}</TableCell>)}
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+
+  const mobile = (
+    <ul className="flex flex-col gap-3">
+      {obligations.map((row) => {
+        const openDue = row.dueItems[0];
+        const date = openDue ? formatDateOnly(openDue.dueDate) : row.nextDueDate ? formatDateOnly(row.nextDueDate) : null;
+        const state = date ? deriveDueState("OPEN", date, today) : null;
+        return (
+          <li key={row.id} className="rounded-lg border p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div><Link className="font-medium underline-offset-4 hover:underline" href={`/admin/corporate/obligations/${row.id}`}>{row.title}</Link><p className="font-mono text-xs text-muted-foreground">{row.code}</p></div>
+              <CorporateStatusBadge status={row.status} />
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+              <div><p className="text-xs text-muted-foreground">Counterparty</p><p>{row.counterparty.name}</p></div>
+              <div><p className="text-xs text-muted-foreground">Expected</p><p>{formatMoney(row.currency, row.expectedAmount == null ? null : Number(row.expectedAmount))}</p></div>
+              <div><p className="text-xs text-muted-foreground">Next attention</p><p>{date ?? "—"}</p></div>
+              <div>{state ? <CorporateStatusBadge status={state} /> : null}</div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6">
       <PageHeader
@@ -41,21 +97,14 @@ export default async function ObligationsPage() {
         }
       />
       <CorporateNav />
-      <Card>
-        <CardHeader><CardTitle>Register</CardTitle><CardDescription>Open a record for its terms, due schedule and payment history.</CardDescription></CardHeader>
-        <CardContent>
-          {obligations.length === 0 ? (
-            <Empty className="border border-dashed"><EmptyHeader><EmptyTitle>No obligations yet</EmptyTitle><EmptyDescription>Add your first recurring or one-off administrative commitment.</EmptyDescription></EmptyHeader>{session.role === "ADMIN" ? <EmptyContent><Button size="sm" nativeButton={false} render={<Link href="/admin/corporate/obligations/new" />}>Create obligation</Button></EmptyContent> : null}</Empty>
-          ) : (
-            <>
-              <div className="hidden overflow-x-auto lg:block"><Table><TableHeader><TableRow><TableHead>Reference</TableHead><TableHead>Obligation</TableHead><TableHead>Status</TableHead><TableHead>Next attention</TableHead><TableHead>Expected</TableHead><TableHead>Owner</TableHead>{listFields.map((field) => <TableHead key={field.id}>{field.label}</TableHead>)}</TableRow></TableHeader><TableBody>
-                {obligations.map((row) => { const openDue = row.dueItems[0]; const date = openDue ? formatDateOnly(openDue.dueDate) : row.nextDueDate ? formatDateOnly(row.nextDueDate) : null; const dueState = date ? deriveDueState("OPEN", date, today) : null; const extras = customObject(row.customFields); return <TableRow key={row.id}><TableCell><Link className="font-mono text-xs underline-offset-4 hover:underline" href={`/admin/corporate/obligations/${row.id}`}>{row.code}</Link></TableCell><TableCell><Link className="font-medium underline-offset-4 hover:underline" href={`/admin/corporate/obligations/${row.id}`}>{row.title}</Link><p className="text-xs text-muted-foreground">{row.organization} · {row.counterparty.name}</p></TableCell><TableCell><CorporateStatusBadge status={row.status} /></TableCell><TableCell>{date ? <div className="space-y-1"><p className="text-sm tabular-nums">{date}</p>{dueState ? <CorporateStatusBadge status={dueState} /> : null}</div> : "—"}</TableCell><TableCell className="tabular-nums">{formatMoney(row.currency, row.expectedAmount == null ? null : Number(row.expectedAmount))}</TableCell><TableCell>{row.owner?.name ?? "—"}</TableCell>{listFields.map((field) => <TableCell key={field.id}>{customValue(extras[field.key])}</TableCell>)}</TableRow>; })}
-              </TableBody></Table></div>
-              <ul className="flex flex-col gap-3 lg:hidden">{obligations.map((row) => { const openDue = row.dueItems[0]; const date = openDue ? formatDateOnly(openDue.dueDate) : row.nextDueDate ? formatDateOnly(row.nextDueDate) : null; const state = date ? deriveDueState("OPEN", date, today) : null; return <li key={row.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><Link className="font-medium underline-offset-4 hover:underline" href={`/admin/corporate/obligations/${row.id}`}>{row.title}</Link><p className="font-mono text-xs text-muted-foreground">{row.code}</p></div><CorporateStatusBadge status={row.status} /></div><div className="mt-3 grid grid-cols-2 gap-3 text-sm"><div><p className="text-xs text-muted-foreground">Counterparty</p><p>{row.counterparty.name}</p></div><div><p className="text-xs text-muted-foreground">Expected</p><p>{formatMoney(row.currency, row.expectedAmount == null ? null : Number(row.expectedAmount))}</p></div><div><p className="text-xs text-muted-foreground">Next attention</p><p>{date ?? "—"}</p></div><div>{state ? <CorporateStatusBadge status={state} /> : null}</div></div></li>; })}</ul>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <AfendaSection title="Register" description="Open a record for its terms, due schedule and payment history.">
+        {obligations.length === 0 ? (
+          <Empty className="border border-dashed">
+            <EmptyHeader><EmptyTitle>No obligations yet</EmptyTitle><EmptyDescription>Add your first recurring or one-off administrative commitment.</EmptyDescription></EmptyHeader>
+            {session.role === "ADMIN" ? <EmptyContent><Button size="sm" nativeButton={false} render={<Link href="/admin/corporate/obligations/new" />}>Create obligation</Button></EmptyContent> : null}
+          </Empty>
+        ) : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
+      </AfendaSection>
     </div>
   );
 }
