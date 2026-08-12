@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { AfendaFilterToolbar } from "@/components/afenda/filter-toolbar";
 import { AfendaResponsiveDataView } from "@/components/afenda/responsive-data-view";
+import { AfendaRowActions } from "@/components/afenda/row-actions";
 import { AfendaSection } from "@/components/afenda/section";
 import { CounterpartyFormFields, EMPTY_COUNTERPARTY, type CounterpartyDraft } from "@/components/corporate/counterparty-form-fields";
 import type { CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
@@ -26,7 +28,14 @@ export function CounterpartyManager({ rows, definitions, isAdmin }: {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<CounterpartyDraft>(EMPTY_COUNTERPARTY);
   const [busy, setBusy] = useState(false);
+  const [search, setSearch] = useState("");
   const set = <K extends keyof CounterpartyDraft>(key: K, value: CounterpartyDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
+
+  const filteredRows = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return rows;
+    return rows.filter((row) => [row.code, row.name, row.type, row.registrationNo, row.contactName, row.contactEmail].some((value) => value.toLowerCase().includes(query)));
+  }, [rows, search]);
 
   function openCreate() { setDraft(EMPTY_COUNTERPARTY); setEditingId(null); setDialog("create"); }
   function openEdit(row: CounterpartyRow) {
@@ -54,11 +63,11 @@ export function CounterpartyManager({ rows, definitions, isAdmin }: {
 
   const desktop = (
     <Table>
-      <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Contact</TableHead><TableHead className="text-right">Obligations</TableHead><TableHead>Status</TableHead>{isAdmin ? <TableHead /> : null}</TableRow></TableHeader>
+      <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Contact</TableHead><TableHead className="text-right">Obligations</TableHead><TableHead>Status</TableHead>{isAdmin ? <TableHead className="w-10" /> : null}</TableRow></TableHeader>
       <TableBody>
-        {rows.map((row) => (
+        {filteredRows.map((row) => (
           <TableRow key={row.id}>
-            <TableCell className="font-mono text-xs">{row.code}</TableCell><TableCell className="font-medium">{row.name}</TableCell><TableCell>{row.type.replaceAll("_", " ")}</TableCell><TableCell className="text-muted-foreground">{row.contactName || row.contactEmail || "—"}</TableCell><TableCell className="text-right tabular-nums">{row.obligations}</TableCell><TableCell><Badge variant={row.isActive ? "default" : "secondary"}>{row.isActive ? "Active" : "Inactive"}</Badge></TableCell>{isAdmin ? <TableCell className="text-right"><Button size="sm" variant="outline" onClick={() => openEdit(row)}>Edit</Button></TableCell> : null}
+            <TableCell className="font-mono text-xs">{row.code}</TableCell><TableCell className="font-medium">{row.name}</TableCell><TableCell>{row.type.replaceAll("_", " ")}</TableCell><TableCell className="text-muted-foreground">{row.contactName || row.contactEmail || "—"}</TableCell><TableCell className="text-right tabular-nums">{row.obligations}</TableCell><TableCell><Badge variant={row.isActive ? "default" : "secondary"}>{row.isActive ? "Active" : "Inactive"}</Badge></TableCell>{isAdmin ? <TableCell className="text-right"><AfendaRowActions label={row.name} actions={[{ label: "Edit details", onSelect: () => openEdit(row) }]} /></TableCell> : null}
           </TableRow>
         ))}
       </TableBody>
@@ -67,11 +76,10 @@ export function CounterpartyManager({ rows, definitions, isAdmin }: {
 
   const mobile = (
     <ul className="flex flex-col gap-3">
-      {rows.map((row) => (
+      {filteredRows.map((row) => (
         <li key={row.id} className="flex flex-col gap-3 rounded-lg border p-4">
-          <div className="flex items-start justify-between gap-3"><div><p className="font-medium">{row.name}</p><p className="font-mono text-xs text-muted-foreground">{row.code}</p></div><Badge variant={row.isActive ? "default" : "secondary"}>{row.isActive ? "Active" : "Inactive"}</Badge></div>
+          <div className="flex items-start justify-between gap-3"><div><p className="font-medium">{row.name}</p><p className="font-mono text-xs text-muted-foreground">{row.code}</p></div><div className="flex items-center gap-1"><Badge variant={row.isActive ? "default" : "secondary"}>{row.isActive ? "Active" : "Inactive"}</Badge>{isAdmin ? <AfendaRowActions label={row.name} actions={[{ label: "Edit details", onSelect: () => openEdit(row) }]} /> : null}</div></div>
           <p className="text-sm text-muted-foreground">{row.type.replaceAll("_", " ")} · {row.obligations} obligation{row.obligations === 1 ? "" : "s"}</p>
-          {isAdmin ? <Button size="sm" variant="outline" onClick={() => openEdit(row)}>Edit details</Button> : null}
         </li>
       ))}
     </ul>
@@ -86,7 +94,12 @@ export function CounterpartyManager({ rows, definitions, isAdmin }: {
       >
         {rows.length === 0 ? (
           <Empty className="border border-dashed"><EmptyHeader><EmptyTitle>No counterparties yet</EmptyTitle><EmptyDescription>Create one before registering an obligation.</EmptyDescription></EmptyHeader></Empty>
-        ) : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
+        ) : (
+          <div className="space-y-4">
+            <AfendaFilterToolbar search={search} onSearchChange={setSearch} searchPlaceholder="Search counterparties…" resultCount={filteredRows.length} />
+            {filteredRows.length === 0 ? <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No counterparties match this search.</p> : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
+          </div>
+        )}
       </AfendaSection>
 
       <Dialog open={dialog !== null} onOpenChange={(open) => !open && setDialog(null)}>
