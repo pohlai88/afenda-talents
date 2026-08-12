@@ -20,7 +20,8 @@ export function AfendaReadinessChecklist({
   items: AfendaReadinessItem[];
   className?: string;
 }) {
-  const ready = items.filter((item) => item.state === "ready").length;
+  const requiredItems = items.filter((item) => item.state !== "optional");
+  const ready = requiredItems.filter((item) => item.state === "ready").length;
   return (
     <Card className={className}>
       <CardHeader>
@@ -30,8 +31,8 @@ export function AfendaReadinessChecklist({
             <CardDescription>{description}</CardDescription>
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-lg font-semibold tabular-nums">{ready}/{items.length}</p>
-            <p className="text-xs text-muted-foreground">ready</p>
+            <p className="text-lg font-semibold tabular-nums">{ready}/{requiredItems.length}</p>
+            <p className="text-xs text-muted-foreground">required ready</p>
           </div>
         </div>
       </CardHeader>
