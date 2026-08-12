@@ -42,6 +42,19 @@ describe("Corporate safe paste import", () => {
     expect(result.rows[0].nextDueDate).toBeUndefined();
   });
 
+  it("turns __CLEAR__ into an explicit destructive field instruction", () => {
+    const result = parseCorporateImportText("obligation_code\tline_code\texpected_amount\tnext_due_date\tnotes\nADM-001\tRENT\t__CLEAR__\t__CLEAR__\t__CLEAR__");
+    expect(result.errors).toEqual([]);
+    expect(result.rows[0].clearFields).toEqual(["expectedAmount", "nextDueDate", "notes"]);
+  });
+
+  it("rejects __CLEAR__ for required or relationship fields", () => {
+    const required = parseCorporateImportText("obligation_code\tline_code\tcurrency\nADM-001\tRENT\t__CLEAR__");
+    expect(required.errors[0]).toContain("not allowed");
+    const relationship = parseCorporateImportText("obligation_code\tline_code\tsite_codes\nADM-001\tRENT\t__CLEAR__");
+    expect(relationship.errors[0]).toContain("not allowed");
+  });
+
   it("rejects invalid booleans and malformed dates", () => {
     const booleanResult = parseCorporateImportText("obligation_code\tline_code\trecurring\nADM-001\tRENT\tmaybe");
     expect(booleanResult.errors[0]).toContain("Invalid boolean");
@@ -50,7 +63,7 @@ describe("Corporate safe paste import", () => {
   });
 
   it("caps imports at 200 rows and requires a preview hash to commit", () => {
-    const rows = Array.from({ length: 201 }, (_, index) => ({ rowNumber: index + 1, obligationCode: `ADM-${index}`, lineCode: "GENERAL", siteCodes: [] }));
+    const rows = Array.from({ length: 201 }, (_, index) => ({ rowNumber: index + 1, obligationCode: `ADM-${index}`, lineCode: "GENERAL", siteCodes: [], clearFields: [] }));
     expect(corporateImportPayloadSchema.safeParse({ rows }).success).toBe(false);
     expect(corporateImportCommitSchema.safeParse({ rows: rows.slice(0, 1), previewHash: "bad" }).success).toBe(false);
     expect(corporateImportCommitSchema.safeParse({ rows: rows.slice(0, 1), previewHash: "a".repeat(64) }).success).toBe(true);
