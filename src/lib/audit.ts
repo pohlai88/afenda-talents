@@ -36,11 +36,18 @@ export type AuditAction =
   | "round.archived"
   | "corporate.counterparty.created"
   | "corporate.counterparty.updated"
+  | "corporate.counterparty.contact.created"
+  | "corporate.site.created"
+  | "corporate.site.updated"
+  | "corporate.site.coverage.created"
+  | "corporate.site.coverage.updated"
   | "corporate.obligation.created"
   | "corporate.obligation.updated"
   | "corporate.obligation.activated"
   | "corporate.obligation.ended"
   | "corporate.obligation.cancelled"
+  | "corporate.obligation.site.linked"
+  | "corporate.obligation.party.linked"
   | "corporate.due_item.created"
   | "corporate.due_item.updated"
   | "corporate.payment.requested"
@@ -60,23 +67,14 @@ const BANNED_KEYS = new Set(["email", "fullname", "name", "token", "password"]);
 export function assertNoPii(meta: unknown): void {
   const walk = (value: unknown, path: string): void => {
     if (typeof value === "string") {
-      if (EMAIL_PATTERN.test(value)) {
-        throw new Error(`Audit meta at "${path}" looks like an email address`);
-      }
-      if (TOKEN_ALPHABET.test(value) && !HEX_DIGEST.test(value)) {
-        throw new Error(`Audit meta at "${path}" looks like a raw token`);
-      }
+      if (EMAIL_PATTERN.test(value)) throw new Error(`Audit meta at "${path}" looks like an email address`);
+      if (TOKEN_ALPHABET.test(value) && !HEX_DIGEST.test(value)) throw new Error(`Audit meta at "${path}" looks like a raw token`);
       return;
     }
-    if (Array.isArray(value)) {
-      value.forEach((item, index) => walk(item, `${path}[${index}]`));
-      return;
-    }
+    if (Array.isArray(value)) { value.forEach((item, index) => walk(item, `${path}[${index}]`)); return; }
     if (value && typeof value === "object") {
       for (const [key, child] of Object.entries(value)) {
-        if (BANNED_KEYS.has(key.toLowerCase())) {
-          throw new Error(`Audit meta must not contain the key "${key}"`);
-        }
+        if (BANNED_KEYS.has(key.toLowerCase())) throw new Error(`Audit meta must not contain the key "${key}"`);
         walk(child, path ? `${path}.${key}` : key);
       }
     }
@@ -84,20 +82,7 @@ export function assertNoPii(meta: unknown): void {
   walk(meta, "");
 }
 
-export async function audit(
-  actor: string,
-  action: AuditAction,
-  subjectId?: string,
-  meta?: Prisma.InputJsonObject,
-  client: Prisma.TransactionClient | typeof db = db,
-): Promise<void> {
+export async function audit(actor: string, action: AuditAction, subjectId?: string, meta?: Prisma.InputJsonObject, client: Prisma.TransactionClient | typeof db = db): Promise<void> {
   assertNoPii(meta);
-  await client.auditEvent.create({
-    data: {
-      actor,
-      action,
-      subjectId: subjectId ?? null,
-      meta: meta ?? undefined,
-    },
-  });
+  await client.auditEvent.create({ data: { actor, action, subjectId: subjectId ?? null, meta: meta ?? undefined } });
 }
