@@ -13,6 +13,50 @@ export const COUNTERPARTY_TYPE_SUGGESTIONS = [
   "OTHER",
 ] as const;
 
+export const SITE_TYPE_SUGGESTIONS = [
+  "OFFICE",
+  "WAREHOUSE",
+  "FARM",
+  "CENTRAL_KITCHEN",
+  "RETAIL_STORE",
+  "FNB_OUTLET",
+  "FACTORY",
+  "PROJECT_SITE",
+  "LAND",
+  "OTHER",
+] as const;
+
+export const SERVICE_CATEGORY_SUGGESTIONS = [
+  "LANDLORD",
+  "CLEANING",
+  "SECURITY",
+  "PEST_CONTROL",
+  "LIFT_MAINTENANCE",
+  "FIRE_SAFETY",
+  "AIR_CONDITIONING",
+  "ELECTRICITY",
+  "WATER",
+  "INTERNET",
+  "INSURANCE",
+  "WASTE_MANAGEMENT",
+  "FACILITY_MAINTENANCE",
+  "PROFESSIONAL_SERVICE",
+  "OTHER",
+] as const;
+
+export const OBLIGATION_PARTY_ROLE_SUGGESTIONS = [
+  "PRIMARY",
+  "LANDLORD",
+  "SERVICE_PROVIDER",
+  "BILLING_ENTITY",
+  "AGENT",
+  "BROKER",
+  "INSURER",
+  "FINANCIER",
+  "LICENSOR",
+  "OTHER",
+] as const;
+
 export const OBLIGATION_CATEGORY_SUGGESTIONS = [
   "TENANCY",
   "LEASE",
@@ -45,7 +89,7 @@ export const PAYMENT_METHOD_SUGGESTIONS = [
 export const recurrenceUnits = ["DAY", "WEEK", "MONTH", "YEAR"] as const;
 export type RecurrenceUnit = (typeof recurrenceUnits)[number];
 
-export const customFieldScopes = ["COUNTERPARTY", "OBLIGATION", "DUE_ITEM", "PAYMENT"] as const;
+export const customFieldScopes = ["COUNTERPARTY", "SITE", "OBLIGATION", "DUE_ITEM", "PAYMENT"] as const;
 export type CustomFieldScope = (typeof customFieldScopes)[number];
 
 export const customFieldTypes = [
@@ -102,6 +146,78 @@ export const createCounterpartySchema = z.object({
   notes: optionalLongText,
   customFields,
 });
+
+export const createSiteSchema = z.object({
+  code: z.string().trim().min(2).max(50).optional().nullable(),
+  name: z.string().trim().min(1).max(240),
+  type: z.string().trim().min(1).max(100),
+  organization: z.string().trim().max(160).optional().nullable(),
+  addressLine1: optionalTrimmed,
+  addressLine2: optionalTrimmed,
+  city: z.string().trim().max(160).optional().nullable(),
+  stateRegion: z.string().trim().max(160).optional().nullable(),
+  postalCode: z.string().trim().max(40).optional().nullable(),
+  countryCode,
+  timezone: z.string().trim().max(100).optional().nullable(),
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
+  isActive: z.boolean().default(true),
+  notes: optionalLongText,
+  customFields,
+});
+
+export const createCounterpartyContactSchema = z.object({
+  name: z.string().trim().min(1).max(240),
+  jobTitle: optionalTrimmed,
+  department: optionalTrimmed,
+  email: z.string().trim().email().max(320).optional().nullable().or(z.literal("")),
+  phone: optionalTrimmed,
+  mobile: optionalTrimmed,
+  role: optionalTrimmed,
+  isPrimary: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+  notes: optionalLongText,
+});
+
+export const createServiceCoverageSchema = z
+  .object({
+    counterpartyId: z.string().trim().min(1),
+    serviceCategory: z.string().trim().min(1).max(120),
+    roleCode: z.string().trim().max(120).optional().nullable(),
+    effectiveFrom: dateOnly.optional().nullable(),
+    effectiveTo: dateOnly.optional().nullable(),
+    isPrimary: z.boolean().default(false),
+    isActive: z.boolean().default(true),
+    serviceLevel: optionalTrimmed,
+    emergencyContact: optionalTrimmed,
+    notes: optionalLongText,
+  })
+  .superRefine((value, ctx) => {
+    if (value.effectiveFrom && value.effectiveTo && value.effectiveTo < value.effectiveFrom) {
+      ctx.addIssue({ code: "custom", path: ["effectiveTo"], message: "Effective-to date cannot be before effective-from date" });
+    }
+  });
+
+export const createObligationSiteSchema = z.object({
+  siteId: z.string().trim().min(1),
+  scopeRole: z.string().trim().max(120).optional().nullable(),
+  notes: optionalLongText,
+});
+
+export const createObligationPartySchema = z
+  .object({
+    counterpartyId: z.string().trim().min(1),
+    roleCode: z.string().trim().min(1).max(120),
+    isPrimary: z.boolean().default(false),
+    effectiveFrom: dateOnly.optional().nullable(),
+    effectiveTo: dateOnly.optional().nullable(),
+    notes: optionalLongText,
+  })
+  .superRefine((value, ctx) => {
+    if (value.effectiveFrom && value.effectiveTo && value.effectiveTo < value.effectiveFrom) {
+      ctx.addIssue({ code: "custom", path: ["effectiveTo"], message: "Effective-to date cannot be before effective-from date" });
+    }
+  });
 
 export const createObligationSchema = z
   .object({
@@ -297,7 +413,7 @@ export function cleanOptionalString(value: string | null | undefined): string | 
   return cleaned ? cleaned : null;
 }
 
-export function newReferenceCode(prefix: "CP" | "ADM"): string {
+export function newReferenceCode(prefix: "CP" | "SITE" | "ADM"): string {
   const year = new Date().getUTCFullYear();
   const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 6).toUpperCase();
   return `${prefix}-${year}-${suffix}`;
