@@ -71,7 +71,7 @@ export default async function CorporateHelpPage() {
             <ManualRule title="Expected amount">The expected amount comes from the obligation or the manual due item and remains useful for comparison.</ManualRule>
             <ManualRule title="Invoice amount">Enter the actual invoiced amount when evidence arrives. Keep invoice number and supporting document URL with the due item.</ManualRule>
             <ManualRule title="Dispute / uncertainty">Use the dispute flag when the amount, liability, evidence or commercial position needs clarification before normal processing.</ManualRule>
-            <ManualRule title="Completion">A due item should reflect its own lifecycle; do not change another period's due item to represent a new occurrence.</ManualRule>
+            <ManualRule title="Completion">A due item should reflect its own lifecycle; do not change another period’s due item to represent a new occurrence.</ManualRule>
           </div>
         </AfendaSection>
       </section>
@@ -79,7 +79,7 @@ export default async function CorporateHelpPage() {
       <section id="payments" className="scroll-mt-6">
         <AfendaSection title="Payments" description="Keep request, approval, settlement and reconciliation as separate facts.">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <ManualRule title="Requested amount">What the requester proposes to settle against the due item's available balance.</ManualRule>
+            <ManualRule title="Requested amount">What the requester proposes to settle against the due item’s available balance.</ManualRule>
             <ManualRule title="Approved amount">What the authorised approver permits. It cannot exceed the request or available uncommitted balance.</ManualRule>
             <ManualRule title="Paid amount">What was actually settled, together with date, method, reference and evidence.</ManualRule>
             <ManualRule title="Reconciliation">The final post-payment verification step confirming the recorded settlement has been checked.</ManualRule>
@@ -114,7 +114,7 @@ export default async function CorporateHelpPage() {
       <AfendaSection title="Troubleshooting" description="Start with the visible readiness and workflow state before treating a server response as a technical problem.">
         <div className="grid gap-3 md:grid-cols-2">
           <ManualRule title="Cannot activate">Check required contract evidence, recurrence settings, active counterparty and required custom fields.</ManualRule>
-          <ManualRule title="Cannot approve or pay">Check the due item's available balance and the current payment request/approval status. Amount controls prevent over-approval and over-payment.</ManualRule>
+          <ManualRule title="Cannot approve or pay">Check the due item’s available balance and the current payment request/approval status. Amount controls prevent over-approval and over-payment.</ManualRule>
           <ManualRule title="Something is overdue">Open the obligation from the attention queue, verify invoice/dispute state, then progress the relevant payment workflow.</ManualRule>
           <ManualRule title="A field is missing">Use Custom fields for organisation-specific structured information. Add a product/schema field only when the concept is common enough to deserve canonical reporting and behavior.</ManualRule>
         </div>
