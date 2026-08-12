@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { MASTER_IMPORT_CLEAR_TOKEN, parseMasterImportText } from "@/lib/corporate-admin/master-import";
+import { MASTER_IMPORT_CLEAR_TOKEN, masterImportPayloadSchema, parseMasterImportText } from "@/lib/corporate-admin/master-import";
 
 describe("Corporate master data import", () => {
   it("parses Site aliases and typed values", () => {
@@ -45,10 +45,9 @@ describe("Corporate master data import", () => {
     expect(result.errors[0]).toMatch(/less than or equal to 90|Invalid boolean/);
   });
 
-  it("keeps a hard 200-row import ceiling through the shared contract", () => {
-    const text = ["site_code", ...Array.from({ length: 201 }, (_, i) => `SITE-${i}`)].join("\n");
-    const parsed = parseMasterImportText("SITE", text);
-    expect(parsed.rows).toHaveLength(201);
-    // Server payload validation applies the transaction ceiling; parser remains a pure shape parser.
+  it("enforces the 200-row transaction ceiling", () => {
+    const rows = Array.from({ length: 201 }, (_, index) => ({ rowNumber: index + 1, code: `SITE-${index}`, clearFields: [] }));
+    expect(masterImportPayloadSchema.safeParse({ target: "SITE", rows }).success).toBe(false);
+    expect(masterImportPayloadSchema.safeParse({ target: "SITE", rows: rows.slice(0, 200) }).success).toBe(true);
   });
 });
