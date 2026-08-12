@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { AfendaFilterToolbar } from "@/components/afenda/filter-toolbar";
+import { AfendaEmptyState } from "@/components/afenda/page-state";
 import { AfendaResponsiveDataView } from "@/components/afenda/responsive-data-view";
 import { AfendaSelectFilter } from "@/components/afenda/select-filter";
 import { CorporateStatusBadge, formatMoney } from "@/components/corporate/status";
@@ -139,7 +140,9 @@ export function ObligationRegister({ rows, listFields }: { rows: ObligationRegis
         />
         {hasFilters ? <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>Clear filters</Button> : null}
       </AfendaFilterToolbar>
-      {filteredRows.length === 0 ? <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No obligations match the current filters.</p> : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
+      {filteredRows.length === 0 ? (
+        <AfendaEmptyState title="No obligations found" description="No obligations match the current search and filters." compact />
+      ) : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
     </div>
   );
 }
