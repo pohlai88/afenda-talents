@@ -50,7 +50,7 @@ export function AfendaActivityTimeline({
   }
 
   return (
-    <Card>
+    <Card role="region" aria-label={title}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
