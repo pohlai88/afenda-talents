@@ -1,4 +1,6 @@
 import { AfendaPageHelp } from "@/components/afenda/guidance-sheet";
+import { AfendaPageFrame } from "@/components/afenda/page-frame";
+import { AfendaEmptyState } from "@/components/afenda/page-state";
 import { AfendaSection } from "@/components/afenda/section";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
 import { PaymentRegister, type PaymentRegisterRow } from "@/components/corporate/payment-register";
@@ -36,7 +38,7 @@ export default async function PaymentsPage() {
   }));
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6">
+    <AfendaPageFrame>
       <PageHeader
         eyebrow="Corporate Administration"
         title="Payments"
@@ -45,8 +47,13 @@ export default async function PaymentsPage() {
       />
       <CorporateNav />
       <AfendaSection title="Payment register" description="Search and filter the queue, then use the obligation record to approve, record evidence, reconcile or void a payment.">
-        {rows.length === 0 ? <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No administrative payment requests yet.</p> : <PaymentRegister rows={rows} />}
+        {rows.length === 0 ? (
+          <AfendaEmptyState
+            title="No payment requests yet"
+            description="Payment requests will appear here after they are created against obligation due items."
+          />
+        ) : <PaymentRegister rows={rows} />}
       </AfendaSection>
-    </div>
+    </AfendaPageFrame>
   );
 }
