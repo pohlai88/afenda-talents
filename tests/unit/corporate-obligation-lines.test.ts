@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { createDueItemWithLineSchema, createObligationLineSchema, OBLIGATION_LINE_TYPE_SUGGESTIONS, patchObligationLineSchema } from "@/lib/corporate-admin/obligation-lines";
+import {
+  createDueItemWithLineSchema,
+  createObligationLineSchema,
+  OBLIGATION_LINE_TYPE_SUGGESTIONS,
+  patchObligationLineSchema,
+} from "@/lib/corporate-admin/obligation-lines";
 
 describe("Corporate obligation lines", () => {
   it("supports independent recurring schedules", () => {
@@ -33,8 +38,52 @@ describe("Corporate obligation lines", () => {
     expect(parsed.success).toBe(true);
   });
 
+  it("supports manual due creation against an explicit line", () => {
+    const parsed = createDueItemWithLineSchema.safeParse({
+      mode: "MANUAL",
+      lineId: "line_rent",
+      dueDate: "2026-08-31",
+      periodLabel: "Exceptional rent adjustment",
+      expectedAmount: 900,
+      currency: "MYR",
+      customFields: {},
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("allows full controlled line schedule edits", () => {
+    const parsed = patchObligationLineSchema.safeParse({
+      action: "UPDATE",
+      name: "Parking bays",
+      lineType: "PARKING",
+      expectedAmount: 500,
+      currency: "MYR",
+      recurring: true,
+      recurrenceInterval: 1,
+      recurrenceUnit: "MONTH",
+      firstDueDate: "2026-08-01",
+      nextDueDate: "2026-09-01",
+      invoiceRequired: false,
+      paymentTermsDays: 7,
+      startDate: "2026-08-01",
+      endDate: "2027-07-31",
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("rejects recurring schedule edits without a due anchor", () => {
+    const parsed = patchObligationLineSchema.safeParse({
+      action: "UPDATE",
+      recurring: true,
+      recurrenceInterval: 1,
+      recurrenceUnit: "MONTH",
+      firstDueDate: null,
+      nextDueDate: null,
+    });
+    expect(parsed.success).toBe(false);
+  });
+
   it("allows controlled line activation changes", () => {
     expect(patchObligationLineSchema.safeParse({ action: "SET_ACTIVE", isActive: false }).success).toBe(true);
-    expect(patchObligationLineSchema.safeParse({ action: "UPDATE", name: "Parking bays", expectedAmount: 500 }).success).toBe(true);
   });
 });
