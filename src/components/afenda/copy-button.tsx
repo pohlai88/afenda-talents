@@ -1,0 +1,33 @@
+"use client";
+
+import { Check, Copy } from "lucide-react";
+import { useState } from "react";
+
+import { Button } from "@/components/ui/button";
+
+export function AfendaCopyButton({
+  value,
+  label = "Copy reference",
+}: {
+  value: string;
+  label?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <Button type="button" size="sm" variant="ghost" onClick={() => void copy()} aria-label={label}>
+      {copied ? <Check data-icon="inline-start" aria-hidden="true" /> : <Copy data-icon="inline-start" aria-hidden="true" />}
+      {copied ? "Copied" : "Copy"}
+    </Button>
+  );
+}
