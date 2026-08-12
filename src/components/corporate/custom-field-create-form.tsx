@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+
+import { AfendaCheckField, AfendaField } from "@/components/afenda/form-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { CUSTOM_FIELD_GUIDANCE } from "@/lib/corporate-admin/custom-field-guidance";
 
 const scopes = ["COUNTERPARTY", "OBLIGATION", "DUE_ITEM", "PAYMENT"] as const;
 const types = ["TEXT", "LONG_TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "URL", "EMAIL", "PHONE"] as const;
@@ -48,18 +49,36 @@ export function CustomFieldCreateForm() {
       <Card>
         <CardHeader><CardTitle>Add custom field</CardTitle><CardDescription>Add organisation-specific information without a database migration. Keys are stable; labels can evolve.</CardDescription></CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label="Record type" id="cf-scope"><Select value={scope} onValueChange={(v) => setScope(v as typeof scope)}><SelectTrigger id="cf-scope" className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{scopes.map((item) => <SelectItem key={item} value={item}>{item.replaceAll("_", " ").toLowerCase()}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
-          <Field label="Field type" id="cf-type"><Select value={dataType} onValueChange={(v) => setDataType(v as typeof dataType)}><SelectTrigger id="cf-type" className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{types.map((item) => <SelectItem key={item} value={item}>{item.replaceAll("_", " ").toLowerCase()}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
-          <Field label="Stable key *" id="cf-key"><Input id="cf-key" value={key} onChange={(e) => setKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"))} placeholder="policy_number" required /></Field>
-          <Field label="Label *" id="cf-label"><Input id="cf-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Policy number" required /></Field>
-          <Field label="Placeholder" id="cf-placeholder"><Input id="cf-placeholder" value={placeholder} onChange={(e) => setPlaceholder(e.target.value)} /></Field>
-          <div className="flex flex-col gap-3 pt-6"><label className="flex items-center gap-3 text-sm"><Checkbox checked={required} onCheckedChange={(v) => setRequired(v === true)} />Required</label><label className="flex items-center gap-3 text-sm"><Checkbox checked={showInList} onCheckedChange={(v) => setShowInList(v === true)} />Available for list views</label></div>
-          <Field label="Help text" id="cf-description" className="sm:col-span-2"><Textarea id="cf-description" value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
-          {dataType === "SELECT" ? <Field label="Options — one per line *" id="cf-options" className="sm:col-span-2"><Textarea id="cf-options" value={options} onChange={(e) => setOptions(e.target.value)} placeholder={"Monthly\nQuarterly\nAnnual"} required /></Field> : null}
+          <AfendaField label="Record type" id="cf-scope" required guidance={CUSTOM_FIELD_GUIDANCE.scope}>
+            <Select value={scope} onValueChange={(v) => setScope(v as typeof scope)}><SelectTrigger id="cf-scope" className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{scopes.map((item) => <SelectItem key={item} value={item}>{item.replaceAll("_", " ").toLowerCase()}</SelectItem>)}</SelectGroup></SelectContent></Select>
+          </AfendaField>
+          <AfendaField label="Field type" id="cf-type" required guidance={CUSTOM_FIELD_GUIDANCE.dataType}>
+            <Select value={dataType} onValueChange={(v) => setDataType(v as typeof dataType)}><SelectTrigger id="cf-type" className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{types.map((item) => <SelectItem key={item} value={item}>{item.replaceAll("_", " ").toLowerCase()}</SelectItem>)}</SelectGroup></SelectContent></Select>
+          </AfendaField>
+          <AfendaField label="Stable key" id="cf-key" required guidance={CUSTOM_FIELD_GUIDANCE.key}>
+            <Input id="cf-key" value={key} onChange={(e) => setKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"))} placeholder="policy_number" required />
+          </AfendaField>
+          <AfendaField label="Label" id="cf-label" required guidance={CUSTOM_FIELD_GUIDANCE.label}>
+            <Input id="cf-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Policy number" required />
+          </AfendaField>
+          <AfendaField label="Placeholder" id="cf-placeholder" guidance={CUSTOM_FIELD_GUIDANCE.placeholder}>
+            <Input id="cf-placeholder" value={placeholder} onChange={(e) => setPlaceholder(e.target.value)} />
+          </AfendaField>
+          <div className="flex flex-col gap-3 sm:pt-1">
+            <AfendaCheckField label="Required" checked={required} onChange={setRequired} guidance={CUSTOM_FIELD_GUIDANCE.required} />
+            <AfendaCheckField label="Available for list views" checked={showInList} onChange={setShowInList} guidance={CUSTOM_FIELD_GUIDANCE.showInList} />
+          </div>
+          <AfendaField label="Help text" id="cf-description" className="sm:col-span-2" guidance={CUSTOM_FIELD_GUIDANCE.description}>
+            <Textarea id="cf-description" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </AfendaField>
+          {dataType === "SELECT" ? (
+            <AfendaField label="Options — one per line" id="cf-options" className="sm:col-span-2" required guidance={CUSTOM_FIELD_GUIDANCE.options}>
+              <Textarea id="cf-options" value={options} onChange={(e) => setOptions(e.target.value)} placeholder={"Monthly\nQuarterly\nAnnual"} required />
+            </AfendaField>
+          ) : null}
         </CardContent>
         <CardFooter><Button type="submit" disabled={busy || !key || !label}>{busy ? "Adding…" : "Add field"}</Button></CardFooter>
       </Card>
     </form>
   );
 }
-function Field({ label, id, children, className = "" }: { label: string; id: string; children: React.ReactNode; className?: string }) { return <div className={`flex flex-col gap-2 ${className}`}><Label htmlFor={id}>{label}</Label>{children}</div>; }
