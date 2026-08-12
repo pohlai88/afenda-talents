@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ExternalLink, FileText } from "lucide-react";
 
+import { AfendaCopyButton } from "@/components/afenda/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,18 +52,21 @@ export function AfendaEvidenceList({
                       <p className="text-sm font-medium">{item.label}</p>
                       <Badge variant={state.variant}>{state.label}</Badge>
                     </div>
-                    <p className="mt-1 break-words text-sm text-muted-foreground">
+                    <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
                       {item.reference || "No reference recorded"}
                     </p>
                     {item.note ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.note}</p> : null}
                   </div>
                 </div>
-                {item.href ? (
-                  <Button size="sm" variant="outline" nativeButton={false} render={<Link href={item.href} target="_blank" rel="noreferrer" />}>
-                    <ExternalLink data-icon="inline-start" aria-hidden="true" />
-                    Open evidence
-                  </Button>
-                ) : null}
+                <div className="flex shrink-0 flex-wrap items-center gap-1 sm:justify-end">
+                  {item.reference ? <AfendaCopyButton value={item.reference} /> : null}
+                  {item.href ? (
+                    <Button size="sm" variant="outline" nativeButton={false} render={<Link href={item.href} target="_blank" rel="noreferrer" />}>
+                      <ExternalLink data-icon="inline-start" aria-hidden="true" />
+                      Open evidence
+                    </Button>
+                  ) : null}
+                </div>
               </div>
             </div>
           );
