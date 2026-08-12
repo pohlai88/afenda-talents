@@ -1,13 +1,14 @@
 import Link from "next/link";
 
 import { AfendaPageHelp } from "@/components/afenda/guidance-sheet";
+import { AfendaPageFrame } from "@/components/afenda/page-frame";
+import { AfendaEmptyState } from "@/components/afenda/page-state";
 import { AfendaSection } from "@/components/afenda/section";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
 import { ObligationRegister, type ObligationRegisterRow } from "@/components/corporate/obligation-register";
 import { todayDateOnly } from "@/components/corporate/status";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { requireWorkspaceUser } from "@/lib/auth-workspace";
 import { deriveDueState, formatDateOnly } from "@/lib/corporate-admin/domain";
 import { CORPORATE_PAGE_GUIDANCE } from "@/lib/corporate-admin/page-guidance";
@@ -59,7 +60,7 @@ export default async function ObligationsPage() {
   });
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6">
+    <AfendaPageFrame>
       <PageHeader
         eyebrow="Corporate Administration"
         title="Obligations"
@@ -74,14 +75,15 @@ export default async function ObligationsPage() {
       <CorporateNav />
       <AfendaSection title="Register" description="Search and filter records, then open one for its terms, due schedule and payment history.">
         {rows.length === 0 ? (
-          <Empty className="border border-dashed">
-            <EmptyHeader><EmptyTitle>No obligations yet</EmptyTitle><EmptyDescription>Add your first recurring or one-off administrative commitment.</EmptyDescription></EmptyHeader>
-            {session.role === "ADMIN" ? <EmptyContent><Button size="sm" nativeButton={false} render={<Link href="/admin/corporate/obligations/new" />}>Create obligation</Button></EmptyContent> : null}
-          </Empty>
+          <AfendaEmptyState
+            title="No obligations yet"
+            description="Add your first recurring or one-off administrative commitment."
+            action={session.role === "ADMIN" ? <Button size="sm" nativeButton={false} render={<Link href="/admin/corporate/obligations/new" />}>Create obligation</Button> : undefined}
+          />
         ) : (
           <ObligationRegister rows={rows} listFields={listFields.map((field) => ({ id: field.id, key: field.key, label: field.label }))} />
         )}
       </AfendaSection>
-    </div>
+    </AfendaPageFrame>
   );
 }
