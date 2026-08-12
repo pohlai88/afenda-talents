@@ -10,9 +10,13 @@ export type AfendaWorkflowStep = {
 
 export function AfendaWorkflowStepper({ steps, className }: { steps: AfendaWorkflowStep[]; className?: string }) {
   return (
-    <ol className={cn("grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6", className)}>
+    <ol className={cn("grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6", className)} aria-label="Workflow progress">
       {steps.map((step, index) => (
-        <li key={`${index}-${step.label}`} className="relative min-w-0">
+        <li
+          key={`${index}-${step.label}`}
+          className="relative min-w-0"
+          aria-current={step.state === "current" ? "step" : undefined}
+        >
           <div
             className={cn(
               "flex h-full gap-3 rounded-lg border p-3",
@@ -33,6 +37,7 @@ export function AfendaWorkflowStepper({ steps, className }: { steps: AfendaWorkf
             </div>
             <div className="min-w-0">
               <p className={cn("text-sm font-medium", step.state === "upcoming" && "text-muted-foreground")}>{step.label}</p>
+              <span className="sr-only">{step.state === "complete" ? "Completed" : step.state === "current" ? "Current step" : "Upcoming"}. </span>
               {step.description ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{step.description}</p> : null}
             </div>
           </div>
