@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { AfendaConfirmButton } from "@/components/afenda/confirm-action";
@@ -25,14 +25,6 @@ function money(currency: string, value: number | null): string {
   catch { return `${currency} ${value}`; }
 }
 
-function initialColumns(): Record<ColumnKey, boolean> {
-  if (typeof window === "undefined") return DEFAULT_COLUMNS;
-  try {
-    const raw = window.localStorage.getItem(COLUMN_KEY);
-    return raw ? { ...DEFAULT_COLUMNS, ...JSON.parse(raw) as Partial<Record<ColumnKey, boolean>> } : DEFAULT_COLUMNS;
-  } catch { return DEFAULT_COLUMNS; }
-}
-
 export function SpreadsheetOperationsGrid({ rows, sites, isAdmin }: {
   rows: OperationsGridRow[];
   sites: Pick<OperationsMatrixRow, "siteId" | "siteCode" | "siteName">[];
@@ -40,7 +32,7 @@ export function SpreadsheetOperationsGrid({ rows, sites, isAdmin }: {
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [columns, setColumns] = useState<Record<ColumnKey, boolean>>(initialColumns);
+  const [columns, setColumns] = useState<Record<ColumnKey, boolean>>(DEFAULT_COLUMNS);
   const [columnOpen, setColumnOpen] = useState(false);
   const [siteOpen, setSiteOpen] = useState(false);
   const [siteId, setSiteId] = useState("");
@@ -48,6 +40,16 @@ export function SpreadsheetOperationsGrid({ rows, sites, isAdmin }: {
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<{ id: string; field: "expectedAmount" | "nextDueDate" } | null>(null);
   const [editValue, setEditValue] = useState("");
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        const raw = window.localStorage.getItem(COLUMN_KEY);
+        if (raw) setColumns({ ...DEFAULT_COLUMNS, ...JSON.parse(raw) as Partial<Record<ColumnKey, boolean>> });
+      } catch { /* retain defaults */ }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const selectedRows = useMemo(() => rows.filter((row) => selected.has(row.id)), [rows, selected]);
   const allSelected = rows.length > 0 && rows.every((row) => selected.has(row.id));
@@ -83,13 +85,13 @@ export function SpreadsheetOperationsGrid({ rows, sites, isAdmin }: {
     const body = editing.field === "expectedAmount"
       ? { action: "UPDATE", expectedAmount: editValue.trim() === "" ? null : Number(editValue) }
       : { action: "UPDATE", nextDueDate: editValue.trim() === "" ? null : editValue };
+    setEditing(null);
     setBusy(true);
     try {
       const response = await fetch(`/api/admin/corporate/obligations/${row.obligationId}/lines/${row.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : "Could not update line");
       toast.success(`${row.lineName} updated.`);
-      setEditing(null);
       router.refresh();
     } catch (error) { toast.error(error instanceof Error ? error.message : "Could not update line"); }
     finally { setBusy(false); }
@@ -137,8 +139,8 @@ export function SpreadsheetOperationsGrid({ rows, sites, isAdmin }: {
           <TableCell><Link href={`/admin/corporate/obligations/${row.obligationId}/lines`} className="font-medium hover:underline">{row.lineName}</Link><span className="block font-mono text-xs text-muted-foreground">{row.lineCode} · {row.lineType.replaceAll("_", " ")}{row.lineActive ? "" : " · INACTIVE"}</span></TableCell>
           {columns.sites ? <TableCell className="max-w-56"><span className="line-clamp-2">{row.sites.length > 0 ? row.sites.join(", ") : "—"}</span></TableCell> : null}
           {columns.counterparty ? <TableCell>{row.counterparty}</TableCell> : null}
-          {columns.nextDue ? <TableCell className="min-w-36">{isAdmin && row.lineActive ? (editing?.id === row.id && editing.field === "nextDueDate" ? <Input autoFocus type="date" value={editValue} onChange={(event) => setEditValue(event.target.value)} onBlur={() => void saveCell(row)} onKeyDown={(event) => { if (event.key === "Enter") void saveCell(row); if (event.key === "Escape") setEditing(null); }} aria-label={`Next due date for ${row.lineName}`} /> : <button type="button" className="min-h-8 rounded px-2 font-mono text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => { setEditing({ id: row.id, field: "nextDueDate" }); setEditValue(row.nextDueDate ?? ""); }}>{row.nextDueDate ?? "Set date"}</button>) : <span className="font-mono text-xs">{row.nextDueDate ?? "—"}</span>}</TableCell> : null}
-          {columns.expected ? <TableCell className="min-w-40">{isAdmin && row.lineActive ? (editing?.id === row.id && editing.field === "expectedAmount" ? <Input autoFocus type="number" min="0" step="0.01" value={editValue} onChange={(event) => setEditValue(event.target.value)} onBlur={() => void saveCell(row)} onKeyDown={(event) => { if (event.key === "Enter") void saveCell(row); if (event.key === "Escape") setEditing(null); }} aria-label={`Expected amount for ${row.lineName}`} /> : <button type="button" className="min-h-8 rounded px-2 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => { setEditing({ id: row.id, field: "expectedAmount" }); setEditValue(row.expectedAmount == null ? "" : String(row.expectedAmount)); }}>{money(row.currency, row.expectedAmount) || "Set amount"}</button>) : <span>{money(row.currency, row.expectedAmount) || "—"}</span>}</TableCell> : null}
+          {columns.nextDue ? <TableCell className="min-w-36">{isAdmin && row.lineActive ? (editing?.id === row.id && editing.field === "nextDueDate" ? <Input autoFocus type="date" value={editValue} onChange={(event) => setEditValue(event.target.value)} onBlur={() => void saveCell(row)} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") setEditing(null); }} aria-label={`Next due date for ${row.lineName}`} /> : <button type="button" className="min-h-8 rounded px-2 font-mono text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => { setEditing({ id: row.id, field: "nextDueDate" }); setEditValue(row.nextDueDate ?? ""); }}>{row.nextDueDate ?? "Set date"}</button>) : <span className="font-mono text-xs">{row.nextDueDate ?? "—"}</span>}</TableCell> : null}
+          {columns.expected ? <TableCell className="min-w-40">{isAdmin && row.lineActive ? (editing?.id === row.id && editing.field === "expectedAmount" ? <Input autoFocus type="number" min="0" step="0.01" value={editValue} onChange={(event) => setEditValue(event.target.value)} onBlur={() => void saveCell(row)} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") setEditing(null); }} aria-label={`Expected amount for ${row.lineName}`} /> : <button type="button" className="min-h-8 rounded px-2 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => { setEditing({ id: row.id, field: "expectedAmount" }); setEditValue(row.expectedAmount == null ? "" : String(row.expectedAmount)); }}>{money(row.currency, row.expectedAmount) || "Set amount"}</button>) : <span>{money(row.currency, row.expectedAmount) || "—"}</span>}</TableCell> : null}
           {columns.open ? <TableCell className="text-right tabular-nums"><span className={row.overdueDueCount > 0 ? "font-semibold" : undefined}>{row.openDueCount} / {row.overdueDueCount}</span></TableCell> : null}
         </TableRow>)}</TableBody>
       </Table>
