@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { Prisma } from "@/generated/prisma/client";
+import { audit } from "@/lib/audit";
 import { cleanOptionalString, formatDateOnly, parseDateOnly } from "@/lib/corporate-admin/domain";
 import { createObligationLineSchema } from "@/lib/corporate-admin/obligation-lines";
 import type { CorporateImportPayload, CorporateImportPreviewRow, CorporateImportRow } from "@/lib/corporate-admin/safe-import";
@@ -53,6 +54,8 @@ function currentLineRecord(line: {
 }
 
 function mergedCreateCandidate(row: CorporateImportRow, current?: ReturnType<typeof currentLineRecord>) {
+  const firstDueDate = row.firstDueDate ?? current?.firstDueDate ?? null;
+  const nextDueDate = row.nextDueDate ?? current?.nextDueDate ?? (current ? null : firstDueDate);
   return {
     code: row.lineCode.toUpperCase(),
     name: row.lineName ?? current?.lineName,
@@ -62,8 +65,8 @@ function mergedCreateCandidate(row: CorporateImportRow, current?: ReturnType<typ
     recurring: row.recurring ?? current?.recurring ?? false,
     recurrenceInterval: row.recurrenceInterval ?? current?.recurrenceInterval ?? null,
     recurrenceUnit: row.recurrenceUnit ?? current?.recurrenceUnit ?? null,
-    firstDueDate: row.firstDueDate ?? current?.firstDueDate ?? null,
-    nextDueDate: row.nextDueDate ?? current?.nextDueDate ?? null,
+    firstDueDate,
+    nextDueDate,
     invoiceRequired: row.invoiceRequired ?? current?.invoiceRequired ?? false,
     paymentTermsDays: row.paymentTermsDays ?? current?.paymentTermsDays ?? null,
     startDate: row.startDate ?? current?.startDate ?? null,
@@ -180,13 +183,13 @@ export async function applyCorporateImport(payload: CorporateImportPayload, acto
             expectedAmount: parsed.expectedAmount ?? null, currency: parsed.currency, recurring: parsed.recurring,
             recurrenceInterval: parsed.recurring ? parsed.recurrenceInterval : null, recurrenceUnit: parsed.recurring ? parsed.recurrenceUnit : null,
             firstDueDate: parsed.firstDueDate ? parseDateOnly(parsed.firstDueDate) : null,
-            nextDueDate: parsed.nextDueDate ? parseDateOnly(parsed.nextDueDate) : parsed.firstDueDate ? parseDateOnly(parsed.firstDueDate) : null,
+            nextDueDate: parsed.nextDueDate ? parseDateOnly(parsed.nextDueDate) : null,
             invoiceRequired: parsed.invoiceRequired, paymentTermsDays: parsed.paymentTermsDays ?? null,
             startDate: parsed.startDate ? parseDateOnly(parsed.startDate) : null, endDate: parsed.endDate ? parseDateOnly(parsed.endDate) : null,
             notes: cleanOptionalString(parsed.notes),
           },
         });
-        await tx.auditEvent.create({ data: { actor: actorId, action: "corporate.obligation.line.created", subjectId: line.id, meta: { obligationId: preview.obligationId!, source: "safe_import" } } });
+        await audit(actorId, "corporate.obligation.line.created", line.id, { obligationId: preview.obligationId!, source: "safe_import" }, tx);
         created += 1;
       } else if (preview.action === "UPDATE" && preview.lineId) {
         const obligation = await tx.administrativeObligation.findUnique({ where: { id: preview.obligationId! }, select: { lines: { where: { id: preview.lineId }, take: 1 } } });
@@ -200,7 +203,7 @@ export async function applyCorporateImport(payload: CorporateImportPayload, acto
           invoiceRequired: parsed.invoiceRequired, paymentTermsDays: parsed.paymentTermsDays ?? null,
           startDate: parsed.startDate ? parseDateOnly(parsed.startDate) : null, endDate: parsed.endDate ? parseDateOnly(parsed.endDate) : null, notes: cleanOptionalString(parsed.notes),
         } });
-        await tx.auditEvent.create({ data: { actor: actorId, action: "corporate.obligation.line.updated", subjectId: preview.lineId, meta: { obligationId: preview.obligationId!, source: "safe_import" } } });
+        await audit(actorId, "corporate.obligation.line.updated", preview.lineId, { obligationId: preview.obligationId!, source: "safe_import" }, tx);
         updated += 1;
       }
 
@@ -210,7 +213,7 @@ export async function applyCorporateImport(payload: CorporateImportPayload, acto
         const site = await tx.administrativeSite.findUnique({ where: { code: siteCode }, select: { id: true, isActive: true } });
         if (!site?.isActive) throw new Error(`Site ${siteCode} changed during import`);
         await tx.administrativeObligationSite.upsert({ where: { obligationId_siteId: { obligationId: preview.obligationId!, siteId: site.id } }, update: {}, create: { obligationId: preview.obligationId!, siteId: site.id } });
-        await tx.auditEvent.create({ data: { actor: actorId, action: "corporate.obligation.site.linked", subjectId: preview.obligationId!, meta: { siteId: site.id, source: "safe_import" } } });
+        await audit(actorId, "corporate.obligation.site.linked", preview.obligationId!, { siteId: site.id, source: "safe_import" }, tx);
         linked.add(linkKey);
       }
     }
