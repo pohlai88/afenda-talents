@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Textarea } from "@/components/ui/textarea";
 import { CUSTOM_FIELD_GUIDANCE } from "@/lib/corporate-admin/custom-field-guidance";
 
-const scopes = ["COUNTERPARTY", "OBLIGATION", "DUE_ITEM", "PAYMENT"] as const;
+const scopes = ["COUNTERPARTY", "SITE", "OBLIGATION", "DUE_ITEM", "PAYMENT"] as const;
 const types = ["TEXT", "LONG_TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "URL", "EMAIL", "PHONE"] as const;
 
 export function CustomFieldCreateForm() {
@@ -47,7 +47,7 @@ export function CustomFieldCreateForm() {
   return (
     <form onSubmit={submit}>
       <Card>
-        <CardHeader><CardTitle>Add custom field</CardTitle><CardDescription>Add organisation-specific information without a database migration. Keys are stable; labels can evolve.</CardDescription></CardHeader>
+        <CardHeader><CardTitle>Add custom field</CardTitle><CardDescription>Add organisation-specific metadata without a database migration. Relationships such as Site↔Counterparty stay first-class relational data.</CardDescription></CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <AfendaField label="Record type" id="cf-scope" required guidance={CUSTOM_FIELD_GUIDANCE.scope}>
             <Select value={scope} onValueChange={(v) => setScope(v as typeof scope)}><SelectTrigger id="cf-scope" className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{scopes.map((item) => <SelectItem key={item} value={item}>{item.replaceAll("_", " ").toLowerCase()}</SelectItem>)}</SelectGroup></SelectContent></Select>
