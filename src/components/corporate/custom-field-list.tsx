@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { AfendaFilterToolbar } from "@/components/afenda/filter-toolbar";
+import { AfendaEmptyState } from "@/components/afenda/page-state";
 import { AfendaResponsiveDataView } from "@/components/afenda/responsive-data-view";
 import { AfendaRowActions } from "@/components/afenda/row-actions";
 import { AfendaSection } from "@/components/afenda/section";
@@ -83,7 +84,9 @@ export function CustomFieldList({ fields, isAdmin }: { fields: CorporateCustomFi
 
   return (
     <AfendaSection title="Configured fields" description="Deactivate fields instead of deleting them so historical values remain interpretable.">
-      {fields.length === 0 ? <p className="text-sm text-muted-foreground">No custom fields configured.</p> : (
+      {fields.length === 0 ? (
+        <AfendaEmptyState title="No custom fields configured" description="Create a custom field when organisation-specific structured information is missing from a Corporate Administration record." />
+      ) : (
         <div className="flex flex-col gap-4">
           <AfendaFilterToolbar search={search} onSearchChange={setSearch} searchPlaceholder="Search custom fields…" resultCount={filteredFields.length}>
             <AfendaSelectFilter
@@ -110,7 +113,9 @@ export function CustomFieldList({ fields, isAdmin }: { fields: CorporateCustomFi
             />
             {hasFilters ? <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>Clear filters</Button> : null}
           </AfendaFilterToolbar>
-          {filteredFields.length === 0 ? <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No custom fields match the current filters.</p> : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
+          {filteredFields.length === 0 ? (
+            <AfendaEmptyState title="No custom fields found" description="No custom fields match the current search and filters." compact />
+          ) : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
         </div>
       )}
     </AfendaSection>
