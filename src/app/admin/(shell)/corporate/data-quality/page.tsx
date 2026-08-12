@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { AfendaPageFrame } from "@/components/afenda/page-frame";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
+import { DataQualityTaskButton } from "@/components/corporate/data-quality-task-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +16,7 @@ import { db } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 export default async function CorporateDataQualityPage() {
-  await requireWorkspaceUser();
+  const session = await requireWorkspaceUser();
   const [sites, counterparties, obligations] = await Promise.all([
     db.administrativeSite.findMany({
       orderBy: { code: "asc" },
@@ -46,6 +47,7 @@ export default async function CorporateDataQualityPage() {
   const actions = result.findings.filter(f=>f.severity==="ACTION").length;
   const reviews = result.findings.filter(f=>f.severity==="REVIEW").length;
   const below80 = result.completeness.filter(item=>item.percent<80).length;
+  const isAdmin = session.role === "ADMIN";
 
   return (
     <AfendaPageFrame width="wide">
@@ -59,8 +61,8 @@ export default async function CorporateDataQualityPage() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Findings queue</CardTitle><CardDescription>Every finding is generated from an explicit rule and links to the record that can resolve it.</CardDescription></CardHeader>
-        <CardContent>{result.findings.length===0?<p className="text-sm text-muted-foreground">No current deterministic data-quality findings.</p>:<div className="overflow-x-auto rounded-lg border"><Table><TableHeader><TableRow><TableHead>Priority</TableHead><TableHead>Rule</TableHead><TableHead>Record</TableHead><TableHead>Finding</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader><TableBody>{result.findings.map(item=><TableRow key={item.id}><TableCell><Badge variant={item.severity==="ACTION"?"destructive":"outline"}>{item.severity}</Badge></TableCell><TableCell className="font-mono text-xs">{item.rule}</TableCell><TableCell><div className="font-medium">{item.entityCode}</div><div className="text-xs text-muted-foreground">{item.entityType}</div></TableCell><TableCell><div className="font-medium">{item.title}</div><div className="max-w-2xl text-xs text-muted-foreground">{item.detail}</div></TableCell><TableCell className="text-right"><Button size="sm" variant="outline" nativeButton={false} render={<Link href={item.href}/>}>Review record</Button></TableCell></TableRow>)}</TableBody></Table></div>}</CardContent>
+        <CardHeader><CardTitle>Findings queue</CardTitle><CardDescription>Every finding is generated from an explicit rule and links to the record that can resolve it. Admins can promote a finding into accountable Administrative Work without changing the underlying rule.</CardDescription></CardHeader>
+        <CardContent>{result.findings.length===0?<p className="text-sm text-muted-foreground">No current deterministic data-quality findings.</p>:<div className="overflow-x-auto rounded-lg border"><Table><TableHeader><TableRow><TableHead>Priority</TableHead><TableHead>Rule</TableHead><TableHead>Record</TableHead><TableHead>Finding</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader><TableBody>{result.findings.map(item=><TableRow key={item.id}><TableCell><Badge variant={item.severity==="ACTION"?"destructive":"outline"}>{item.severity}</Badge></TableCell><TableCell className="font-mono text-xs">{item.rule}</TableCell><TableCell><div className="font-medium">{item.entityCode}</div><div className="text-xs text-muted-foreground">{item.entityType}</div></TableCell><TableCell><div className="font-medium">{item.title}</div><div className="max-w-2xl text-xs text-muted-foreground">{item.detail}</div></TableCell><TableCell className="text-right"><div className="flex justify-end gap-2">{isAdmin?<DataQualityTaskButton findingId={item.id} title={item.title} detail={item.detail} href={item.href} severity={item.severity}/>:null}<Button size="sm" variant="outline" nativeButton={false} render={<Link href={item.href}/>}>Review record</Button></div></TableCell></TableRow>)}</TableBody></Table></div>}</CardContent>
       </Card>
 
       <Card>
