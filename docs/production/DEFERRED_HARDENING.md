@@ -2,7 +2,7 @@
 
 **Status:** Canonical deferred-work register for the current production baseline.
 
-Afenda Talents is production-deployed from `main`. Closed historical P0 issues are not active defects unless they are explicitly reopened against current production behavior.
+Afenda Talents is production-deployed from `main`. Closed historical issues are not active defects unless they are explicitly reopened against current production behavior.
 
 ## Source-of-truth order
 
@@ -55,6 +55,32 @@ Until then, an outbox is resilience hardening, not a correctness prerequisite.
 - batch save/revision semantics become part of the product contract.
 
 Until then, revisioned batch autosave is network-resilience enhancement work.
+
+### Server-side candidate-registry pagination — archived from issue #10
+
+**Current position:** The candidate registry is explicitly hiring-round scoped and the desktop/mobile workflows are verified, but the selected round's registry is still returned as one bounded-by-round payload and filtered in the client.
+
+**Reconsider when:**
+
+- measured round size materially increases payload or render latency;
+- browser memory or network cost becomes operationally significant;
+- privacy requirements demand page-bounded serialization;
+- server-authoritative sorting/filtering becomes a product requirement.
+
+Until then, server pagination is a scale/performance enhancement rather than an active correctness defect.
+
+### Automated retention, restore drills, and external observability — archived from issue #11
+
+**Current position:** Production has liveness/readiness endpoints, deployment smoke validation, runtime-error inspection, documented release/rollback procedures, and verified Neon migration boundaries. Scheduled retention/legal-hold automation, recurring restore drills, and external alerting are not part of the current operating baseline.
+
+**Reconsider when:**
+
+- explicit statutory, contractual, or internal retention/legal-hold requirements are adopted;
+- production SLA/SLO commitments require external alerting and measured recovery objectives;
+- data volume or incident history justifies scheduled retention enforcement;
+- recovery drills become a formal compliance or operational requirement.
+
+Until then, these controls are operational-maturity work, not an application debugging backlog.
 
 ### GitHub-hosted Actions and branch protection — archived from issue #12
 
