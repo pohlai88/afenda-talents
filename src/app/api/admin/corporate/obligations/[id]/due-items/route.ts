@@ -4,12 +4,12 @@ import { requireWorkspaceAdmin } from "@/lib/auth-workspace";
 import { validateAdministrativeCustomFields } from "@/lib/corporate-admin/custom-fields";
 import {
   cleanOptionalString,
-  createDueItemSchema,
   defaultPeriodLabel,
   formatDateOnly,
   nextOccurrence,
   parseDateOnly,
 } from "@/lib/corporate-admin/domain";
+import { createDueItemWithLineSchema } from "@/lib/corporate-admin/obligation-lines";
 import { db } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -25,7 +25,7 @@ export async function POST(
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
 
-  const parsed = createDueItemSchema.safeParse(await request.json().catch(() => null));
+  const parsed = createDueItemWithLineSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid due item" }, { status: 400 });
   }
@@ -39,12 +39,19 @@ export async function POST(
       if (!obligation) throw new Error("Obligation not found");
       if (obligation.status !== "ACTIVE") throw new Error("Only active obligations can create due items");
 
+      const line = parsed.data.lineId
+        ? await tx.administrativeObligationLine.findFirst({ where: { id: parsed.data.lineId, obligationId } })
+        : await tx.administrativeObligationLine.findFirst({ where: { obligationId, code: "GENERAL" } });
+      if (!line) throw new Error("Obligation line not found");
+      if (!line.isActive) throw new Error("Inactive obligation lines cannot create due items");
+      await tx.$queryRaw`SELECT "id" FROM "AdministrativeObligationLine" WHERE "id" = ${line.id} FOR UPDATE`;
+
       let dueDateText: string;
       if (parsed.data.mode === "NEXT") {
-        if (!obligation.recurring || !obligation.nextDueDate || !obligation.recurrenceInterval || !obligation.recurrenceUnit) {
-          throw new Error("This obligation has no next recurring due item to generate");
+        if (!line.recurring || !line.nextDueDate || !line.recurrenceInterval || !line.recurrenceUnit) {
+          throw new Error("This obligation line has no next recurring due item to generate");
         }
-        dueDateText = formatDateOnly(obligation.nextDueDate);
+        dueDateText = formatDateOnly(line.nextDueDate);
       } else {
         if (!parsed.data.dueDate) throw new Error("Manual due items require a due date");
         dueDateText = parsed.data.dueDate;
@@ -54,12 +61,13 @@ export async function POST(
       const created = await tx.obligationDueItem.create({
         data: {
           obligationId,
+          lineId: line.id,
           periodLabel: parsed.data.periodLabel?.trim() || defaultPeriodLabel(dueDateText),
           dueDate: parseDateOnly(dueDateText),
-          expectedAmount: parsed.data.expectedAmount ?? obligation.expectedAmount,
+          expectedAmount: parsed.data.expectedAmount ?? line.expectedAmount,
           invoiceAmount: parsed.data.invoiceAmount ?? null,
-          currency: parsed.data.currency ?? obligation.currency,
-          invoiceRequired: parsed.data.invoiceRequired ?? false,
+          currency: parsed.data.currency ?? line.currency,
+          invoiceRequired: parsed.data.invoiceRequired ?? line.invoiceRequired,
           invoiceNumber: cleanOptionalString(parsed.data.invoiceNumber),
           invoiceFileUrl: cleanOptionalString(parsed.data.invoiceFileUrl),
           disputeFlag: parsed.data.disputeFlag ?? false,
@@ -68,18 +76,22 @@ export async function POST(
         },
       });
 
-      if (parsed.data.mode === "NEXT" && obligation.recurrenceInterval && obligation.recurrenceUnit) {
-        const candidateNext = nextOccurrence(dueDateText, obligation.recurrenceInterval, obligation.recurrenceUnit);
-        const beyondEnd = obligation.endDate && candidateNext > formatDateOnly(obligation.endDate);
-        await tx.administrativeObligation.update({
-          where: { id: obligationId },
-          data: { nextDueDate: beyondEnd ? null : parseDateOnly(candidateNext) },
-        });
+      if (parsed.data.mode === "NEXT" && line.recurrenceInterval && line.recurrenceUnit) {
+        const candidateNext = nextOccurrence(dueDateText, line.recurrenceInterval, line.recurrenceUnit);
+        const beyondLineEnd = line.endDate && candidateNext > formatDateOnly(line.endDate);
+        const nextDueDate = beyondLineEnd ? null : parseDateOnly(candidateNext);
+        await tx.administrativeObligationLine.update({ where: { id: line.id }, data: { nextDueDate } });
+
+        // Keep the legacy obligation pointer synchronized for the default GENERAL line during CA-03 adoption.
+        if (line.code === "GENERAL") {
+          await tx.administrativeObligation.update({ where: { id: obligationId }, data: { nextDueDate } });
+        }
       }
 
       await audit(session.userId, "corporate.due_item.created", created.id, {
         obligationId,
         dueItemId: created.id,
+        lineId: line.id,
       }, tx);
       return created;
     });
@@ -88,9 +100,9 @@ export async function POST(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not create due item";
     const duplicate = message.includes("Unique constraint") || message.includes("unique constraint");
-    const missing = message === "Obligation not found";
+    const missing = message === "Obligation not found" || message === "Obligation line not found";
     return NextResponse.json(
-      { error: duplicate ? "A due item already exists for that obligation and date" : message },
+      { error: duplicate ? "A due item already exists for that line and date" : message },
       { status: missing ? 404 : duplicate ? 409 : 400 },
     );
   }
