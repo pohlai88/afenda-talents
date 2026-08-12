@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { AfendaGuidanceButton } from "@/components/afenda/guidance-sheet";
+import { useAfendaGuidedMode } from "@/components/afenda/guided-mode";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
@@ -31,6 +32,7 @@ export function AfendaField({
   guidance?: AfendaGuidance;
   description?: string;
 }) {
+  const { enabled } = useAfendaGuidedMode();
   const helper = guidance?.summary ?? description;
 
   return (
@@ -43,7 +45,7 @@ export function AfendaField({
         {guidance ? <AfendaGuidanceButton title={label} guidance={guidance} /> : null}
       </div>
       {children}
-      {helper ? <FieldDescription>{helper}</FieldDescription> : null}
+      {enabled && helper ? <FieldDescription>{helper}</FieldDescription> : null}
     </Field>
   );
 }
@@ -63,6 +65,7 @@ export function AfendaCheckField({
   description?: string;
   className?: string;
 }) {
+  const { enabled } = useAfendaGuidedMode();
   const helper = guidance?.summary ?? description;
 
   return (
@@ -73,7 +76,7 @@ export function AfendaCheckField({
           <FieldTitle>{label}</FieldTitle>
           {guidance ? <AfendaGuidanceButton title={label} guidance={guidance} /> : null}
         </div>
-        {helper ? <FieldDescription>{helper}</FieldDescription> : null}
+        {enabled && helper ? <FieldDescription>{helper}</FieldDescription> : null}
       </FieldContent>
     </Field>
   );
