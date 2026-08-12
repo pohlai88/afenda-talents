@@ -39,12 +39,33 @@ const lineShape = {
   notes: z.string().trim().max(10_000).optional().nullable(),
 };
 
-export const createObligationLineSchema = z.object(lineShape).superRefine((value, ctx) => {
-  if (value.endDate && value.startDate && value.endDate < value.startDate) ctx.addIssue({ code: "custom", path: ["endDate"], message: "End date cannot be before start date" });
-  if (value.recurring && (!value.recurrenceInterval || !value.recurrenceUnit)) ctx.addIssue({ code: "custom", path: ["recurrenceInterval"], message: "Recurring lines need an interval and unit" });
-  if (!value.recurring && (value.recurrenceInterval || value.recurrenceUnit)) ctx.addIssue({ code: "custom", path: ["recurring"], message: "Recurrence settings require recurring to be enabled" });
-  if (value.recurring && !value.nextDueDate && !value.firstDueDate) ctx.addIssue({ code: "custom", path: ["firstDueDate"], message: "Recurring lines need a first or next due date" });
-});
+function validateLineSchedule(
+  value: {
+    recurring?: boolean;
+    recurrenceInterval?: number | null;
+    recurrenceUnit?: (typeof recurrenceUnits)[number] | null;
+    firstDueDate?: string | null;
+    nextDueDate?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+  },
+  ctx: z.RefinementCtx,
+) {
+  if (value.endDate && value.startDate && value.endDate < value.startDate) {
+    ctx.addIssue({ code: "custom", path: ["endDate"], message: "End date cannot be before start date" });
+  }
+  if (value.recurring && (!value.recurrenceInterval || !value.recurrenceUnit)) {
+    ctx.addIssue({ code: "custom", path: ["recurrenceInterval"], message: "Recurring lines need an interval and unit" });
+  }
+  if (value.recurring === false && (value.recurrenceInterval || value.recurrenceUnit)) {
+    ctx.addIssue({ code: "custom", path: ["recurring"], message: "Recurrence settings require recurring to be enabled" });
+  }
+  if (value.recurring && !value.nextDueDate && !value.firstDueDate) {
+    ctx.addIssue({ code: "custom", path: ["firstDueDate"], message: "Recurring lines need a first or next due date" });
+  }
+}
+
+export const createObligationLineSchema = z.object(lineShape).superRefine(validateLineSchedule);
 
 export const patchObligationLineSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("SET_ACTIVE"), isActive: z.boolean() }),
@@ -54,10 +75,17 @@ export const patchObligationLineSchema = z.discriminatedUnion("action", [
     lineType: lineShape.lineType.optional(),
     expectedAmount: lineShape.expectedAmount,
     currency: lineShape.currency.optional(),
+    recurring: z.boolean().optional(),
+    recurrenceInterval: lineShape.recurrenceInterval,
+    recurrenceUnit: lineShape.recurrenceUnit,
+    firstDueDate: lineShape.firstDueDate,
+    nextDueDate: lineShape.nextDueDate,
     invoiceRequired: z.boolean().optional(),
     paymentTermsDays: lineShape.paymentTermsDays,
+    startDate: lineShape.startDate,
+    endDate: lineShape.endDate,
     notes: lineShape.notes,
-  }),
+  }).superRefine(validateLineSchedule),
 ]);
 
 export const createDueItemWithLineSchema = createDueItemSchema.extend({ lineId: z.string().trim().min(1).optional() });
