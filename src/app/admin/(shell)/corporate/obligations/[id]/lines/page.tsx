@@ -20,7 +20,7 @@ export default async function ObligationLinesPage({ params }: { params: Promise<
     where: { id },
     include: {
       counterparty: { select: { name: true } },
-      lines: { orderBy: [{ isActive: "desc" }, { sortOrder: "asc" }, { code: "asc" }], include: { _count: { select: { dueItems: true } } } },
+      lines: { orderBy: [{ isActive: "desc" }, { code: "asc" }], include: { _count: { select: { dueItems: true } } } },
     },
   });
   if (!obligation) notFound();
