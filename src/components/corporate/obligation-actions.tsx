@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { DUE_ITEM_GUIDANCE } from "@/lib/corporate-admin/workflow-guidance";
 
-export function ObligationActions({ id, status, recurring, nextDueDate, currency, expectedAmount, isAdmin }: {
+export function ObligationActions({ id, status, recurring, nextDueDate, currency, expectedAmount, isAdmin, canActivate = true }: {
   id: string;
   status: "DRAFT" | "ACTIVE" | "ENDED" | "CANCELLED";
   recurring: boolean;
@@ -18,6 +18,7 @@ export function ObligationActions({ id, status, recurring, nextDueDate, currency
   currency: string;
   expectedAmount: number | null;
   isAdmin: boolean;
+  canActivate?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -41,7 +42,7 @@ export function ObligationActions({ id, status, recurring, nextDueDate, currency
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        {status === "DRAFT" ? <Button disabled={busy} onClick={() => void call(`/api/admin/corporate/obligations/${id}`, { action: "ACTIVATE" }, "PATCH", "Obligation activated.")}>Activate</Button> : null}
+        {status === "DRAFT" ? <Button disabled={busy || !canActivate} onClick={() => void call(`/api/admin/corporate/obligations/${id}`, { action: "ACTIVATE" }, "PATCH", "Obligation activated.")}>Activate</Button> : null}
         {status === "ACTIVE" && recurring && nextDueDate ? <Button disabled={busy} onClick={() => void call(`/api/admin/corporate/obligations/${id}/due-items`, { mode: "NEXT" }, "POST", `Due item ${nextDueDate} created.`)}>Generate next due</Button> : null}
         {status === "ACTIVE" ? <Button variant="outline" disabled={busy} onClick={() => setManualOpen(true)}>Add manual due</Button> : null}
         {status === "ACTIVE" ? <Button variant="outline" disabled={busy} onClick={() => void call(`/api/admin/corporate/obligations/${id}`, { action: "END" }, "PATCH", "Obligation ended.")}>Mark ended</Button> : null}
