@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AfendaPageHelp } from "@/components/afenda/guidance-sheet";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
 import { CorporateStatusBadge, formatMoney, todayDateOnly } from "@/components/corporate/status";
 import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireWorkspaceUser } from "@/lib/auth-workspace";
 import { deriveDueState, formatDateOnly, parseDateOnly } from "@/lib/corporate-admin/domain";
+import { CORPORATE_PAGE_GUIDANCE } from "@/lib/corporate-admin/page-guidance";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +34,17 @@ export default async function CorporateOverviewPage() {
   ] as const;
   return (
     <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6">
-      <PageHeader eyebrow="Corporate Administration" title="Administration control centre" description="See what is due, overdue, waiting for approval or still unreconciled—without maintaining status spreadsheets." actions={session.role === "ADMIN" ? <Button nativeButton={false} render={<Link href="/admin/corporate/obligations/new" />}>New obligation</Button> : undefined} />
+      <PageHeader
+        eyebrow="Corporate Administration"
+        title="Administration control centre"
+        description="See what is due, overdue, waiting for approval or still unreconciled—without maintaining status spreadsheets."
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <AfendaPageHelp title="Corporate Administration overview" guidance={CORPORATE_PAGE_GUIDANCE.overview} />
+            {session.role === "ADMIN" ? <Button nativeButton={false} render={<Link href="/admin/corporate/obligations/new" />}>New obligation</Button> : null}
+          </div>
+        }
+      />
       <CorporateNav />
       <section aria-label="Corporate administration metrics" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {metrics.map(([label, value, href]) => <Link key={label} href={href} className="rounded-xl border bg-card p-4 transition-colors hover:bg-accent/40"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p></Link>)}
