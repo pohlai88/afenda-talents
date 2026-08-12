@@ -1,4 +1,5 @@
 import { AfendaPageHelp } from "@/components/afenda/guidance-sheet";
+import { AfendaPageFrame } from "@/components/afenda/page-frame";
 import type { CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
 import { CounterpartyManager, type CounterpartyRow } from "@/components/corporate/counterparty-manager";
@@ -24,7 +25,7 @@ export default async function CounterpartiesPage() {
   ]);
   const rows: CounterpartyRow[] = counterparties.map((row) => ({ id: row.id, code: row.code, name: row.name, type: row.type, registrationNo: row.registrationNo ?? "", taxId: row.taxId ?? "", contactName: row.contactName ?? "", contactEmail: row.contactEmail ?? "", contactPhone: row.contactPhone ?? "", address: row.address ?? "", countryCode: row.countryCode ?? "", websiteUrl: row.websiteUrl ?? "", defaultCurrency: row.defaultCurrency ?? "", paymentTermsDays: row.paymentTermsDays == null ? "" : String(row.paymentTermsDays), isActive: row.isActive, notes: row.notes ?? "", customFields: jsonObject(row.customFields), obligations: row._count.obligations }));
   return (
-    <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6">
+    <AfendaPageFrame>
       <PageHeader
         eyebrow="Corporate Administration"
         title="Counterparties"
@@ -33,6 +34,6 @@ export default async function CounterpartiesPage() {
       />
       <CorporateNav />
       <CounterpartyManager rows={rows} definitions={definitions.map(fieldDto)} isAdmin={session.role === "ADMIN"} />
-    </div>
+    </AfendaPageFrame>
   );
 }
