@@ -11,16 +11,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-
-export type AfendaGuidance = {
-  summary: string;
-  what: string;
-  why: string;
-  who: string;
-  when: string;
-  how: string;
-  example?: string;
-};
+import type { AfendaGuidance } from "@/lib/afenda-guidance";
 
 const GUIDANCE_ROWS: Array<{ key: keyof Pick<AfendaGuidance, "what" | "why" | "who" | "when" | "how">; label: string }> = [
   { key: "what", label: "What" },
