@@ -8,19 +8,39 @@ import { AfendaFilterToolbar } from "@/components/afenda/filter-toolbar";
 import { AfendaResponsiveDataView } from "@/components/afenda/responsive-data-view";
 import { AfendaRowActions } from "@/components/afenda/row-actions";
 import { AfendaSection } from "@/components/afenda/section";
+import { AfendaSelectFilter } from "@/components/afenda/select-filter";
 import type { CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+type ScopeFilter = "ALL" | CorporateCustomFieldDefinitionDto["scope"];
+type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
 export function CustomFieldList({ fields, isAdmin }: { fields: CorporateCustomFieldDefinitionDto[]; isAdmin: boolean }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("ALL");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+
   const filteredFields = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return fields;
-    return fields.filter((field) => [field.scope, field.key, field.label, field.dataType, field.description ?? ""].some((value) => value.toLowerCase().includes(query)));
-  }, [fields, search]);
+    return fields.filter((field) => {
+      const matchesSearch = !query || [field.scope, field.key, field.label, field.dataType, field.description ?? ""].some((value) => value.toLowerCase().includes(query));
+      const matchesScope = scopeFilter === "ALL" || field.scope === scopeFilter;
+      const matchesStatus = statusFilter === "ALL" || (statusFilter === "ACTIVE" ? field.isActive : !field.isActive);
+      return matchesSearch && matchesScope && matchesStatus;
+    });
+  }, [fields, scopeFilter, search, statusFilter]);
+
+  const hasFilters = search.trim() !== "" || scopeFilter !== "ALL" || statusFilter !== "ALL";
+
+  function clearFilters() {
+    setSearch("");
+    setScopeFilter("ALL");
+    setStatusFilter("ALL");
+  }
 
   async function toggle(field: CorporateCustomFieldDefinitionDto) {
     setBusyId(field.id);
@@ -30,8 +50,11 @@ export function CustomFieldList({ fields, isAdmin }: { fields: CorporateCustomFi
       if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : "Could not update field");
       toast.success(field.isActive ? "Custom field deactivated." : "Custom field reactivated.");
       router.refresh();
-    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not update field"); }
-    finally { setBusyId(null); }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update field");
+    } finally {
+      setBusyId(null);
+    }
   }
 
   const desktop = (
@@ -61,9 +84,33 @@ export function CustomFieldList({ fields, isAdmin }: { fields: CorporateCustomFi
   return (
     <AfendaSection title="Configured fields" description="Deactivate fields instead of deleting them so historical values remain interpretable.">
       {fields.length === 0 ? <p className="text-sm text-muted-foreground">No custom fields configured.</p> : (
-        <div className="space-y-4">
-          <AfendaFilterToolbar search={search} onSearchChange={setSearch} searchPlaceholder="Search custom fields…" resultCount={filteredFields.length} />
-          {filteredFields.length === 0 ? <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No custom fields match this search.</p> : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
+        <div className="flex flex-col gap-4">
+          <AfendaFilterToolbar search={search} onSearchChange={setSearch} searchPlaceholder="Search custom fields…" resultCount={filteredFields.length}>
+            <AfendaSelectFilter
+              ariaLabel="Filter custom fields by record type"
+              value={scopeFilter}
+              onValueChange={(value) => setScopeFilter(value as ScopeFilter)}
+              options={[
+                { value: "ALL", label: "All record types" },
+                { value: "COUNTERPARTY", label: "Counterparty" },
+                { value: "OBLIGATION", label: "Obligation" },
+                { value: "DUE_ITEM", label: "Due item" },
+                { value: "PAYMENT", label: "Payment" },
+              ]}
+            />
+            <AfendaSelectFilter
+              ariaLabel="Filter custom fields by status"
+              value={statusFilter}
+              onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+              options={[
+                { value: "ALL", label: "All statuses" },
+                { value: "ACTIVE", label: "Active" },
+                { value: "INACTIVE", label: "Inactive" },
+              ]}
+            />
+            {hasFilters ? <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>Clear filters</Button> : null}
+          </AfendaFilterToolbar>
+          {filteredFields.length === 0 ? <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No custom fields match the current filters.</p> : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
         </div>
       )}
     </AfendaSection>
