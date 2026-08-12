@@ -4,6 +4,7 @@ import { AfendaSubnav, type AfendaSubnavItem } from "@/components/afenda/subnav"
 
 const items: AfendaSubnavItem[] = [
   { href: "/admin/corporate", label: "Overview", exact: true },
+  { href: "/admin/corporate/operations", label: "Operations" },
   { href: "/admin/corporate/sites", label: "Sites" },
   { href: "/admin/corporate/obligations", label: "Obligations" },
   { href: "/admin/corporate/payments", label: "Payments" },
