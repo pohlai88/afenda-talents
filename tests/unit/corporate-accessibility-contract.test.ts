@@ -22,6 +22,20 @@ function source(path: string): string {
   return readFileSync(path, "utf8");
 }
 
+function luminance(hex: string): number {
+  const channels = hex.replace("#", "").match(/.{2}/g)!.map((value) => Number.parseInt(value, 16) / 255);
+  const linear = channels.map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!;
+}
+
+function contrast(foreground: string, background: string): number {
+  const first = luminance(foreground);
+  const second = luminance(background);
+  const light = Math.max(first, second);
+  const dark = Math.min(first, second);
+  return (light + 0.05) / (dark + 0.05);
+}
+
 describe("Corporate reusable UI accessibility contract", () => {
   it("keeps icon-only controls explicitly labelled", () => {
     for (const path of files) {
@@ -36,6 +50,7 @@ describe("Corporate reusable UI accessibility contract", () => {
   it("keeps dynamic feedback exposed to assistive technology", () => {
     expect(source("src/components/afenda/copy-button.tsx")).toMatch(/aria-live=\"polite\"/);
     expect(source("src/components/afenda/filter-toolbar.tsx")).toMatch(/aria-live=\"polite\"/);
+    expect(source("src/components/afenda/page-state.tsx")).toMatch(/role=\"status\"/);
   });
 
   it("keeps expandable activity state machine-readable", () => {
@@ -44,10 +59,11 @@ describe("Corporate reusable UI accessibility contract", () => {
     expect(text).toMatch(/aria-controls=/);
   });
 
-  it("keeps workflow progress semantic without relying on colour alone", () => {
-    const text = source("src/components/afenda/workflow-stepper.tsx");
-    expect(text).toMatch(/aria-current=/);
-    expect(text).toMatch(/sr-only/);
+  it("keeps workflow and readiness semantic without relying on colour alone", () => {
+    const workflow = source("src/components/afenda/workflow-stepper.tsx");
+    expect(workflow).toMatch(/aria-current=/);
+    expect(workflow).toMatch(/sr-only/);
+    expect(source("src/components/afenda/readiness-checklist.tsx")).toMatch(/Needs attention/);
   });
 
   it("keeps responsive overlays named and described", () => {
@@ -56,5 +72,38 @@ describe("Corporate reusable UI accessibility contract", () => {
     expect(text).toMatch(/DialogTitle/);
     expect(text).toMatch(/SheetDescription/);
     expect(text).toMatch(/DialogDescription/);
+  });
+
+  it("keeps checkbox and field labels programmatically associated", () => {
+    const text = source("src/components/afenda/form-layout.tsx");
+    expect(text).toMatch(/htmlFor=\{controlId\}/);
+    expect(text).toMatch(/aria-describedby=/);
+    expect(text).toMatch(/\(required\)/);
+  });
+
+  it("keeps WCAG 2.2 touch and forced-colour safeguards", () => {
+    const css = source("src/app/globals.css");
+    expect(css).toMatch(/@media \(pointer: coarse\)/);
+    expect(css).toMatch(/min-height: 2\.75rem/);
+    expect(css).toMatch(/@media \(forced-colors: active\)/);
+    expect(source("src/components/ui/button.tsx")).toMatch(/data-size=\{size\}/);
+    expect(source("src/components/ui/checkbox.tsx")).toMatch(/after:-inset-3\.5/);
+  });
+
+  it("keeps core Corporate text token combinations at WCAG AA contrast", () => {
+    const combinations = [
+      ["#596a75", "#f5f7f8"],
+      ["#596a75", "#ffffff"],
+      ["#15344b", "#f5f7f8"],
+      ["#b42318", "#ffffff"],
+      ["#9a6519", "#ffffff"],
+      ["#a4b5c0", "#0f1d28"],
+      ["#88b9d1", "#0f1d28"],
+      ["#e5675a", "#162835"],
+      ["#d7a344", "#0f1d28"],
+    ] as const;
+    for (const [foreground, background] of combinations) {
+      expect(contrast(foreground, background), `${foreground} on ${background}`).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });
