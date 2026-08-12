@@ -136,7 +136,7 @@ export function CounterpartyManager({ rows, definitions, isAdmin }: {
               />
               {hasFilters ? <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>Clear filters</Button> : null}
             </AfendaFilterToolbar>
-            {filteredRows.length === 0 ? <AfendaEmptyState title="No matching counterparties" description="Adjust or clear the current search and filters." /> : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
+            {filteredRows.length === 0 ? <AfendaEmptyState title="No matching counterparties" description="Adjust or clear the current search and filters." compact /> : <AfendaResponsiveDataView desktop={desktop} mobile={mobile} />}
           </div>
         )}
       </AfendaSection>
