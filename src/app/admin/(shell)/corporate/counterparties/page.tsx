@@ -1,8 +1,10 @@
+import { AfendaPageHelp } from "@/components/afenda/guidance-sheet";
+import type { CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
 import { CounterpartyManager, type CounterpartyRow } from "@/components/corporate/counterparty-manager";
-import type { CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
 import { PageHeader } from "@/components/page-header";
 import { requireWorkspaceUser } from "@/lib/auth-workspace";
+import { CORPORATE_PAGE_GUIDANCE } from "@/lib/corporate-admin/page-guidance";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +25,12 @@ export default async function CounterpartiesPage() {
   const rows: CounterpartyRow[] = counterparties.map((row) => ({ id: row.id, code: row.code, name: row.name, type: row.type, registrationNo: row.registrationNo ?? "", taxId: row.taxId ?? "", contactName: row.contactName ?? "", contactEmail: row.contactEmail ?? "", contactPhone: row.contactPhone ?? "", address: row.address ?? "", countryCode: row.countryCode ?? "", websiteUrl: row.websiteUrl ?? "", defaultCurrency: row.defaultCurrency ?? "", paymentTermsDays: row.paymentTermsDays == null ? "" : String(row.paymentTermsDays), isActive: row.isActive, notes: row.notes ?? "", customFields: jsonObject(row.customFields), obligations: row._count.obligations }));
   return (
     <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6">
-      <PageHeader eyebrow="Corporate Administration" title="Counterparties" description="Maintain the landlords, vendors, insurers, financiers, service providers and agencies behind administrative obligations." />
+      <PageHeader
+        eyebrow="Corporate Administration"
+        title="Counterparties"
+        description="Maintain the landlords, vendors, insurers, financiers, service providers and agencies behind administrative obligations."
+        actions={<AfendaPageHelp title="Counterparties" guidance={CORPORATE_PAGE_GUIDANCE.counterparties} />}
+      />
       <CorporateNav />
       <CounterpartyManager rows={rows} definitions={definitions.map(fieldDto)} isAdmin={session.role === "ADMIN"} />
     </div>
