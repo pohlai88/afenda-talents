@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { patchSiteSchema, patchCounterpartyContactSchema, patchServiceCoverageSchema, patchObligationPartySchema } from "@/lib/corporate-admin/update-schemas";
+import { patchSiteSchema, patchCounterpartyContactSchema, patchServiceCoverageSchema, patchObligationPartySchema, patchObligationSiteSchema } from "@/lib/corporate-admin/update-schemas";
 
 describe("patchSiteSchema", () => {
   it("accepts a deactivation", () => {
@@ -164,5 +164,25 @@ describe("patchObligationPartySchema", () => {
       effectiveFrom: "2026-06-01",
       effectiveTo: "2026-01-01",
     }).success).toBe(false);
+  });
+});
+
+describe("patchObligationSiteSchema", () => {
+  it("accepts a deactivation, which is the only way to undo a wrong link", () => {
+    expect(patchObligationSiteSchema.safeParse({ action: "SET_ACTIVE", isActive: false }).success).toBe(true);
+  });
+
+  it("accepts a scope correction", () => {
+    expect(patchObligationSiteSchema.safeParse({ action: "UPDATE", scopeRole: "PRIMARY_PREMISES" }).success).toBe(true);
+  });
+
+  it("accepts an empty update, because both fields are optional", () => {
+    expect(patchObligationSiteSchema.safeParse({ action: "UPDATE" }).success).toBe(true);
+  });
+
+  it("does not let the linked site be swapped", () => {
+    const parsed = patchObligationSiteSchema.safeParse({ action: "UPDATE", siteId: "site_other" });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect("siteId" in parsed.data).toBe(false);
   });
 });

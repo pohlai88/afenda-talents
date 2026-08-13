@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createCounterpartySchema, createCounterpartyContactSchema, createObligationSchema, createSiteSchema } from "@/lib/corporate-admin/domain";
+import { createCounterpartySchema, createCounterpartyContactSchema, createObligationSchema, createObligationSiteSchema, createSiteSchema } from "@/lib/corporate-admin/domain";
 
 export const updateCounterpartySchema = createCounterpartySchema;
 export const updateObligationSchema = createObligationSchema;
@@ -82,4 +82,9 @@ export const patchObligationPartySchema = z.discriminatedUnion("action", [
         ctx.addIssue({ code: "custom", path: ["effectiveTo"], message: "Effective-to date cannot be before effective-from date" });
       }
     }),
+]);
+
+export const patchObligationSiteSchema = z.discriminatedUnion("action", [
+  setActive,
+  createObligationSiteSchema.omit({ siteId: true }).extend({ action: z.literal("UPDATE") }),
 ]);
