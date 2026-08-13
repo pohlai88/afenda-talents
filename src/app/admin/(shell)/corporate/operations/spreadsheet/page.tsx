@@ -33,7 +33,7 @@ export default async function CorporateSpreadsheetOperationsPage() {
             title: true,
             status: true,
             counterparty: { select: { name: true } },
-            sites: { select: { site: { select: { name: true } } } },
+            sites: { where: { isActive: true }, select: { site: { select: { name: true } } } },
           },
         },
         dueItems: { select: { status: true, dueDate: true } },

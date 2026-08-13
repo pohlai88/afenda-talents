@@ -53,7 +53,7 @@ describe("Corporate data quality", () => {
     const snapshot = base();
     snapshot.sites[0] = {...snapshot.sites[0],organization:"ORG",city:"Klang",countryCode:"MY",timezone:"Asia/Kuala_Lumpur",coverage:[{id:"cov",counterpartyId:"c1",serviceCategory:"CLEANING",roleCode:"PRIMARY",isPrimary:true,isActive:true}]};
     snapshot.counterparties[0] = {...snapshot.counterparties[0],registrationNo:"REG",countryCode:"MY",defaultCurrency:"MYR",paymentTermsDays:30,contacts:[{id:"ct",email:"ops@example.com",isPrimary:true,isActive:true}]};
-    snapshot.obligations[0] = {...snapshot.obligations[0],sites:[{siteId:"s1"}],parties:[{counterpartyId:"c1",roleCode:"PRIMARY",isPrimary:true}],contractReference:"TA-1",lines:[{id:"l1",code:"RENT",name:"Rent",recurring:true,nextDueDate:"2026-09-01",isActive:true}]};
+    snapshot.obligations[0] = {...snapshot.obligations[0],sites:[{siteId:"s1",isActive:true}],parties:[{counterpartyId:"c1",roleCode:"PRIMARY",isPrimary:true,isActive:true}],contractReference:"TA-1",lines:[{id:"l1",code:"RENT",name:"Rent",recurring:true,nextDueDate:"2026-09-01",isActive:true}]};
     const rules = evaluateCorporateDataQuality(snapshot).findings.map(item=>item.rule);
     expect(rules).not.toContain("ACTIVE_SITE_NO_COVERAGE");
     expect(rules).not.toContain("ACTIVE_COUNTERPARTY_NO_CONTACT");

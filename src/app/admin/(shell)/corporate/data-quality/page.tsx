@@ -31,7 +31,7 @@ export default async function CorporateDataQualityPage() {
     }),
     db.administrativeObligation.findMany({
       orderBy:{code:"asc"},
-      select:{id:true,code:true,title:true,category:true,organization:true,status:true,counterpartyId:true,contractRequired:true,contractReference:true,contractFileUrl:true,sites:{select:{siteId:true}},parties:{select:{counterpartyId:true,roleCode:true,isPrimary:true}},lines:{select:{id:true,code:true,name:true,recurring:true,nextDueDate:true,isActive:true}}},
+      select:{id:true,code:true,title:true,category:true,organization:true,status:true,counterpartyId:true,contractRequired:true,contractReference:true,contractFileUrl:true,sites:{select:{siteId:true,isActive:true}},parties:{select:{counterpartyId:true,roleCode:true,isPrimary:true,isActive:true}},lines:{select:{id:true,code:true,name:true,recurring:true,nextDueDate:true,isActive:true}}},
     }),
   ]);
 

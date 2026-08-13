@@ -84,12 +84,13 @@ export async function buildCleanupResolutionPlan(rawRequest: unknown, client: Db
       id: true,
       code: true,
       counterpartyId: true,
-      parties: { select: { counterpartyId: true, roleCode: true, isPrimary: true } },
+      parties: { select: { counterpartyId: true, roleCode: true, isPrimary: true, isActive: true } },
     },
   });
   if (!obligation) throw new Error("Obligation not found");
   const selected = obligation.parties.find((party) => party.counterpartyId === request.counterpartyId && party.roleCode === request.roleCode);
   if (!selected) throw new Error("Selected Obligation Party relationship was not found");
+  if (!selected.isActive) throw new Error("Inactive parties cannot be selected as primary");
   const changes: CleanupResolutionChange[] = [];
   for (const party of obligation.parties) {
     const after = party.counterpartyId === request.counterpartyId && party.roleCode === request.roleCode;

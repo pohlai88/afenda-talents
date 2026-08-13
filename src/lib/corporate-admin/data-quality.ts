@@ -13,7 +13,7 @@ export type DataQualityFinding = {
 export type QualitySnapshot = {
   sites: Array<{ id:string; code:string; name:string; type:string; isActive:boolean; organization:string|null; city:string|null; countryCode:string|null; timezone:string|null; coverage:Array<{id:string;counterpartyId:string;serviceCategory:string;roleCode:string|null;isPrimary:boolean;isActive:boolean}> }>;
   counterparties: Array<{ id:string; code:string; name:string; type:string; isActive:boolean; registrationNo:string|null; taxId:string|null; countryCode:string|null; defaultCurrency:string|null; paymentTermsDays:number|null; contacts:Array<{id:string;email:string|null;isPrimary:boolean;isActive:boolean}> }>;
-  obligations: Array<{ id:string; code:string; title:string; category:string; organization:string; status:string; counterpartyId:string; contractRequired:boolean; contractReference:string|null; contractFileUrl:string|null; sites:Array<{siteId:string}>; parties:Array<{counterpartyId:string;roleCode:string;isPrimary:boolean}>; lines:Array<{id:string;code:string;name:string;recurring:boolean;nextDueDate:string|null;isActive:boolean}> }>;
+  obligations: Array<{ id:string; code:string; title:string; category:string; organization:string; status:string; counterpartyId:string; contractRequired:boolean; contractReference:string|null; contractFileUrl:string|null; sites:Array<{siteId:string;isActive:boolean}>; parties:Array<{counterpartyId:string;roleCode:string;isPrimary:boolean;isActive:boolean}>; lines:Array<{id:string;code:string;name:string;recurring:boolean;nextDueDate:string|null;isActive:boolean}> }>;
 };
 
 export type CompletenessCheck = { label:string; complete:boolean };
@@ -46,12 +46,14 @@ export function evaluateCorporateDataQuality(snapshot:QualitySnapshot):{findings
 
   for(const ob of snapshot.obligations){
     const active=ob.status==="ACTIVE";
-    if(active&&ob.sites.length===0)findings.push(finding({severity:"REVIEW",rule:"ACTIVE_OBLIGATION_NO_SITE",title:"Active obligation has no Site",detail:`${ob.title} is active but is not linked to an operating Site. Confirm whether the agreement is location-independent.`,href:`/admin/corporate/obligations/${ob.id}`,entityType:"OBLIGATION",entityCode:ob.code}));
-    const primary=ob.parties.filter(p=>p.isPrimary);
+    const activeSites=ob.sites.filter(s=>s.isActive);
+    if(active&&activeSites.length===0)findings.push(finding({severity:"REVIEW",rule:"ACTIVE_OBLIGATION_NO_SITE",title:"Active obligation has no Site",detail:`${ob.title} is active but is not linked to an operating Site. Confirm whether the agreement is location-independent.`,href:`/admin/corporate/obligations/${ob.id}`,entityType:"OBLIGATION",entityCode:ob.code}));
+    const activeParties=ob.parties.filter(p=>p.isActive);
+    const primary=activeParties.filter(p=>p.isPrimary);
     if(active&&!primary.some(p=>p.counterpartyId===ob.counterpartyId))findings.push(finding({severity:"ACTION",rule:"PRIMARY_PARTY_DRIFT",title:"Primary party graph is out of sync",detail:`${ob.title} primary counterparty is not represented by a matching primary Obligation Party edge.`,href:`/admin/corporate/obligations/${ob.id}`,entityType:"OBLIGATION",entityCode:ob.code}));
     if(primary.length>1)findings.push(finding({severity:"ACTION",rule:"MULTIPLE_PRIMARY_OBLIGATION_PARTIES",title:"Multiple primary obligation parties",detail:`${ob.title} has ${primary.length} parties marked primary.`,href:`/admin/corporate/obligations/${ob.id}`,entityType:"OBLIGATION",entityCode:ob.code}));
     for(const line of ob.lines){if(active&&line.isActive&&line.recurring&&!line.nextDueDate)findings.push(finding({severity:"ACTION",rule:"RECURRING_LINE_NO_NEXT_DUE",title:"Recurring line has no next due date",detail:`${ob.code} / ${line.code} is recurring and active but has no next-due pointer.`,href:`/admin/corporate/obligations/${ob.id}/lines`,entityType:"LINE",entityCode:`${ob.code}/${line.code}`}));}
-    profiles.push(completeness("OBLIGATION",ob.code,ob.title,`/admin/corporate/obligations/${ob.id}`,[{label:"Category & organization",complete:Boolean(ob.category&&ob.organization)},{label:"Site context",complete:ob.sites.length>0},{label:"Primary party",complete:primary.length===1},{label:"Agreement lines",complete:ob.lines.length>0},{label:"Required contract evidence",complete:!ob.contractRequired||Boolean(ob.contractReference||ob.contractFileUrl)}]));
+    profiles.push(completeness("OBLIGATION",ob.code,ob.title,`/admin/corporate/obligations/${ob.id}`,[{label:"Category & organization",complete:Boolean(ob.category&&ob.organization)},{label:"Site context",complete:activeSites.length>0},{label:"Primary party",complete:primary.length===1},{label:"Agreement lines",complete:ob.lines.length>0},{label:"Required contract evidence",complete:!ob.contractRequired||Boolean(ob.contractReference||ob.contractFileUrl)}]));
   }
 
   const severityOrder={ACTION:0,REVIEW:1};findings.sort((a,b)=>severityOrder[a.severity]-severityOrder[b.severity]||a.entityCode.localeCompare(b.entityCode));profiles.sort((a,b)=>a.percent-b.percent||a.entityCode.localeCompare(b.entityCode));

@@ -79,7 +79,7 @@ export default async function CorporateOperationsPage() {
             title: true,
             status: true,
             counterparty: { select: { name: true } },
-            sites: { select: { site: { select: { name: true } } } },
+            sites: { where: { isActive: true }, select: { site: { select: { name: true } } } },
           },
         },
         dueItems: { select: { status: true, dueDate: true } },
