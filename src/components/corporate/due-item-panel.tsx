@@ -9,6 +9,7 @@ import { AfendaCheckField, AfendaField } from "@/components/afenda/form-layout";
 import { AfendaMetadataGrid } from "@/components/afenda/metadata-grid";
 import { AfendaResponsiveOverlay } from "@/components/afenda/responsive-overlay";
 import { CustomFieldControls, type CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
+import { HistoricalPaymentRecorder } from "@/components/corporate/historical-payment-recorder";
 import { PaymentWorkflow } from "@/components/corporate/payment-workflow";
 import { CorporateStatusBadge, formatMoney, todayDateOnly } from "@/components/corporate/status";
 import type { DueItemDto } from "@/components/corporate/workflow-types";
@@ -103,6 +104,7 @@ export function DueItemPanel({ dueItem, dueFields, paymentFields, isAdmin }: {
           className="rounded-lg bg-muted/30 p-3"
         />
         <AfendaEvidenceList title="Due-item evidence" description="Invoice and settlement evidence attached to this occurrence." items={evidence} />
+        {isAdmin && dueItem.status !== "CANCELLED" ? <div className="flex flex-wrap items-center gap-2"><HistoricalPaymentRecorder dueItem={dueItem} /><span className="text-xs text-muted-foreground">For already-paid legacy records; no new approval request is created.</span></div> : null}
         <PaymentWorkflow dueItem={dueItem} fields={paymentFields} isAdmin={isAdmin} />
       </CardContent>
 
