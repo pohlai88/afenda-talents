@@ -3,6 +3,7 @@ CREATE TYPE "AdministrativeTerminationType" AS ENUM ('EXPIRED', 'TERMINATED', 'C
 CREATE TYPE "AdministrativeReconciliationCategory" AS ENUM ('DEPOSIT', 'RENTAL', 'CLEANING', 'UTILITIES', 'REPAIR_MAINTENANCE', 'SERVICE_CHARGE', 'PENALTY_INTEREST', 'CREDIT_REFUND', 'OTHER');
 CREATE TYPE "AdministrativeReconciliationDirection" AS ENUM ('PAYABLE', 'RECEIVABLE');
 CREATE TYPE "AdministrativeReconciliationStatus" AS ENUM ('OPEN', 'SETTLED', 'WAIVED', 'DISPUTED');
+CREATE TYPE "AdministrativeHistoricalPaymentOrigin" AS ENUM ('HISTORICAL_MANUAL', 'HISTORICAL_IMPORT');
 
 CREATE TABLE "AdministrativeClosure" (
   "id" TEXT NOT NULL,
@@ -58,3 +59,13 @@ CREATE INDEX "AdministrativeReconciliationItem_closureId_status_idx" ON "Adminis
 CREATE INDEX "AdministrativeReconciliationItem_category_status_idx" ON "AdministrativeReconciliationItem"("category", "status");
 CREATE INDEX "AdministrativeReconciliationItem_dueItemId_idx" ON "AdministrativeReconciliationItem"("dueItemId");
 CREATE INDEX "AdministrativeReconciliationItem_paymentId_idx" ON "AdministrativeReconciliationItem"("paymentId");
+
+CREATE TABLE "AdministrativeHistoricalPayment" (
+  "paymentId" TEXT NOT NULL,
+  "origin" "AdministrativeHistoricalPaymentOrigin" NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "AdministrativeHistoricalPayment_pkey" PRIMARY KEY ("paymentId"),
+  CONSTRAINT "AdministrativeHistoricalPayment_paymentId_fkey" FOREIGN KEY ("paymentId") REFERENCES "AdministrativePayment"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE INDEX "AdministrativeHistoricalPayment_origin_createdAt_idx" ON "AdministrativeHistoricalPayment"("origin", "createdAt");
