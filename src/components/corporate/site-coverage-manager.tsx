@@ -36,6 +36,7 @@ export type SiteCoverageRow = {
 
 function CoverageFieldGrid({
   showCounterparty,
+  showPrimary,
   counterparties,
   counterpartyId, setCounterpartyId,
   serviceCategory, setServiceCategory,
@@ -48,6 +49,7 @@ function CoverageFieldGrid({
   notes, setNotes,
 }: {
   showCounterparty: boolean;
+  showPrimary: boolean;
   counterparties: Array<{ id: string; code: string; name: string }>;
   counterpartyId: string; setCounterpartyId: (value: string) => void;
   serviceCategory: string; setServiceCategory: (value: string) => void;
@@ -68,7 +70,7 @@ function CoverageFieldGrid({
       <AfendaField label="Effective from" id="coverage-from"><Input id="coverage-from" type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} /></AfendaField>
       <AfendaField label="Effective to" id="coverage-to"><Input id="coverage-to" type="date" value={effectiveTo} onChange={(e) => setEffectiveTo(e.target.value)} /></AfendaField>
       <AfendaField label="Emergency contact" id="coverage-emergency" className="sm:col-span-2"><Input id="coverage-emergency" value={emergencyContact} onChange={(e) => setEmergencyContact(e.target.value)} /></AfendaField>
-      <div className="sm:col-span-2"><AfendaCheckField label="Primary provider for this service" checked={isPrimary} onChange={setIsPrimary} /></div>
+      {showPrimary ? <div className="sm:col-span-2"><AfendaCheckField label="Primary provider for this service" checked={isPrimary} onChange={setIsPrimary} /></div> : null}
       <AfendaField label="Notes" id="coverage-notes" className="sm:col-span-2"><Textarea id="coverage-notes" value={notes} onChange={(e) => setNotes(e.target.value)} /></AfendaField>
     </div>
   );
@@ -197,6 +199,7 @@ export function SiteCoverageManager({ siteId, rows, counterparties, isAdmin }: {
     <AfendaResponsiveOverlay open={open} onOpenChange={setOpen} title="Add site service coverage" description="Link a counterparty to this site with business meaning. The relationship carries the service category, role and effective dates." contentClassName="sm:max-w-2xl" footer={<><Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button><Button onClick={() => void add()} disabled={busy || !counterpartyId || !serviceCategory}>{busy ? "Adding…" : "Add coverage"}</Button></>}>
       <CoverageFieldGrid
         showCounterparty
+        showPrimary
         counterparties={counterparties}
         counterpartyId={counterpartyId} setCounterpartyId={setCounterpartyId}
         serviceCategory={serviceCategory} setServiceCategory={setServiceCategory}
@@ -213,6 +216,7 @@ export function SiteCoverageManager({ siteId, rows, counterparties, isAdmin }: {
     <AfendaResponsiveOverlay open={editing !== null} onOpenChange={(next) => !next && setEditing(null)} title="Edit service coverage" description="Correct this coverage row. To change which counterparty provides the service, stand this row down and add a new one." contentClassName="sm:max-w-2xl" footer={<><Button variant="outline" onClick={() => setEditing(null)} disabled={busy}>Cancel</Button><Button onClick={() => void save()} disabled={busy || !serviceCategory}>{busy ? "Saving…" : "Save changes"}</Button></>}>
       <CoverageFieldGrid
         showCounterparty={false}
+        showPrimary={editing?.isActive ?? true}
         counterparties={counterparties}
         counterpartyId={counterpartyId} setCounterpartyId={setCounterpartyId}
         serviceCategory={serviceCategory} setServiceCategory={setServiceCategory}

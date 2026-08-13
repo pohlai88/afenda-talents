@@ -238,7 +238,7 @@ export function ObligationRelationshipManager({
 
     <AfendaResponsiveOverlay open={editingParty !== null} onOpenChange={(next) => !next && setEditingParty(null)} title={editingParty ? `Edit ${editingParty.name}` : "Edit party"} description="Correct this party's role period or primary flag. To change the counterparty or the role code, stand this one down and link a new party." contentClassName="sm:max-w-2xl" footer={<><Button variant="outline" onClick={() => setEditingParty(null)} disabled={busy}>Cancel</Button><Button onClick={() => void savePartyLink()} disabled={busy}>{busy ? "Saving…" : "Save changes"}</Button></>}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="sm:pt-1"><AfendaCheckField label="Primary role" checked={isPrimary} onChange={setIsPrimary} /></div>
+        {(editingParty?.isActive ?? true) ? <div className="sm:pt-1"><AfendaCheckField label="Primary role" checked={isPrimary} onChange={setIsPrimary} /></div> : null}
         <AfendaField label="Effective from" id="obligation-party-edit-from"><Input id="obligation-party-edit-from" type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} /></AfendaField>
         <AfendaField label="Effective to" id="obligation-party-edit-to"><Input id="obligation-party-edit-to" type="date" value={effectiveTo} onChange={(e) => setEffectiveTo(e.target.value)} /></AfendaField>
         <AfendaField label="Notes" id="obligation-party-edit-notes" className="sm:col-span-2"><Textarea id="obligation-party-edit-notes" value={partyNotes} onChange={(e) => setPartyNotes(e.target.value)} /></AfendaField>

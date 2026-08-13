@@ -187,10 +187,12 @@ export function SiteManager({ rows, definitions, isAdmin }: { rows: SiteRow[]; d
     if (!editingId) return;
     setBusy(true);
     try {
+      const { isActive: _isActive, ...payload } = draft;
+      void _isActive;
       const response = await fetch(`/api/admin/corporate/sites/${editingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "UPDATE", ...draft, isActive: undefined }),
+        body: JSON.stringify({ action: "UPDATE", ...payload }),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : "Could not update site");
@@ -211,6 +213,7 @@ export function SiteManager({ rows, definitions, isAdmin }: { rows: SiteRow[]; d
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : "Could not update site");
+      if (!isActive && statusFilter === "ACTIVE") setStatusFilter("ALL");
       toast.success(isActive ? "Site reactivated." : "Site deactivated.");
       router.refresh();
     } catch (error) { toast.error(error instanceof Error ? error.message : "Could not update site"); }

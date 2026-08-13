@@ -68,10 +68,12 @@ keeps the row visible, marked Inactive, with a Reactivate control — nothing di
 because nothing is deleted (D21). A primary contact or coverage row cannot be deactivated
 until another is made primary; the server refuses it and the reason appears in the toast.
 
-Identity fields stay fixed by database design or policy: on obligation links and parties,
-the site and counterparty respectively form part of the composite primary key; on coverage
-rows, the counterparty is immutable by deliberate policy (D21). To change an identity field,
-stand the row down and create the correct one.
+Identity fields stay fixed by database design or policy: on obligation site links, the site
+forms part of the composite primary key; on obligation parties, the counterparty and role code
+together form part of the composite primary key (`AdministrativeObligationParty` is keyed
+`[obligationId, counterpartyId, roleCode]`); on coverage rows, the counterparty is immutable
+by deliberate policy (D21). To change an identity field, stand the row down and create the
+correct one.
 
 Stood-down obligation links remain listed on the obligation so they can be reactivated,
 but are excluded from data-quality findings, site obligation counts, and the

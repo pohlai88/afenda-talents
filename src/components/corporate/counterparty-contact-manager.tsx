@@ -29,6 +29,7 @@ export type CounterpartyContactRow = {
 };
 
 function ContactFieldGrid({
+  showPrimary,
   name, setName,
   jobTitle, setJobTitle,
   department, setDepartment,
@@ -39,6 +40,7 @@ function ContactFieldGrid({
   isPrimary, setIsPrimary,
   notes, setNotes,
 }: {
+  showPrimary: boolean;
   name: string; setName: (value: string) => void;
   jobTitle: string; setJobTitle: (value: string) => void;
   department: string; setDepartment: (value: string) => void;
@@ -58,7 +60,7 @@ function ContactFieldGrid({
       <AfendaField label="Email" id="contact-email"><Input id="contact-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></AfendaField>
       <AfendaField label="Mobile" id="contact-mobile"><Input id="contact-mobile" value={mobile} onChange={(e) => setMobile(e.target.value)} /></AfendaField>
       <AfendaField label="Phone" id="contact-phone"><Input id="contact-phone" value={phone} onChange={(e) => setPhone(e.target.value)} /></AfendaField>
-      <div className="sm:pt-1"><AfendaCheckField label="Primary contact" checked={isPrimary} onChange={setIsPrimary} /></div>
+      {showPrimary ? <div className="sm:pt-1"><AfendaCheckField label="Primary contact" checked={isPrimary} onChange={setIsPrimary} /></div> : null}
       <AfendaField label="Notes" id="contact-notes" className="sm:col-span-2"><Textarea id="contact-notes" value={notes} onChange={(e) => setNotes(e.target.value)} /></AfendaField>
     </div>
   );
@@ -174,6 +176,7 @@ export function CounterpartyContactManager({ counterpartyId, rows, isAdmin }: { 
 
     <AfendaResponsiveOverlay open={open} onOpenChange={setOpen} title="Add counterparty contact" description="Create a named contact with a clear operating role. Mark one as primary only when it is the normal default contact." contentClassName="sm:max-w-2xl" footer={<><Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button><Button onClick={() => void add()} disabled={busy || !name.trim()}>{busy ? "Adding…" : "Add contact"}</Button></>}>
       <ContactFieldGrid
+        showPrimary
         name={name} setName={setName}
         jobTitle={jobTitle} setJobTitle={setJobTitle}
         department={department} setDepartment={setDepartment}
@@ -188,6 +191,7 @@ export function CounterpartyContactManager({ counterpartyId, rows, isAdmin }: { 
 
     <AfendaResponsiveOverlay open={editing !== null} onOpenChange={(next) => !next && setEditing(null)} title={editing ? `Edit ${editing.name}` : "Edit contact"} description="Correct this contact's details. Leaving a field blank clears it." contentClassName="sm:max-w-2xl" footer={<><Button variant="outline" onClick={() => setEditing(null)} disabled={busy}>Cancel</Button><Button onClick={() => void save()} disabled={busy || !name.trim()}>{busy ? "Saving…" : "Save changes"}</Button></>}>
       <ContactFieldGrid
+        showPrimary={editing?.isActive ?? true}
         name={name} setName={setName}
         jobTitle={jobTitle} setJobTitle={setJobTitle}
         department={department} setDepartment={setDepartment}
