@@ -13,6 +13,11 @@ import { db } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 function date(value: Date | null): string | null { return value ? value.toISOString().slice(0, 10) : null; }
+function malaysiaDateOnly(): string {
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kuala_Lumpur", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
 
 export default async function SettlementClosurePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireWorkspaceUser();
@@ -30,6 +35,7 @@ export default async function SettlementClosurePage({ params }: { params: Promis
   const unresolvedReconciliationItems = closure ? closure.items.filter((item) => item.status === "OPEN" || item.status === "DISPUTED").length : 0;
   const blockers = closureBlockers({
     effectiveDate: closure ? date(closure.effectiveDate) : null,
+    today: malaysiaDateOnly(),
     openDueItems,
     pendingApprovals,
     unreconciledPayments,
