@@ -39,7 +39,7 @@ export default async function SitesPage() {
   ]);
 
   const rows: SiteRow[] = sites.map((site) => ({
-    id: site.id, code: site.code, name: site.name, type: site.type, organization: site.organization ?? "", addressLine1: site.addressLine1 ?? "", addressLine2: site.addressLine2 ?? "", city: site.city ?? "", stateRegion: site.stateRegion ?? "", postalCode: site.postalCode ?? "", countryCode: site.countryCode ?? "", timezone: site.timezone ?? "", isActive: site.isActive, notes: site.notes ?? "", customFields: objectValue(site.customFields), counterparties: site._count.serviceCoverage, obligations: site._count.obligations,
+    id: site.id, code: site.code, name: site.name, type: site.type, organization: site.organization, addressLine1: site.addressLine1, addressLine2: site.addressLine2, city: site.city, stateRegion: site.stateRegion, postalCode: site.postalCode, countryCode: site.countryCode, timezone: site.timezone, isActive: site.isActive, notes: site.notes, customFields: objectValue(site.customFields), counterparties: site._count.serviceCoverage, obligations: site._count.obligations,
   }));
 
   return (
