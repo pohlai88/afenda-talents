@@ -8,6 +8,12 @@ import { db } from "@/lib/db";
 
 export const runtime = "nodejs";
 
+function malaysiaDateOnly(): string {
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kuala_Lumpur", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   let session;
   try { session = await requireWorkspaceAdmin(); }
@@ -21,18 +27,20 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
 
   try {
     const closure = await db.$transaction(async (tx) => {
-      const obligation = await tx.administrativeObligation.findUnique({ where: { id: obligationId }, select: { id: true, status: true } });
+      const obligation = await tx.administrativeObligation.findUnique({ where: { id: obligationId }, select: { id: true, status: true, nextDueDate: true } });
       if (!obligation) throw new Error("Obligation not found");
       if (obligation.status === "DRAFT") throw new Error("Activate or cancel the obligation before starting settlement and closure");
 
       const existing = await tx.administrativeClosure.findUnique({ where: { obligationId } });
       if (existing?.status === "CLOSED") throw new Error("Closed files cannot be changed");
 
+      const effective = parseDateOnly(parsed.data.effectiveDate);
+      const effectiveNow = parsed.data.effectiveDate <= malaysiaDateOnly();
       const data = {
         status: "RECONCILING" as const,
         terminationType: parsed.data.terminationType,
         noticeDate: parsed.data.noticeDate ? parseDateOnly(parsed.data.noticeDate) : null,
-        effectiveDate: parseDateOnly(parsed.data.effectiveDate),
+        effectiveDate: effective,
         handoverDate: parsed.data.handoverDate ? parseDateOnly(parsed.data.handoverDate) : null,
         terminationReason: parsed.data.terminationReason,
         terminationDocumentUrl: cleanOptionalString(parsed.data.terminationDocumentUrl),
@@ -44,9 +52,26 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
         : await tx.administrativeClosure.create({ data: { obligationId, createdById: session.userId, ...data } });
 
       if (obligation.status === "ACTIVE") {
+        await tx.administrativeObligationLine.updateMany({
+          where: { obligationId, isActive: true, OR: [{ endDate: null }, { endDate: { gt: effective } }] },
+          data: { endDate: effective },
+        });
+        await tx.administrativeObligationLine.updateMany({
+          where: { obligationId, nextDueDate: { gt: effective } },
+          data: { nextDueDate: null },
+        });
+        if (effectiveNow) {
+          await tx.administrativeObligationLine.updateMany({ where: { obligationId, isActive: true }, data: { nextDueDate: null } });
+        }
         await tx.administrativeObligation.update({
           where: { id: obligationId },
-          data: { status: "ENDED", endDate: parseDateOnly(parsed.data.effectiveDate), nextDueDate: null, autoRenew: false, renewalDate: null },
+          data: {
+            status: effectiveNow ? "ENDED" : "ACTIVE",
+            endDate: effective,
+            nextDueDate: effectiveNow || (obligation.nextDueDate && obligation.nextDueDate > effective) ? null : obligation.nextDueDate,
+            autoRenew: false,
+            renewalDate: null,
+          },
         });
       }
 
@@ -55,6 +80,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
         obligationId,
         terminationType: parsed.data.terminationType,
         effectiveDate: parsed.data.effectiveDate,
+        effectiveNow,
       }, tx);
       return record;
     });
@@ -88,6 +114,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
       const blockers = closureBlockers({
         effectiveDate: closure.effectiveDate ? closure.effectiveDate.toISOString().slice(0, 10) : null,
+        today: malaysiaDateOnly(),
         openDueItems,
         pendingApprovals,
         unreconciledPayments,
@@ -103,6 +130,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       const obligation = await tx.administrativeObligation.findUnique({ where: { id: obligationId }, select: { status: true } });
       if (obligation && obligation.status !== "CANCELLED" && obligation.status !== "ENDED") {
         await tx.administrativeObligation.update({ where: { id: obligationId }, data: { status: "ENDED", nextDueDate: null, autoRenew: false, renewalDate: null } });
+        await tx.administrativeObligationLine.updateMany({ where: { obligationId, isActive: true }, data: { nextDueDate: null } });
       }
       await audit(session.userId, "corporate.closure.closed", updated.id, { closureId: updated.id, obligationId }, tx);
       return { closed: true as const, blockers: [] as string[] };
