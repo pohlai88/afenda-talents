@@ -290,7 +290,10 @@ or `""` clears it to null. This contract matters because naive implementations n
 omitted fields, which would silently destroy data. Every handler uses the pattern
 `field === undefined ? undefined : value`, and string fields are passed through
 `cleanOptionalString()` which converts empty and whitespace-only strings to null, so the
-caller's explicit intent to clear a field is honoured.
+caller's explicit intent to clear a field is honoured. Exception: a site's reference
+`code` is `NOT NULL` and unique, so blank, null and omitted are all treated as "keep the
+existing code" — it can never be cleared, and a blank field on the form means "leave the
+generated one alone".
 
 Identity fields are not editable. The counterparty on a coverage row, the counterparty
 and role code on an obligation party, and the site on an obligation link cannot be
