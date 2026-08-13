@@ -19,6 +19,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   try {
     const item = await db.$transaction(async (tx) => {
+      const obligation = await tx.administrativeObligation.findUnique({ where: { id: obligationId }, select: { currency: true } });
+      if (!obligation) throw new Error("Obligation not found");
+      if (parsed.data.currency !== obligation.currency.toUpperCase()) {
+        throw new Error(`Final reconciliation must use the obligation currency ${obligation.currency.toUpperCase()}`);
+      }
+
       const closure = await tx.administrativeClosure.findUnique({ where: { obligationId } });
       if (!closure) throw new Error("Start termination and reconciliation before adding settlement items");
       if (closure.status === "CLOSED") throw new Error("Closed files cannot receive new reconciliation items");
@@ -55,11 +61,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         obligationId,
         category: created.category,
         direction: created.direction,
+        currency: created.currency,
       }, tx);
       return created;
     });
     return NextResponse.json({ item: { id: item.id, status: item.status } });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not add reconciliation item" }, { status: 409 });
+    const message = error instanceof Error ? error.message : "Could not add reconciliation item";
+    return NextResponse.json({ error: message }, { status: message === "Obligation not found" ? 404 : 409 });
   }
 }
