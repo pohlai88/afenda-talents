@@ -469,7 +469,7 @@ model ObligationDueItem {
   line       AdministrativeObligationLine @relation(fields: [lineId], references: [id], onDelete: Restrict)
   payments   AdministrativePayment[]
 
-  @@unique([lineId, dueDate])
+  @@unique([lineId, dueDate, periodLabel])
   @@index([obligationId, dueDate])
   @@index([dueDate, status])
   @@index([obligationId, status])

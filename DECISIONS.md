@@ -271,3 +271,18 @@ rule editor UI through Delivery 2; an Assessment Designer role; or a separate Te
 in Delivery 1.
 
 Design: `docs/superpowers/specs/2026-08-05-configurable-assessments-design.md`.
+
+## D20 — A due item is identified by line, date and period label
+
+`ObligationDueItem` was unique on `(lineId, dueDate)`, which allowed only one due item
+per line per date. Real administration produces more: a split invoice, a partial billing
+plus a top-up, two vendors invoicing one line on one day. The key now includes
+`periodLabel`.
+
+The label was chosen as the discriminator because it is server-defaulted from the due
+date, so an accidental resubmit still collides and is still rejected, while a deliberate
+second item must be named — which also makes the two rows readable wherever due items are
+listed. Obligation-level same-date items across different lines already worked and were
+not changed.
+
+Design: `docs/superpowers/specs/2026-08-13-multiple-due-items-per-date-design.md`.
