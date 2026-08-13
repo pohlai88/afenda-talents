@@ -31,6 +31,22 @@ describe("Corporate settlement and closure", () => {
     expect(parsed.success).toBe(false);
   });
 
+  it("rejects impossible calendar dates instead of normalising them", () => {
+    expect(closureUpsertSchema.safeParse({
+      terminationType: "TERMINATED",
+      effectiveDate: "2026-02-31",
+      terminationReason: "Termination",
+    }).success).toBe(false);
+    expect(historicalPaymentRowSchema.safeParse({
+      obligationCode: "TEN-001",
+      lineCode: "RENT",
+      dueDate: "2026-02-31",
+      paidAmount: 500,
+      paymentDate: "2026-02-31",
+      paymentMethod: "BANK_TRANSFER",
+    }).success).toBe(false);
+  });
+
   it("supports deposit refunds and final cleaning charges", () => {
     expect(reconciliationItemSchema.safeParse({
       category: "DEPOSIT",
