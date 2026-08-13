@@ -81,6 +81,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         return;
       }
 
+      if (parsed.data.isPrimary) {
+        await tx.administrativeObligationParty.updateMany({
+          where: { obligationId, isPrimary: true },
+          data: { isPrimary: false },
+        });
+      }
+
       await tx.administrativeObligationParty.update({
         where: key,
         data: {
