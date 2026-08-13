@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { patchSiteSchema } from "@/lib/corporate-admin/update-schemas";
+import { patchSiteSchema, patchCounterpartyContactSchema } from "@/lib/corporate-admin/update-schemas";
 
 describe("patchSiteSchema", () => {
   it("accepts a deactivation", () => {
@@ -43,6 +43,49 @@ describe("patchSiteSchema", () => {
       type: "OFFICE",
       isActive: false,
       customFields: {},
+    });
+    expect(parsed.success && "isActive" in parsed.data).toBe(false);
+  });
+});
+
+describe("patchCounterpartyContactSchema", () => {
+  it("accepts a deactivation", () => {
+    expect(patchCounterpartyContactSchema.safeParse({ action: "SET_ACTIVE", isActive: false }).success).toBe(true);
+  });
+
+  it("accepts a field edit", () => {
+    expect(patchCounterpartyContactSchema.safeParse({
+      action: "UPDATE",
+      name: "Siti Rahman",
+      email: "siti@example.com",
+      isPrimary: true,
+    }).success).toBe(true);
+  });
+
+  it("accepts a blank email, because the field is optional in the form", () => {
+    expect(patchCounterpartyContactSchema.safeParse({
+      action: "UPDATE",
+      name: "Siti Rahman",
+      email: "",
+      isPrimary: false,
+    }).success).toBe(true);
+  });
+
+  it("rejects a malformed email", () => {
+    expect(patchCounterpartyContactSchema.safeParse({
+      action: "UPDATE",
+      name: "Siti Rahman",
+      email: "not-an-email",
+      isPrimary: false,
+    }).success).toBe(false);
+  });
+
+  it("strips isActive from an update so activation changes only via SET_ACTIVE", () => {
+    const parsed = patchCounterpartyContactSchema.safeParse({
+      action: "UPDATE",
+      name: "Siti Rahman",
+      isPrimary: false,
+      isActive: false,
     });
     expect(parsed.success && "isActive" in parsed.data).toBe(false);
   });

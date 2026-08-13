@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createCounterpartySchema, createObligationSchema, createSiteSchema } from "@/lib/corporate-admin/domain";
+import { createCounterpartySchema, createCounterpartyContactSchema, createObligationSchema, createSiteSchema } from "@/lib/corporate-admin/domain";
 
 export const updateCounterpartySchema = createCounterpartySchema;
 export const updateObligationSchema = createObligationSchema;
@@ -28,4 +28,9 @@ export const patchSiteSchema = z.discriminatedUnion("action", [
     // means "keep the generated one", so it must parse.
     code: z.string().trim().min(2).max(50).optional().nullable().or(z.literal("")),
   }),
+]);
+
+export const patchCounterpartyContactSchema = z.discriminatedUnion("action", [
+  setActive,
+  createCounterpartyContactSchema.omit({ isActive: true }).extend({ action: z.literal("UPDATE") }),
 ]);
