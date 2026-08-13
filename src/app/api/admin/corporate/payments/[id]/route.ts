@@ -61,10 +61,16 @@ export async function PATCH(
     const result = await db.$transaction(async (tx) => {
       const paymentBeforeLock = await tx.administrativePayment.findUnique({
         where: { id },
-        select: { id: true, dueItemId: true },
+        select: { id: true, dueItemId: true, dueItem: { select: { obligationId: true } } },
       });
       if (!paymentBeforeLock) throw new Error("Payment not found");
 
+      await tx.$queryRaw`SELECT "id" FROM "AdministrativeObligation" WHERE "id" = ${paymentBeforeLock.dueItem.obligationId} FOR UPDATE`;
+      const closure = await tx.administrativeClosure.findUnique({
+        where: { obligationId: paymentBeforeLock.dueItem.obligationId },
+        select: { status: true },
+      });
+      if (closure?.status === "CLOSED") throw new Error("Closed administrative files are read-only");
       await tx.$queryRaw`SELECT "id" FROM "ObligationDueItem" WHERE "id" = ${paymentBeforeLock.dueItemId} FOR UPDATE`;
       const payment = await tx.administrativePayment.findUnique({
         where: { id },
