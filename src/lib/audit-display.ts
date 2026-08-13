@@ -30,6 +30,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "corporate.counterparty.created": "Administrative counterparty created",
   "corporate.counterparty.updated": "Administrative counterparty updated",
   "corporate.counterparty.contact.created": "Counterparty contact created",
+  "corporate.counterparty.contact.updated": "Counterparty contact updated",
   "corporate.site.created": "Administrative site created",
   "corporate.site.updated": "Administrative site updated",
   "corporate.site.coverage.created": "Site service coverage created",
@@ -53,6 +54,13 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "corporate.payment.voided": "Administrative payment voided",
   "corporate.custom_field.created": "Administrative custom field created",
   "corporate.custom_field.updated": "Administrative custom field updated",
+  "corporate.work_item.created": "Administrative work item created",
+  "corporate.work_item.updated": "Administrative work item updated",
+  "corporate.work_item.resolved": "Administrative work item resolved",
+  "corporate.work_item.escalated": "Administrative work item escalated",
+  "corporate.reminder.sent": "Administrative reminder sent",
+  "corporate.reminder.blocked": "Administrative reminder blocked",
+  "corporate.reminder.failed": "Administrative reminder failed",
 };
 
 export const AUDIT_ACTION_OPTIONS = Object.keys(AUDIT_ACTION_LABELS) as AuditAction[];
