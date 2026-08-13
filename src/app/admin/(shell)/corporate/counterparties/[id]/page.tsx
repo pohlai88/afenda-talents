@@ -40,7 +40,7 @@ export default async function CounterpartyDetailPage({ params }: { params: Promi
   const activeSites = new Set(counterparty.serviceCoverage.filter((coverage) => coverage.isActive && coverage.site.isActive).map((coverage) => coverage.siteId));
   const activeObligations = counterparty.obligationRoles.filter((party) => party.obligation.status === "ACTIVE");
   const contacts: CounterpartyContactRow[] = counterparty.contacts.map((contact) => ({
-    id: contact.id, name: contact.name, jobTitle: contact.jobTitle, department: contact.department, email: contact.email, phone: contact.phone, mobile: contact.mobile, role: contact.role, isPrimary: contact.isPrimary, isActive: contact.isActive,
+    id: contact.id, name: contact.name, jobTitle: contact.jobTitle, department: contact.department, email: contact.email, phone: contact.phone, mobile: contact.mobile, role: contact.role, isPrimary: contact.isPrimary, isActive: contact.isActive, notes: contact.notes,
   }));
   const metadata = [
     { label: "Type", value: counterparty.type.replaceAll("_", " ") },
