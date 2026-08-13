@@ -92,9 +92,10 @@ model AdministrativeReconciliationItem {
 }
 
 model AdministrativeHistoricalPayment {
-  paymentId String                                @id
-  origin    AdministrativeHistoricalPaymentOrigin
-  createdAt DateTime                              @default(now())
+  paymentId        String                                @id
+  origin           AdministrativeHistoricalPaymentOrigin
+  approvalRequired Boolean                               @default(false)
+  createdAt        DateTime                              @default(now())
 
   @@index([origin, createdAt])
 }
