@@ -54,13 +54,24 @@ function latestWorkflowSteps(status: "DRAFT" | "ACTIVE" | "ENDED" | "CANCELLED",
   const payment = due?.payments[0];
   const obligationComplete = status !== "DRAFT";
   const dueComplete = Boolean(due);
+  const settlementComplete = Boolean(payment && (payment.paymentStatus === "PAID" || payment.paymentStatus === "PARTIALLY_PAID"));
+  const reconciliationComplete = Boolean(payment?.reconciledAt);
+  const reconciliationCurrent = settlementComplete && !reconciliationComplete;
+
+  if (payment && payment.recordOrigin !== "WORKFLOW") {
+    return [
+      { label: "Obligation", description: "Register and activate terms", state: obligationComplete ? "complete" : "current" },
+      { label: "Due item", description: "Materialise or import the charge", state: dueComplete ? "complete" : "current" },
+      { label: "History", description: payment.recordOrigin === "HISTORICAL_IMPORT" ? "Imported legacy settlement" : "Recorded legacy settlement", state: "complete" },
+      { label: "Payment", description: "Actual historical settlement", state: settlementComplete ? "complete" : "current" },
+      { label: "Reconcile", description: "Post-payment verification", state: reconciliationComplete ? "complete" : reconciliationCurrent ? "current" : "upcoming" },
+    ];
+  }
+
   const requestComplete = Boolean(payment);
   const approvalComplete = Boolean(payment && payment.approvalStatus !== "PENDING");
   const approvalCurrent = Boolean(payment && payment.approvalStatus === "PENDING");
-  const settlementComplete = Boolean(payment && (payment.paymentStatus === "PAID" || payment.paymentStatus === "PARTIALLY_PAID"));
   const settlementCurrent = Boolean(payment && payment.approvalStatus === "APPROVED" && payment.paymentStatus === "NOT_PAID");
-  const reconciliationComplete = Boolean(payment?.reconciledAt);
-  const reconciliationCurrent = settlementComplete && !reconciliationComplete;
   return [
     { label: "Obligation", description: "Register and activate terms", state: obligationComplete ? "complete" : "current" },
     { label: "Due item", description: "Materialise the charge", state: !obligationComplete ? "upcoming" : dueComplete ? "complete" : "current" },
@@ -91,6 +102,12 @@ export default async function ObligationDetailPage({ params }: { params: Promise
   ]);
   if (!obligation) notFound();
 
+  const paymentIds = obligation.dueItems.flatMap((due) => due.payments.map((payment) => payment.id));
+  const historicalPaymentRows = paymentIds.length > 0
+    ? await db.administrativeHistoricalPayment.findMany({ where: { paymentId: { in: paymentIds } }, select: { paymentId: true, origin: true, approvalRequired: true } })
+    : [];
+  const historicalPayments = new Map(historicalPaymentRows.map((row) => [row.paymentId, row]));
+
   const isAdmin = session.role === "ADMIN";
   const dueFields = definitions.filter((field) => field.scope === "DUE_ITEM").map(fieldDto);
   const paymentFields = definitions.filter((field) => field.scope === "PAYMENT").map(fieldDto);
@@ -98,7 +115,26 @@ export default async function ObligationDetailPage({ params }: { params: Promise
   const obligationCustom = objectValue(obligation.customFields);
   const dueItems: DueItemDto[] = obligation.dueItems.map((due) => ({
     id: due.id, periodLabel: due.periodLabel, dueDate: formatDateOnly(due.dueDate), expectedAmount: due.expectedAmount == null ? null : Number(due.expectedAmount), invoiceAmount: due.invoiceAmount == null ? null : Number(due.invoiceAmount), currency: due.currency, invoiceRequired: due.invoiceRequired, invoiceNumber: due.invoiceNumber, invoiceFileUrl: due.invoiceFileUrl, status: due.status, disputeFlag: due.disputeFlag, notes: due.notes, customFields: objectValue(due.customFields),
-    payments: due.payments.map((payment) => ({ id: payment.id, requestedAmount: Number(payment.requestedAmount), approvalStatus: payment.approvalStatus, approvedAmount: payment.approvedAmount == null ? null : Number(payment.approvedAmount), paymentStatus: payment.paymentStatus, paidAmount: payment.paidAmount == null ? null : Number(payment.paidAmount), paymentDate: payment.paymentDate ? payment.paymentDate.toISOString().slice(0, 10) : null, paymentMethod: payment.paymentMethod, paymentReference: payment.paymentReference, paymentProofUrl: payment.paymentProofUrl, reconciledAt: payment.reconciledAt?.toISOString() ?? null, notes: payment.notes, customFields: objectValue(payment.customFields) })),
+    payments: due.payments.map((payment) => {
+      const history = historicalPayments.get(payment.id);
+      return {
+        id: payment.id,
+        requestedAmount: Number(payment.requestedAmount),
+        approvalStatus: payment.approvalStatus,
+        approvedAmount: payment.approvedAmount == null ? null : Number(payment.approvedAmount),
+        paymentStatus: payment.paymentStatus,
+        paidAmount: payment.paidAmount == null ? null : Number(payment.paidAmount),
+        paymentDate: payment.paymentDate ? payment.paymentDate.toISOString().slice(0, 10) : null,
+        paymentMethod: payment.paymentMethod,
+        paymentReference: payment.paymentReference,
+        paymentProofUrl: payment.paymentProofUrl,
+        reconciledAt: payment.reconciledAt?.toISOString() ?? null,
+        notes: payment.notes,
+        customFields: objectValue(payment.customFields),
+        recordOrigin: history?.origin ?? "WORKFLOW",
+        approvalRequired: history?.approvalRequired ?? true,
+      };
+    }),
   }));
 
   const subjectIds = [id, ...dueItems.map((due) => due.id), ...dueItems.flatMap((due) => due.payments.map((payment) => payment.id))];
@@ -119,7 +155,7 @@ export default async function ObligationDetailPage({ params }: { params: Promise
   const requiredCustomFields = obligationFields.filter((field) => field.required).map((field) => ({ key: field.key, label: field.label }));
   const overdueDueItems = dueItems.filter((due) => due.status === "OPEN" && deriveDueState(due.status, due.dueDate, today) === "OVERDUE").length;
   const allPayments = dueItems.flatMap((due) => due.payments);
-  const pendingApprovals = allPayments.filter((payment) => payment.approvalStatus === "PENDING").length;
+  const pendingApprovals = allPayments.filter((payment) => payment.approvalRequired && payment.approvalStatus === "PENDING").length;
   const unreconciledPayments = allPayments.filter((payment) => (payment.paymentStatus === "PAID" || payment.paymentStatus === "PARTIALLY_PAID") && !payment.reconciledAt).length;
   const uiInput: ObligationUiInput = {
     status: obligation.status,
