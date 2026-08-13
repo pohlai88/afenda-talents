@@ -44,7 +44,8 @@ describe("patchSiteSchema", () => {
       isActive: false,
       customFields: {},
     });
-    expect(parsed.success && "isActive" in parsed.data).toBe(false);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect("isActive" in parsed.data).toBe(false);
   });
 });
 
@@ -87,7 +88,8 @@ describe("patchCounterpartyContactSchema", () => {
       isPrimary: false,
       isActive: false,
     });
-    expect(parsed.success && "isActive" in parsed.data).toBe(false);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect("isActive" in parsed.data).toBe(false);
   });
 });
 
@@ -123,7 +125,8 @@ describe("patchServiceCoverageSchema", () => {
       isPrimary: false,
       counterpartyId: "cp_other",
     });
-    expect(parsed.success && "counterpartyId" in parsed.data).toBe(false);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect("counterpartyId" in parsed.data).toBe(false);
   });
 
   it("strips isActive from an update so activation changes only via SET_ACTIVE", () => {
