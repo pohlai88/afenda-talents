@@ -63,7 +63,7 @@ export function SettlementClosureWorkspace({
   const [itemOpen, setItemOpen] = useState(false);
   const [editing, setEditing] = useState<ReconciliationItemDto | null>(null);
 
-  const [terminationType, setTerminationType] = useState(closure?.terminationType ?? "TERMINATED");
+  const [terminationType, setTerminationType] = useState<string>(closure?.terminationType ?? "TERMINATED");
   const [noticeDate, setNoticeDate] = useState(closure?.noticeDate ?? "");
   const [effectiveDate, setEffectiveDate] = useState(closure?.effectiveDate ?? todayDateOnly());
   const [handoverDate, setHandoverDate] = useState(closure?.handoverDate ?? "");
@@ -204,7 +204,7 @@ export function SettlementClosureWorkspace({
           <AfendaField label="Description" id="recon-description" required className="sm:col-span-2" guidance="Specific settlement fact, e.g. Security deposit refund, final cleaning charge, August rental adjustment."><Input id="recon-description" value={description} onChange={(event) => setDescription(event.target.value)} /></AfendaField>
           <AfendaField label="Expected amount" id="recon-expected" guidance="Amount expected from contract/SOA before final verification."><Input id="recon-expected" type="number" min="0" step="0.01" value={expectedAmount} onChange={(event) => setExpectedAmount(event.target.value)} /></AfendaField>
           <AfendaField label="Actual amount" id="recon-actual" guidance="Verified final amount. Can be entered later when still open/disputed."><Input id="recon-actual" type="number" min="0" step="0.01" value={actualAmount} onChange={(event) => setActualAmount(event.target.value)} /></AfendaField>
-          <AfendaField label="Currency" id="recon-currency" required guidance="Settlement currency."><Input id="recon-currency" maxLength={3} value={currency} onChange={(event) => setCurrency(event.target.value.toUpperCase())} /></AfendaField>
+          <AfendaField label="Currency" id="recon-currency" required guidance="Settlement currency follows the obligation currency."><Input id="recon-currency" maxLength={3} value={currency} readOnly /></AfendaField>
           <AfendaField label="Status" id="recon-status" required guidance="Leave OPEN until verified; SETTLED or WAIVED clears the close-file gate; DISPUTED remains a blocker."><Input id="recon-status" list="reconciliation-statuses" value={itemStatus} onChange={(event) => setItemStatus(event.target.value)} /><datalist id="reconciliation-statuses">{reconciliationStatuses.map((value) => <option key={value} value={value} />)}</datalist></AfendaField>
           <AfendaField label="Evidence URL" id="recon-evidence" className="sm:col-span-2" guidance="SOA, refund proof, final invoice, clearance document or other evidence."><Input id="recon-evidence" type="url" value={evidenceUrl} onChange={(event) => setEvidenceUrl(event.target.value)} /></AfendaField>
           <AfendaField label="Notes" id="recon-notes" className="sm:col-span-2" guidance="Any uncertainty, waiver rationale or reconciliation explanation."><Textarea id="recon-notes" value={itemNotes} onChange={(event) => setItemNotes(event.target.value)} /></AfendaField>
