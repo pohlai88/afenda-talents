@@ -1,0 +1,33 @@
+enum AdministrativeReminderChannel {
+  IN_APP
+  EMAIL
+}
+
+enum AdministrativeReminderStatus {
+  QUEUED
+  SENT
+  BLOCKED
+  FAILED
+}
+
+model AdministrativeReminderDelivery {
+  id                String                       @id @default(cuid())
+  workItemId        String
+  recipientUserId   String?
+  channel           AdministrativeReminderChannel
+  status            AdministrativeReminderStatus @default(QUEUED)
+  deliveryKey       String                       @unique
+  subject           String
+  body              String
+  providerMessageId String?
+  failureCode       String?
+  createdById       String?
+  createdAt         DateTime                     @default(now())
+  sentAt            DateTime?
+
+  workItem AdministrativeWorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@index([recipientUserId, status, createdAt])
+  @@index([workItemId, channel, createdAt])
+  @@index([channel, status, createdAt])
+}
