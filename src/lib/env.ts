@@ -27,6 +27,7 @@ export const envSchema = z.object({
     .min(24, "ADMIN_PASSWORD must be at least 24 characters — generate it, do not choose it"),
   RESEND_API_KEY: z.string().default(""),
   MAIL_FROM: z.string().min(1),
+  CRON_SECRET: z.string().default(""),
   INVITE_TTL_DAYS: z.coerce.number().int().positive().default(14),
   RETENTION_DAYS: z.coerce.number().int().positive().default(180),
   VERIFICATION_AUTH_BASE: z.url().default(DEFAULT_VERIFICATION_AUTH_BASE),
@@ -46,6 +47,7 @@ function previewEnvironment(): NodeJS.ProcessEnv {
     ADMIN_EMAIL: process.env.ADMIN_EMAIL ?? "preview-disabled@example.invalid",
     ADMIN_PASSWORD: process.env.ADMIN_PASSWORD ?? `preview-disabled-${nonce}`,
     MAIL_FROM: process.env.MAIL_FROM ?? "preview-disabled@example.invalid",
+    CRON_SECRET: process.env.CRON_SECRET ?? "",
   };
 }
 
