@@ -96,7 +96,7 @@ export function SiteCoverageManager({ siteId, rows, counterparties, isAdmin }: {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   function resetForm() {
-    setCounterpartyId(""); setRoleCode(""); setEffectiveFrom(""); setEffectiveTo(""); setIsPrimary(false); setServiceLevel(""); setEmergencyContact(""); setNotes("");
+    setCounterpartyId(""); setServiceCategory("FACILITY_MAINTENANCE"); setRoleCode(""); setEffectiveFrom(""); setEffectiveTo(""); setIsPrimary(false); setServiceLevel(""); setEmergencyContact(""); setNotes("");
   }
 
   function beginAdd() {
