@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { AfendaConfirmButton } from "@/components/afenda/confirm-action";
 import { AfendaEvidenceList, type AfendaEvidenceItem } from "@/components/afenda/evidence-list";
 import { AfendaCheckField, AfendaField } from "@/components/afenda/form-layout";
 import { AfendaMetadataGrid } from "@/components/afenda/metadata-grid";
@@ -62,6 +63,25 @@ export function DueItemPanel({ dueItem, dueFields, paymentFields, isAdmin }: {
     }
   }
 
+  async function cancelDue() {
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/admin/corporate/due-items/${dueItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "CANCEL", notes: notes || "Cancelled / waived during administrative settlement." }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : "Could not cancel due item");
+      toast.success("Due item cancelled / waived.");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not cancel due item");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const evidence: AfendaEvidenceItem[] = [
     {
       label: "Invoice / supporting document",
@@ -91,7 +111,7 @@ export function DueItemPanel({ dueItem, dueFields, paymentFields, isAdmin }: {
           </CardTitle>
           <CardDescription>Due {dueItem.dueDate} · {formatMoney(dueItem.currency, dueItem.invoiceAmount ?? dueItem.expectedAmount)}</CardDescription>
         </div>
-        {isAdmin && dueItem.status !== "CANCELLED" ? <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>Update invoice / due</Button> : null}
+        {isAdmin && dueItem.status !== "CANCELLED" ? <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>Update invoice / due</Button><AfendaConfirmButton busy={busy} destructive title="Cancel or waive this due item?" description="Use this only when the charge is no longer valid or has been waived. Due items with recorded payment history cannot be cancelled. Any un-settled payment request on this due item will also be cancelled. Update the due-item notes first if a specific waiver reason should be retained." confirmLabel="Cancel / waive due" onConfirm={cancelDue}>Cancel / waive</AfendaConfirmButton></div> : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <AfendaMetadataGrid
