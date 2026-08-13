@@ -4,12 +4,15 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { AfendaConfirmButton } from "@/components/afenda/confirm-action";
 import { AfendaField } from "@/components/afenda/form-layout";
+import { AfendaMetadataGrid } from "@/components/afenda/metadata-grid";
+import { AfendaEmptyState } from "@/components/afenda/page-state";
+import { AfendaResponsiveOverlay } from "@/components/afenda/responsive-overlay";
 import { CustomFieldControls, type CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
 import { CorporateStatusBadge, formatMoney, todayDateOnly } from "@/components/corporate/status";
 import type { DueItemDto, PaymentDto } from "@/components/corporate/workflow-types";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PAYMENT_METHOD_SUGGESTIONS } from "@/lib/corporate-admin/domain";
@@ -58,55 +61,97 @@ export function PaymentWorkflow({ dueItem, fields, isAdmin }: { dueItem: DueItem
         {isAdmin && dueItem.status === "OPEN" && (outstanding == null || outstanding > 0) ? <Button size="sm" onClick={() => { setRequestAmount(outstanding == null ? "" : String(outstanding)); setRequestOpen(true); }}>Request payment</Button> : null}
       </div>
 
-      {dueItem.payments.length === 0 ? <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">No payment requests yet.</p> : (
+      {dueItem.payments.length === 0 ? (
+        <AfendaEmptyState
+          title="No payment requests yet"
+          description="Request a payment when this due item is ready to move into approval and settlement."
+          compact
+        />
+      ) : (
         <ul className="flex flex-col gap-2">{dueItem.payments.map((payment) => (
           <li key={payment.id} className="rounded-lg border p-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div><p className="font-medium tabular-nums">Requested {formatMoney(dueItem.currency, payment.requestedAmount)}</p><div className="mt-1 flex flex-wrap gap-1.5"><CorporateStatusBadge status={payment.approvalStatus} /><CorporateStatusBadge status={payment.paymentStatus} />{payment.reconciledAt ? <CorporateStatusBadge status="RECONCILED" /> : null}</div></div>
+              <div>
+                <p className="font-medium tabular-nums">Requested {formatMoney(dueItem.currency, payment.requestedAmount)}</p>
+                <div className="mt-1 flex flex-wrap gap-1.5"><CorporateStatusBadge status={payment.approvalStatus} /><CorporateStatusBadge status={payment.paymentStatus} />{payment.reconciledAt ? <CorporateStatusBadge status="RECONCILED" /> : null}</div>
+              </div>
               {isAdmin ? <div className="flex flex-wrap gap-2">
-                {payment.approvalStatus === "PENDING" ? <><Button size="sm" onClick={() => { setApprovedAmount(String(payment.requestedAmount)); setApproval(payment); }}>Approve</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => void call(`/api/admin/corporate/payments/${payment.id}`, { action: "REJECT" }, "PATCH", "Payment request rejected.")}>Reject</Button></> : null}
+                {payment.approvalStatus === "PENDING" ? <><Button size="sm" onClick={() => { setApprovedAmount(String(payment.requestedAmount)); setApproval(payment); }}>Approve</Button><AfendaConfirmButton busy={busy} destructive title="Reject this payment request?" description="The request will move to Rejected and cannot continue to settlement under its current approval lifecycle. The due item remains available for a new payment request if needed." confirmLabel="Reject request" onConfirm={() => call(`/api/admin/corporate/payments/${payment.id}`, { action: "REJECT" }, "PATCH", "Payment request rejected.")}>Reject</AfendaConfirmButton></> : null}
                 {payment.approvalStatus === "APPROVED" && payment.paymentStatus === "NOT_PAID" ? <Button size="sm" onClick={() => { setPaidAmount(String(payment.approvedAmount ?? payment.requestedAmount)); setPaymentDate(todayDateOnly()); setRecording(payment); }}>Record payment</Button> : null}
-                {(payment.paymentStatus === "PAID" || payment.paymentStatus === "PARTIALLY_PAID") && !payment.reconciledAt ? <><Button size="sm" variant="outline" disabled={busy} onClick={() => void call(`/api/admin/corporate/payments/${payment.id}`, { action: "RECONCILE" }, "PATCH", "Payment reconciled.")}>Reconcile</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => void call(`/api/admin/corporate/payments/${payment.id}`, { action: "VOID", notes: "Voided from Corporate Administration" }, "PATCH", "Payment voided.")}>Void</Button></> : null}
+                {(payment.paymentStatus === "PAID" || payment.paymentStatus === "PARTIALLY_PAID") && !payment.reconciledAt ? <><AfendaConfirmButton busy={busy} title="Reconcile this payment?" description="Reconciliation records that the settlement evidence and recorded payment have been checked. Only confirm after the payment has been independently verified." confirmLabel="Reconcile payment" onConfirm={() => call(`/api/admin/corporate/payments/${payment.id}`, { action: "RECONCILE" }, "PATCH", "Payment reconciled.")}>Reconcile</AfendaConfirmButton><AfendaConfirmButton busy={busy} destructive title="Void this recorded payment?" description="Voiding removes this settlement from the amount counted as paid and may reopen the due item. Use this only when the recorded payment should no longer be treated as a valid settlement." confirmLabel="Void payment" onConfirm={() => call(`/api/admin/corporate/payments/${payment.id}`, { action: "VOID", notes: "Voided from Corporate Administration" }, "PATCH", "Payment voided.")}>Void</AfendaConfirmButton></> : null}
               </div> : null}
             </div>
-            {payment.approvedAmount != null || payment.paidAmount != null ? <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3"><p><span className="text-muted-foreground">Approved </span>{formatMoney(dueItem.currency, payment.approvedAmount)}</p><p><span className="text-muted-foreground">Paid </span>{formatMoney(dueItem.currency, payment.paidAmount)}</p><p className="truncate"><span className="text-muted-foreground">Reference </span>{payment.paymentReference || "—"}</p></div> : null}
+            {payment.approvedAmount != null || payment.paidAmount != null ? (
+              <AfendaMetadataGrid
+                columns={3}
+                className="mt-3"
+                items={[
+                  { label: "Approved", value: formatMoney(dueItem.currency, payment.approvedAmount) },
+                  { label: "Paid", value: formatMoney(dueItem.currency, payment.paidAmount) },
+                  { label: "Reference", value: payment.paymentReference || "—" },
+                ]}
+              />
+            ) : null}
           </li>
         ))}</ul>
       )}
 
-      <Dialog open={requestOpen} onOpenChange={setRequestOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader><DialogTitle>Request payment</DialogTitle><DialogDescription>Request against the current outstanding balance. Approval is recorded separately.</DialogDescription></DialogHeader>
-          <div className="flex flex-col gap-4">
-            <AfendaField label={`Amount (${dueItem.currency})`} id={`request-${dueItem.id}`} required guidance={PAYMENT_GUIDANCE.requestAmount}><Input id={`request-${dueItem.id}`} type="number" min="0.01" step="0.01" value={requestAmount} onChange={(e) => setRequestAmount(e.target.value)} /></AfendaField>
-            <AfendaField label="Notes" id={`request-notes-${dueItem.id}`} guidance={PAYMENT_GUIDANCE.requestNotes}><Textarea id={`request-notes-${dueItem.id}`} value={requestNotes} onChange={(e) => setRequestNotes(e.target.value)} /></AfendaField>
-            <CustomFieldControls definitions={fields} values={requestCustom} onChange={setRequestCustom} />
-          </div>
-          <DialogFooter><Button variant="outline" onClick={() => setRequestOpen(false)}>Cancel</Button><Button disabled={busy || Number(requestAmount) <= 0} onClick={async () => { const ok = await call(`/api/admin/corporate/due-items/${dueItem.id}/payments`, { requestedAmount: Number(requestAmount), notes: requestNotes || null, customFields: requestCustom }, "POST", "Payment requested."); if (ok) { setRequestOpen(false); setRequestNotes(""); setRequestCustom({}); } }}>Request</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AfendaResponsiveOverlay
+        open={requestOpen}
+        onOpenChange={setRequestOpen}
+        title="Request payment"
+        description="Request against the current outstanding balance. Approval is recorded separately."
+        contentClassName="sm:max-w-2xl"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setRequestOpen(false)}>Cancel</Button>
+            <Button disabled={busy || Number(requestAmount) <= 0} onClick={async () => { const ok = await call(`/api/admin/corporate/due-items/${dueItem.id}/payments`, { requestedAmount: Number(requestAmount), notes: requestNotes || null, customFields: requestCustom }, "POST", "Payment requested."); if (ok) { setRequestOpen(false); setRequestNotes(""); setRequestCustom({}); } }}>Request</Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <AfendaField label={`Amount (${dueItem.currency})`} id={`request-${dueItem.id}`} required guidance={PAYMENT_GUIDANCE.requestAmount}><Input id={`request-${dueItem.id}`} type="number" min="0.01" step="0.01" value={requestAmount} onChange={(e) => setRequestAmount(e.target.value)} /></AfendaField>
+          <AfendaField label="Notes" id={`request-notes-${dueItem.id}`} guidance={PAYMENT_GUIDANCE.requestNotes}><Textarea id={`request-notes-${dueItem.id}`} value={requestNotes} onChange={(e) => setRequestNotes(e.target.value)} /></AfendaField>
+          <CustomFieldControls definitions={fields} values={requestCustom} onChange={setRequestCustom} />
+        </div>
+      </AfendaResponsiveOverlay>
 
-      <Dialog open={approval !== null} onOpenChange={(open) => !open && setApproval(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Approve payment</DialogTitle><DialogDescription>Approval cannot exceed the request or the due item’s uncommitted balance.</DialogDescription></DialogHeader>
-          <AfendaField label={`Approved amount (${dueItem.currency})`} id="approval-amount" required guidance={PAYMENT_GUIDANCE.approvedAmount}><Input id="approval-amount" type="number" min="0.01" step="0.01" value={approvedAmount} onChange={(e) => setApprovedAmount(e.target.value)} /></AfendaField>
-          <DialogFooter><Button variant="outline" onClick={() => setApproval(null)}>Cancel</Button><Button disabled={busy || !approval || Number(approvedAmount) <= 0} onClick={async () => { if (!approval) return; const ok = await call(`/api/admin/corporate/payments/${approval.id}`, { action: "APPROVE", approvedAmount: Number(approvedAmount) }, "PATCH", "Payment approved."); if (ok) setApproval(null); }}>Approve</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AfendaResponsiveOverlay
+        open={approval !== null}
+        onOpenChange={(open) => !open && setApproval(null)}
+        title="Approve payment"
+        description="Approval cannot exceed the request or the due item’s uncommitted balance."
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setApproval(null)}>Cancel</Button>
+            <Button disabled={busy || !approval || Number(approvedAmount) <= 0} onClick={async () => { if (!approval) return; const ok = await call(`/api/admin/corporate/payments/${approval.id}`, { action: "APPROVE", approvedAmount: Number(approvedAmount) }, "PATCH", "Payment approved."); if (ok) setApproval(null); }}>Approve</Button>
+          </>
+        }
+      >
+        <AfendaField label={`Approved amount (${dueItem.currency})`} id="approval-amount" required guidance={PAYMENT_GUIDANCE.approvedAmount}><Input id="approval-amount" type="number" min="0.01" step="0.01" value={approvedAmount} onChange={(e) => setApprovedAmount(e.target.value)} /></AfendaField>
+      </AfendaResponsiveOverlay>
 
-      <Dialog open={recording !== null} onOpenChange={(open) => !open && setRecording(null)}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader><DialogTitle>Record payment</DialogTitle><DialogDescription>Capture the actual settlement details and proof link. Reconciliation remains a separate step.</DialogDescription></DialogHeader>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <AfendaField label={`Paid amount (${dueItem.currency})`} id="paid-amount" required guidance={PAYMENT_GUIDANCE.paidAmount}><Input id="paid-amount" type="number" min="0.01" step="0.01" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} /></AfendaField>
-            <AfendaField label="Payment date" id="paid-date" required guidance={PAYMENT_GUIDANCE.paymentDate}><Input id="paid-date" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} /></AfendaField>
-            <AfendaField label="Method" id="paid-method" required guidance={PAYMENT_GUIDANCE.paymentMethod}><Input id="paid-method" list="corporate-payment-methods" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} /><datalist id="corporate-payment-methods">{PAYMENT_METHOD_SUGGESTIONS.map((item) => <option key={item} value={item} />)}</datalist></AfendaField>
-            <AfendaField label="Reference" id="paid-ref" guidance={PAYMENT_GUIDANCE.paymentReference}><Input id="paid-ref" value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} /></AfendaField>
-            <AfendaField label="Payment proof URL" id="paid-proof" className="sm:col-span-2" guidance={PAYMENT_GUIDANCE.paymentProofUrl}><Input id="paid-proof" type="url" value={paymentProofUrl} onChange={(e) => setPaymentProofUrl(e.target.value)} placeholder="https://…" /></AfendaField>
-          </div>
-          <DialogFooter><Button variant="outline" onClick={() => setRecording(null)}>Cancel</Button><Button disabled={busy || !recording || Number(paidAmount) <= 0 || !paymentDate || !paymentMethod} onClick={async () => { if (!recording) return; const ok = await call(`/api/admin/corporate/payments/${recording.id}`, { action: "RECORD_PAYMENT", paidAmount: Number(paidAmount), paymentDate, paymentMethod, paymentReference: paymentReference || null, paymentProofUrl: paymentProofUrl || null }, "PATCH", "Payment recorded."); if (ok) { setRecording(null); setPaymentReference(""); setPaymentProofUrl(""); } }}>Record</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AfendaResponsiveOverlay
+        open={recording !== null}
+        onOpenChange={(open) => !open && setRecording(null)}
+        title="Record payment"
+        description="Capture the actual settlement details and proof link. Reconciliation remains a separate step."
+        contentClassName="sm:max-w-2xl"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setRecording(null)}>Cancel</Button>
+            <Button disabled={busy || !recording || Number(paidAmount) <= 0 || !paymentDate || !paymentMethod} onClick={async () => { if (!recording) return; const ok = await call(`/api/admin/corporate/payments/${recording.id}`, { action: "RECORD_PAYMENT", paidAmount: Number(paidAmount), paymentDate, paymentMethod, paymentReference: paymentReference || null, paymentProofUrl: paymentProofUrl || null }, "PATCH", "Payment recorded."); if (ok) { setRecording(null); setPaymentReference(""); setPaymentProofUrl(""); } }}>Record</Button>
+          </>
+        }
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <AfendaField label={`Paid amount (${dueItem.currency})`} id="paid-amount" required guidance={PAYMENT_GUIDANCE.paidAmount}><Input id="paid-amount" type="number" min="0.01" step="0.01" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} /></AfendaField>
+          <AfendaField label="Payment date" id="paid-date" required guidance={PAYMENT_GUIDANCE.paymentDate}><Input id="paid-date" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} /></AfendaField>
+          <AfendaField label="Method" id="paid-method" required guidance={PAYMENT_GUIDANCE.paymentMethod}><Input id="paid-method" list="corporate-payment-methods" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} /><datalist id="corporate-payment-methods">{PAYMENT_METHOD_SUGGESTIONS.map((item) => <option key={item} value={item} />)}</datalist></AfendaField>
+          <AfendaField label="Reference" id="paid-ref" guidance={PAYMENT_GUIDANCE.paymentReference}><Input id="paid-ref" value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} /></AfendaField>
+          <AfendaField label="Payment proof URL" id="paid-proof" className="sm:col-span-2" guidance={PAYMENT_GUIDANCE.paymentProofUrl}><Input id="paid-proof" type="url" value={paymentProofUrl} onChange={(e) => setPaymentProofUrl(e.target.value)} placeholder="https://…" /></AfendaField>
+        </div>
+      </AfendaResponsiveOverlay>
     </div>
   );
 }

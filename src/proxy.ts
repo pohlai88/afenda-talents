@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { audit } from "@/lib/audit";
 import { resolveHiringSession, verifyHiringSessionToken } from "@/lib/auth-session";
+import { CORPORATE_AUTOMATION_CRON_PATH } from "@/lib/corporate-admin/automation";
 import { db } from "@/lib/db";
 import { ADMIN_COOKIE } from "@/lib/hiring-roles";
 import {
@@ -99,6 +100,17 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === "/admin/login" || pathname === "/api/admin/login") {
+    return continueWithoutPageAuthority(request);
+  }
+
+  /**
+   * Vercel Cron carries a CRON_SECRET bearer token, never an admin session cookie, so
+   * the coarse /api/admin gate below would reject the scheduled run before its handler
+   * ever executes. The exemption is exact-path — not a prefix — and still strips the
+   * internal page-authority headers, so it grants no authority of its own: the route
+   * remains responsible for verifying CRON_SECRET.
+   */
+  if (pathname === CORPORATE_AUTOMATION_CRON_PATH) {
     return continueWithoutPageAuthority(request);
   }
 

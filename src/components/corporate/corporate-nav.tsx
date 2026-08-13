@@ -4,6 +4,15 @@ import { AfendaSubnav, type AfendaSubnavItem } from "@/components/afenda/subnav"
 
 const items: AfendaSubnavItem[] = [
   { href: "/admin/corporate", label: "Overview", exact: true },
+  { href: "/admin/corporate/control-tower", label: "Control tower" },
+  { href: "/admin/corporate/executive-briefing", label: "Briefing" },
+  { href: "/admin/corporate/operations", label: "Operations", exact: true },
+  { href: "/admin/corporate/work-items", label: "Work" },
+  { href: "/admin/corporate/operations/spreadsheet", label: "Spreadsheet" },
+  { href: "/admin/corporate/operations/import", label: "Import" },
+  { href: "/admin/corporate/data-quality", label: "Data quality", exact: true },
+  { href: "/admin/corporate/data-quality/resolve", label: "Cleanup" },
+  { href: "/admin/corporate/sites", label: "Sites" },
   { href: "/admin/corporate/obligations", label: "Obligations" },
   { href: "/admin/corporate/payments", label: "Payments" },
   { href: "/admin/corporate/counterparties", label: "Counterparties" },

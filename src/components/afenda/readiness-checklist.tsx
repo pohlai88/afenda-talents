@@ -9,6 +9,12 @@ export type AfendaReadinessItem = {
   state: "ready" | "attention" | "optional";
 };
 
+const STATE_LABEL: Record<AfendaReadinessItem["state"], string> = {
+  ready: "Ready",
+  attention: "Needs attention",
+  optional: "Optional",
+};
+
 export function AfendaReadinessChecklist({
   title = "Readiness",
   description = "Check what is complete and what still needs attention before the next lifecycle step.",
@@ -30,14 +36,14 @@ export function AfendaReadinessChecklist({
             <CardTitle>{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
           </div>
-          <div className="shrink-0 text-right">
-            <p className="text-lg font-semibold tabular-nums">{ready}/{requiredItems.length}</p>
-            <p className="text-xs text-muted-foreground">required ready</p>
+          <div className="shrink-0 text-right" aria-label={`${ready} of ${requiredItems.length} required items ready`}>
+            <p className="text-lg font-semibold tabular-nums" aria-hidden="true">{ready}/{requiredItems.length}</p>
+            <p className="text-xs text-muted-foreground" aria-hidden="true">required ready</p>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <ul className="divide-y">
+        <ul className="divide-y" aria-label="Readiness checks">
           {items.map((item) => {
             const Icon = item.state === "ready" ? CheckCircle2 : item.state === "attention" ? CircleAlert : CircleDashed;
             return (
@@ -52,7 +58,11 @@ export function AfendaReadinessChecklist({
                   )}
                 />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium">{item.label}</p>
+                  <p className="text-sm font-medium">
+                    {item.label}
+                    <span className="sr-only"> — {STATE_LABEL[item.state]}</span>
+                  </p>
+                  <p className="mt-0.5 text-xs font-medium text-muted-foreground" aria-hidden="true">{STATE_LABEL[item.state]}</p>
                   {item.detail ? <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{item.detail}</p> : null}
                 </div>
               </li>

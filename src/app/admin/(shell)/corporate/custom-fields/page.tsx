@@ -1,4 +1,5 @@
 import { AfendaPageHelp } from "@/components/afenda/guidance-sheet";
+import { AfendaPageFrame } from "@/components/afenda/page-frame";
 import type { CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
 import { CustomFieldCreateForm } from "@/components/corporate/custom-field-create-form";
@@ -20,7 +21,7 @@ export default async function CustomFieldsPage() {
     showInList: field.showInList, isActive: field.isActive, sortOrder: field.sortOrder,
   }));
   return (
-    <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 p-4 sm:p-6">
+    <AfendaPageFrame width="record">
       <PageHeader
         eyebrow="Corporate Administration"
         title="Custom fields"
@@ -30,6 +31,6 @@ export default async function CustomFieldsPage() {
       <CorporateNav />
       {session.role === "ADMIN" ? <CustomFieldCreateForm /> : null}
       <CustomFieldList fields={rows} isAdmin={session.role === "ADMIN"} />
-    </div>
+    </AfendaPageFrame>
   );
 }
