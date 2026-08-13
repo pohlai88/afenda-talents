@@ -23,8 +23,6 @@ enum AssessmentStatus {
   ARCHIVED
 }
 
-/// ORGANISATION: normal client assessment. TEMPLATE: reusable blueprint.
-/// SYSTEM: Afenda-supplied built-in (seeded, isSystem = true).
 enum AssessmentKind {
   ORGANISATION
   TEMPLATE
@@ -84,6 +82,7 @@ enum AdministrativeRecurrenceUnit {
 
 enum AdministrativeCustomFieldScope {
   COUNTERPARTY
+  SITE
   OBLIGATION
   DUE_ITEM
   PAYMENT
@@ -113,14 +112,13 @@ model User {
 
   publishedVersions AssessmentVersion[] @relation("PublishedBy")
 
-  ownedAdministrativeObligations   AdministrativeObligation[]          @relation("AdministrativeObligationOwner")
-  requestedAdministrativePayments AdministrativePayment[]             @relation("AdministrativePaymentRequester")
-  approvedAdministrativePayments  AdministrativePayment[]             @relation("AdministrativePaymentApprover")
-  reconciledAdministrativePayments AdministrativePayment[]            @relation("AdministrativePaymentReconciler")
+  ownedAdministrativeObligations    AdministrativeObligation[]          @relation("AdministrativeObligationOwner")
+  requestedAdministrativePayments  AdministrativePayment[]             @relation("AdministrativePaymentRequester")
+  approvedAdministrativePayments   AdministrativePayment[]             @relation("AdministrativePaymentApprover")
+  reconciledAdministrativePayments AdministrativePayment[]             @relation("AdministrativePaymentReconciler")
   createdAdministrativeCustomFields AdministrativeCustomFieldDefinition[] @relation("AdministrativeCustomFieldCreator")
 }
 
-/// Person identity only. Invite lifecycle lives on CandidateAssignment (D18).
 model Candidate {
   id          String                @id @default(cuid())
   email       String                @unique
@@ -177,7 +175,7 @@ model CandidateAssignment {
   assessmentVersionId String
   status              AssignmentStatus @default(DRAFT)
   invitedById         String?
-  tokenHash           String?           @unique
+  tokenHash           String?          @unique
   expiresAt           DateTime?
   sentAt              DateTime?
   openedAt            DateTime?
@@ -202,7 +200,6 @@ model Response {
   id           String              @id @default(cuid())
   assignmentId String
   questionId   String
-  /// Likert 1–5; null for text items.
   value        Int?
   textValue    String?
   msOnItem     Int                 @default(0)
@@ -219,7 +216,6 @@ model Result {
   assignmentId        String              @unique
   assessmentVersionId String
   dimensionScores     Json
-  /// responseContext outcomes (legacy column name).
   validityFlags       Json
   totalSeconds        Int
   serverWindowSeconds Int
@@ -228,8 +224,6 @@ model Result {
   assessmentVersion   AssessmentVersion   @relation(fields: [assessmentVersionId], references: [id])
 }
 
-/// Corporate Administration party registry. Intentionally bounded to this domain; it is not
-/// yet the ERP-wide vendor/customer master (D19).
 model AdministrativeCounterparty {
   id               String   @id @default(cuid())
   code             String   @unique
@@ -251,48 +245,130 @@ model AdministrativeCounterparty {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  obligations AdministrativeObligation[]
+  obligations     AdministrativeObligation[]
+  contacts        AdministrativeCounterpartyContact[]
+  serviceCoverage AdministrativeServiceCoverage[]
+  obligationRoles AdministrativeObligationParty[]
 
   @@index([name])
   @@index([type, isActive])
 }
 
-/// Contractual/administrative obligation such as tenancy, insurance, subscription, fleet,
-/// licence or maintenance. Recurrence is interval + unit rather than a hard-coded frequency.
+model AdministrativeSite {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  name         String
+  type         String
+  organization String?
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  stateRegion  String?
+  postalCode   String?
+  countryCode  String?
+  timezone     String?
+  latitude     Decimal? @db.Decimal(10, 7)
+  longitude    Decimal? @db.Decimal(10, 7)
+  isActive     Boolean  @default(true)
+  notes        String?
+  customFields Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  serviceCoverage AdministrativeServiceCoverage[]
+  obligations     AdministrativeObligationSite[]
+
+  @@index([name])
+  @@index([organization, isActive])
+  @@index([type, isActive])
+  @@index([countryCode, stateRegion])
+}
+
+model AdministrativeCounterpartyContact {
+  id             String   @id @default(cuid())
+  counterpartyId String
+  name           String
+  jobTitle       String?
+  department     String?
+  email          String?
+  phone          String?
+  mobile         String?
+  role           String?
+  isPrimary      Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  counterparty AdministrativeCounterparty @relation(fields: [counterpartyId], references: [id], onDelete: Cascade)
+
+  @@index([counterpartyId, isActive])
+  @@index([counterpartyId, role])
+  @@index([email])
+}
+
+model AdministrativeServiceCoverage {
+  id               String   @id @default(cuid())
+  siteId           String
+  counterpartyId   String
+  serviceCategory  String
+  roleCode         String?
+  effectiveFrom    DateTime? @db.Date
+  effectiveTo      DateTime? @db.Date
+  isPrimary        Boolean   @default(false)
+  isActive         Boolean   @default(true)
+  serviceLevel     String?
+  emergencyContact String?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  site         AdministrativeSite         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  counterparty AdministrativeCounterparty @relation(fields: [counterpartyId], references: [id], onDelete: Restrict)
+
+  @@index([siteId, isActive])
+  @@index([counterpartyId, isActive])
+  @@index([siteId, serviceCategory, isActive])
+  @@index([counterpartyId, serviceCategory, isActive])
+}
+
 model AdministrativeObligation {
-  id                String                         @id @default(cuid())
-  code              String                         @unique
-  organization      String
-  category          String
-  title             String
-  counterpartyId    String
-  assetReference    String?
-  ownerId           String?
-  status            AdministrativeObligationStatus @default(DRAFT)
-  startDate         DateTime                       @db.Date
-  endDate           DateTime?                      @db.Date
-  recurring         Boolean                        @default(false)
+  id                 String                          @id @default(cuid())
+  code               String                          @unique
+  organization       String
+  category           String
+  title              String
+  counterpartyId     String
+  assetReference     String?
+  ownerId            String?
+  status             AdministrativeObligationStatus @default(DRAFT)
+  startDate          DateTime                        @db.Date
+  endDate            DateTime?                       @db.Date
+  recurring          Boolean                         @default(false)
   recurrenceInterval Int?
-  recurrenceUnit    AdministrativeRecurrenceUnit?
-  expectedAmount    Decimal?                       @db.Decimal(18, 2)
-  currency          String
-  firstDueDate      DateTime?                      @db.Date
-  nextDueDate       DateTime?                      @db.Date
-  autoRenew         Boolean                        @default(false)
-  renewalDate       DateTime?                      @db.Date
-  noticeDays        Int?
-  contractRequired  Boolean                        @default(false)
-  contractReference String?
-  contractFileUrl   String?
-  paymentMethod     String?
-  notes             String?
-  customFields      Json                           @default("{}")
-  createdAt         DateTime                       @default(now())
-  updatedAt         DateTime                       @updatedAt
+  recurrenceUnit     AdministrativeRecurrenceUnit?
+  expectedAmount     Decimal?                        @db.Decimal(18, 2)
+  currency           String
+  firstDueDate       DateTime?                       @db.Date
+  nextDueDate        DateTime?                       @db.Date
+  autoRenew          Boolean                         @default(false)
+  renewalDate        DateTime?                       @db.Date
+  noticeDays         Int?
+  contractRequired   Boolean                         @default(false)
+  contractReference  String?
+  contractFileUrl    String?
+  paymentMethod      String?
+  notes              String?
+  customFields       Json                            @default("{}")
+  createdAt          DateTime                        @default(now())
+  updatedAt          DateTime                        @updatedAt
 
   counterparty AdministrativeCounterparty @relation(fields: [counterpartyId], references: [id], onDelete: Restrict)
   owner        User?                      @relation("AdministrativeObligationOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   dueItems     ObligationDueItem[]
+  sites        AdministrativeObligationSite[]
+  parties      AdministrativeObligationParty[]
+  lines        AdministrativeObligationLine[]
 
   @@index([organization, status])
   @@index([category, status])
@@ -303,11 +379,76 @@ model AdministrativeObligation {
   @@index([renewalDate, status])
 }
 
-/// Materialised occurrence of an obligation. UPCOMING/DUE/OVERDUE are derived from dueDate;
-/// only lifecycle facts are stored so no cron is required merely to keep status current.
+model AdministrativeObligationSite {
+  obligationId String
+  siteId       String
+  scopeRole    String?
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  obligation AdministrativeObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  site       AdministrativeSite       @relation(fields: [siteId], references: [id], onDelete: Restrict)
+
+  @@id([obligationId, siteId])
+  @@index([siteId])
+}
+
+model AdministrativeObligationParty {
+  obligationId  String
+  counterpartyId String
+  roleCode      String
+  isPrimary     Boolean   @default(false)
+  effectiveFrom DateTime? @db.Date
+  effectiveTo   DateTime? @db.Date
+  notes         String?
+  createdAt     DateTime  @default(now())
+
+  obligation  AdministrativeObligation   @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  counterparty AdministrativeCounterparty @relation(fields: [counterpartyId], references: [id], onDelete: Restrict)
+
+  @@id([obligationId, counterpartyId, roleCode])
+  @@index([counterpartyId])
+  @@index([obligationId, isPrimary])
+}
+
+/// Payable/scheduled component beneath an agreement. Business line types remain configurable data;
+/// lifecycle is represented by isActive. Legacy obligation amount/recurrence fields remain as the
+/// compatibility/default-line source while CA-03 is adopted incrementally.
+model AdministrativeObligationLine {
+  id                 String                         @id @default(cuid())
+  obligationId       String
+  code               String
+  name               String
+  lineType           String
+  expectedAmount     Decimal?                       @db.Decimal(18, 2)
+  currency           String
+  recurring          Boolean                        @default(false)
+  recurrenceInterval Int?
+  recurrenceUnit     AdministrativeRecurrenceUnit?
+  firstDueDate       DateTime?                      @db.Date
+  nextDueDate        DateTime?                      @db.Date
+  invoiceRequired    Boolean                        @default(false)
+  paymentTermsDays   Int?
+  startDate          DateTime?                      @db.Date
+  endDate            DateTime?                      @db.Date
+  isActive           Boolean                        @default(true)
+  notes              String?
+  createdAt          DateTime                       @default(now())
+  updatedAt          DateTime                       @updatedAt
+
+  obligation AdministrativeObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  dueItems    ObligationDueItem[]
+
+  @@unique([obligationId, code])
+  @@index([obligationId, isActive])
+  @@index([nextDueDate, isActive])
+  @@index([lineType, isActive])
+}
+
 model ObligationDueItem {
   id              String                      @id @default(cuid())
   obligationId    String
+  lineId          String
   periodLabel     String
   dueDate         DateTime                    @db.Date
   expectedAmount  Decimal?                    @db.Decimal(18, 2)
@@ -324,17 +465,18 @@ model ObligationDueItem {
   createdAt       DateTime                    @default(now())
   updatedAt       DateTime                    @updatedAt
 
-  obligation AdministrativeObligation @relation(fields: [obligationId], references: [id], onDelete: Restrict)
+  obligation AdministrativeObligation     @relation(fields: [obligationId], references: [id], onDelete: Restrict)
+  line       AdministrativeObligationLine @relation(fields: [lineId], references: [id], onDelete: Restrict)
   payments   AdministrativePayment[]
 
-  @@unique([obligationId, dueDate])
+  @@unique([lineId, dueDate])
+  @@index([obligationId, dueDate])
   @@index([dueDate, status])
   @@index([obligationId, status])
+  @@index([lineId, status])
   @@index([disputeFlag, status])
 }
 
-/// One approval/payment execution record belongs to one due item. Multiple records per due item
-/// support instalments without a premature many-to-many payment application model.
 model AdministrativePayment {
   id                 String                       @id @default(cuid())
   dueItemId          String
@@ -358,10 +500,10 @@ model AdministrativePayment {
   createdAt          DateTime                     @default(now())
   updatedAt          DateTime                     @updatedAt
 
-  dueItem       ObligationDueItem @relation(fields: [dueItemId], references: [id], onDelete: Restrict)
-  requestedBy   User?             @relation("AdministrativePaymentRequester", fields: [requestedById], references: [id], onDelete: SetNull)
-  approvedBy    User?             @relation("AdministrativePaymentApprover", fields: [approvedById], references: [id], onDelete: SetNull)
-  reconciledBy  User?             @relation("AdministrativePaymentReconciler", fields: [reconciledById], references: [id], onDelete: SetNull)
+  dueItem      ObligationDueItem @relation(fields: [dueItemId], references: [id], onDelete: Restrict)
+  requestedBy  User?             @relation("AdministrativePaymentRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  approvedBy   User?             @relation("AdministrativePaymentApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  reconciledBy User?             @relation("AdministrativePaymentReconciler", fields: [reconciledById], references: [id], onDelete: SetNull)
 
   @@index([dueItemId, approvalStatus])
   @@index([dueItemId, paymentStatus])
@@ -369,8 +511,6 @@ model AdministrativePayment {
   @@index([reconciledAt])
 }
 
-/// Admin-configurable field definitions prevent ordinary schema gaps from becoming development
-/// tickets. Values remain JSON on the owning record; definitions provide type, validation and UI.
 model AdministrativeCustomFieldDefinition {
   id          String                         @id @default(cuid())
   scope       AdministrativeCustomFieldScope
