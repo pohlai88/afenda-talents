@@ -128,8 +128,17 @@ const currency = z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/, "Use a 3-le
 const countryCode = z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/, "Use a 2-letter country code").optional().nullable();
 const customFields = z.record(z.string(), z.unknown()).default({});
 
+/**
+ * Reference codes are optional. Every create form labels the field "Auto-generated if
+ * blank" and POSTs its draft verbatim, so a blank field arrives as "" rather than
+ * undefined — it must parse so the route's `?? newReferenceCode(...)` fallback can run.
+ * A one-character code remains a typo and stays rejected.
+ */
+const referenceCode = (max: number) =>
+  z.string().trim().min(2).max(max).optional().nullable().or(z.literal(""));
+
 export const createCounterpartySchema = z.object({
-  code: z.string().trim().min(2).max(40).optional().nullable(),
+  code: referenceCode(40),
   name: z.string().trim().min(1).max(240),
   type: z.string().trim().min(1).max(80),
   registrationNo: optionalTrimmed,
@@ -148,7 +157,7 @@ export const createCounterpartySchema = z.object({
 });
 
 export const createSiteSchema = z.object({
-  code: z.string().trim().min(2).max(50).optional().nullable(),
+  code: referenceCode(50),
   name: z.string().trim().min(1).max(240),
   type: z.string().trim().min(1).max(100),
   organization: z.string().trim().max(160).optional().nullable(),
@@ -221,7 +230,7 @@ export const createObligationPartySchema = z
 
 export const createObligationSchema = z
   .object({
-    code: z.string().trim().min(2).max(50).optional().nullable(),
+    code: referenceCode(50),
     organization: z.string().trim().min(1).max(160),
     category: z.string().trim().min(1).max(100),
     title: z.string().trim().min(1).max(240),
