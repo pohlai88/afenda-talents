@@ -91,6 +91,7 @@ export const historicalPaymentImportSchema = z.object({
 
 export type ClosureGateInput = {
   effectiveDate: string | null;
+  today: string;
   openDueItems: number;
   pendingApprovals: number;
   unreconciledPayments: number;
@@ -101,6 +102,7 @@ export type ClosureGateInput = {
 export function closureBlockers(input: ClosureGateInput): string[] {
   const blockers: string[] = [];
   if (!input.effectiveDate) blockers.push("Termination effective date is required");
+  else if (input.effectiveDate > input.today) blockers.push(`Termination is not effective until ${input.effectiveDate}`);
   if (input.openDueItems > 0) blockers.push(`${input.openDueItems} due item(s) remain open`);
   if (input.pendingApprovals > 0) blockers.push(`${input.pendingApprovals} payment approval(s) remain pending`);
   if (input.unreconciledPayments > 0) blockers.push(`${input.unreconciledPayments} recorded payment(s) remain unreconciled`);
