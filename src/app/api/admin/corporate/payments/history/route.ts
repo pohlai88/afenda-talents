@@ -19,83 +19,68 @@ type Tx = Prisma.TransactionClient;
 
 async function lockMutableObligation(tx: Tx, obligationId: string) {
   await tx.$queryRaw`SELECT "id" FROM "AdministrativeObligation" WHERE "id" = ${obligationId} FOR UPDATE`;
-  const closure = await tx.administrativeClosure.findUnique({
-    where: { obligationId },
-    select: { status: true },
-  });
-  if (closure?.status === "CLOSED") {
-    throw new Error("Closed administrative files cannot receive additional historical payments");
-  }
+  const closure = await tx.administrativeClosure.findUnique({ where: { obligationId }, select: { status: true } });
+  if (closure?.status === "CLOSED") throw new Error("Closed administrative files cannot receive additional historical payments");
 }
 
-async function syncDueItemCompletion(tx: Tx, dueItemId: string, paymentDate: Date) {
+async function syncDueItemCompletion(tx: Tx, dueItemId: string) {
   const dueItem = await tx.obligationDueItem.findUnique({
     where: { id: dueItemId },
-    include: { payments: { select: { paymentStatus: true, paidAmount: true } } },
+    include: {
+      payments: {
+        where: { paymentStatus: { in: ["PAID", "PARTIALLY_PAID"] } },
+        orderBy: [{ paymentDate: "asc" }, { requestDate: "asc" }, { id: "asc" }],
+        select: { paidAmount: true, paymentDate: true },
+      },
+    },
   });
   if (!dueItem || dueItem.status === "CANCELLED") return;
   const target = dueItem.invoiceAmount ?? dueItem.expectedAmount;
   if (target == null) return;
-  const paid = dueItem.payments.reduce((sum, payment) => {
-    if (payment.paymentStatus === "PAID" || payment.paymentStatus === "PARTIALLY_PAID") {
-      return sum + Number(payment.paidAmount ?? 0);
+
+  let cumulative = 0;
+  let completedDate: Date | null = null;
+  for (const payment of dueItem.payments) {
+    cumulative += Number(payment.paidAmount ?? 0);
+    if (cumulative + 0.000001 >= Number(target)) {
+      completedDate = payment.paymentDate;
+      break;
     }
-    return sum;
-  }, 0);
-  const complete = paid + 0.000001 >= Number(target);
+  }
+  const complete = completedDate !== null;
   await tx.obligationDueItem.update({
     where: { id: dueItemId },
-    data: {
-      status: complete ? "COMPLETED" : "OPEN",
-      completedDate: complete ? paymentDate : null,
-    },
+    data: { status: complete ? "COMPLETED" : "OPEN", completedDate: complete ? completedDate : null },
   });
 }
 
 async function resolveDueItem(tx: Tx, row: z.infer<typeof historicalPaymentRowSchema>) {
   if (row.dueItemId) {
-    const initial = await tx.obligationDueItem.findUnique({
-      where: { id: row.dueItemId },
-      select: { obligationId: true },
-    });
+    const initial = await tx.obligationDueItem.findUnique({ where: { id: row.dueItemId }, select: { obligationId: true } });
     if (!initial) throw new Error(`Due item ${row.dueItemId} was not found`);
     await lockMutableObligation(tx, initial.obligationId);
     const dueItem = await tx.obligationDueItem.findUnique({ where: { id: row.dueItemId } });
     if (!dueItem) throw new Error(`Due item ${row.dueItemId} was not found`);
     if (dueItem.status === "CANCELLED") throw new Error("Cancelled due items cannot receive historical payments");
-    if (row.currency && row.currency !== dueItem.currency.toUpperCase()) {
-      throw new Error(`Imported currency ${row.currency} does not match due-item currency ${dueItem.currency.toUpperCase()}`);
-    }
+    if (row.currency && row.currency !== dueItem.currency.toUpperCase()) throw new Error(`Imported currency ${row.currency} does not match due-item currency ${dueItem.currency.toUpperCase()}`);
     return dueItem;
   }
 
   const obligationCode = row.obligationCode!.toUpperCase();
   const lineCode = row.lineCode!.toUpperCase();
-  const obligation = await tx.administrativeObligation.findUnique({
-    where: { code: obligationCode },
-    select: { id: true },
-  });
+  const obligation = await tx.administrativeObligation.findUnique({ where: { code: obligationCode }, select: { id: true } });
   if (!obligation) throw new Error(`Obligation ${obligationCode} was not found`);
   await lockMutableObligation(tx, obligation.id);
 
-  const line = await tx.administrativeObligationLine.findFirst({
-    where: { obligationId: obligation.id, code: lineCode },
-    select: { id: true, currency: true, invoiceRequired: true },
-  });
+  const line = await tx.administrativeObligationLine.findFirst({ where: { obligationId: obligation.id, code: lineCode }, select: { id: true, currency: true, invoiceRequired: true } });
   if (!line) throw new Error(`Line ${lineCode} was not found on obligation ${obligationCode}`);
-  if (row.currency && row.currency !== line.currency.toUpperCase()) {
-    throw new Error(`Imported currency ${row.currency} does not match line currency ${line.currency.toUpperCase()}`);
-  }
+  if (row.currency && row.currency !== line.currency.toUpperCase()) throw new Error(`Imported currency ${row.currency} does not match line currency ${line.currency.toUpperCase()}`);
 
   const dueDate = parseDateOnly(row.dueDate!);
-  const existing = await tx.obligationDueItem.findUnique({
-    where: { lineId_dueDate: { lineId: line.id, dueDate } },
-  });
+  const existing = await tx.obligationDueItem.findUnique({ where: { lineId_dueDate: { lineId: line.id, dueDate } } });
   if (existing) {
     if (existing.status === "CANCELLED") throw new Error("Cancelled due items cannot receive historical payments");
-    if (row.currency && row.currency !== existing.currency.toUpperCase()) {
-      throw new Error(`Imported currency ${row.currency} does not match due-item currency ${existing.currency.toUpperCase()}`);
-    }
+    if (row.currency && row.currency !== existing.currency.toUpperCase()) throw new Error(`Imported currency ${row.currency} does not match due-item currency ${existing.currency.toUpperCase()}`);
     return existing;
   }
 
@@ -115,16 +100,11 @@ async function resolveDueItem(tx: Tx, row: z.infer<typeof historicalPaymentRowSc
 
 export async function POST(request: Request) {
   let session;
-  try {
-    session = await requireWorkspaceAdmin();
-  } catch {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-  }
+  try { session = await requireWorkspaceAdmin(); }
+  catch { return NextResponse.json({ error: "Admin access required" }, { status: 403 }); }
 
   const envelope = envelopeSchema.safeParse(await request.json().catch(() => null));
-  if (!envelope.success) {
-    return NextResponse.json({ error: envelope.error.issues[0]?.message ?? "Invalid historical payment import" }, { status: 400 });
-  }
+  if (!envelope.success) return NextResponse.json({ error: envelope.error.issues[0]?.message ?? "Invalid historical payment import" }, { status: 400 });
 
   const results: Array<{ rowNumber: number; status: "IMPORTED" | "DUPLICATE" | "ERROR"; paymentId?: string; dueItemId?: string; error?: string }> = [];
 
@@ -140,17 +120,10 @@ export async function POST(request: Request) {
       const result = await db.$transaction(async (tx) => {
         const dueItem = await resolveDueItem(tx, parsed.data);
         await tx.$queryRaw`SELECT "id" FROM "ObligationDueItem" WHERE "id" = ${dueItem.id} FOR UPDATE`;
-
         const paymentDate = parseDateOnly(parsed.data.paymentDate);
         const reference = cleanOptionalString(parsed.data.paymentReference);
         const duplicate = await tx.administrativePayment.findFirst({
-          where: {
-            dueItemId: dueItem.id,
-            paymentDate,
-            paidAmount: parsed.data.paidAmount,
-            paymentReference: reference,
-            paymentStatus: { in: ["PAID", "PARTIALLY_PAID"] },
-          },
+          where: { dueItemId: dueItem.id, paymentDate, paidAmount: parsed.data.paidAmount, paymentReference: reference, paymentStatus: { in: ["PAID", "PARTIALLY_PAID"] } },
           select: { id: true },
         });
         if (duplicate) return { status: "DUPLICATE" as const, paymentId: duplicate.id, dueItemId: dueItem.id };
@@ -177,13 +150,9 @@ export async function POST(request: Request) {
           },
         });
         await tx.administrativeHistoricalPayment.create({
-          data: {
-            paymentId: payment.id,
-            origin: envelope.data.source === "MANUAL" ? "HISTORICAL_MANUAL" : "HISTORICAL_IMPORT",
-            approvalRequired: false,
-          },
+          data: { paymentId: payment.id, origin: envelope.data.source === "MANUAL" ? "HISTORICAL_MANUAL" : "HISTORICAL_IMPORT", approvalRequired: false },
         });
-        await syncDueItemCompletion(tx, dueItem.id, paymentDate);
+        await syncDueItemCompletion(tx, dueItem.id);
         await audit(session.userId, "corporate.payment.history_recorded", payment.id, {
           paymentId: payment.id,
           dueItemId: dueItem.id,
