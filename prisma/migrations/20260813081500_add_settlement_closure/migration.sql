@@ -63,6 +63,7 @@ CREATE INDEX "AdministrativeReconciliationItem_paymentId_idx" ON "Administrative
 CREATE TABLE "AdministrativeHistoricalPayment" (
   "paymentId" TEXT NOT NULL,
   "origin" "AdministrativeHistoricalPaymentOrigin" NOT NULL,
+  "approvalRequired" BOOLEAN NOT NULL DEFAULT false,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "AdministrativeHistoricalPayment_pkey" PRIMARY KEY ("paymentId"),
   CONSTRAINT "AdministrativeHistoricalPayment_paymentId_fkey" FOREIGN KEY ("paymentId") REFERENCES "AdministrativePayment"("id") ON DELETE CASCADE ON UPDATE CASCADE
