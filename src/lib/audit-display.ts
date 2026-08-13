@@ -29,11 +29,21 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "round.archived": "Hiring round archived",
   "corporate.counterparty.created": "Administrative counterparty created",
   "corporate.counterparty.updated": "Administrative counterparty updated",
+  "corporate.counterparty.contact.created": "Counterparty contact created",
+  "corporate.counterparty.contact.updated": "Counterparty contact updated",
+  "corporate.site.created": "Administrative site created",
+  "corporate.site.updated": "Administrative site updated",
+  "corporate.site.coverage.created": "Site service coverage created",
+  "corporate.site.coverage.updated": "Site service coverage updated",
   "corporate.obligation.created": "Administrative obligation created",
   "corporate.obligation.updated": "Administrative obligation updated",
   "corporate.obligation.activated": "Administrative obligation activated",
   "corporate.obligation.ended": "Administrative obligation ended",
   "corporate.obligation.cancelled": "Administrative obligation cancelled",
+  "corporate.obligation.site.linked": "Obligation linked to site",
+  "corporate.obligation.party.linked": "Counterparty role linked to obligation",
+  "corporate.obligation.line.created": "Agreement line created",
+  "corporate.obligation.line.updated": "Agreement line updated",
   "corporate.due_item.created": "Administrative due item created",
   "corporate.due_item.updated": "Administrative due item updated",
   "corporate.payment.requested": "Administrative payment requested",
@@ -44,6 +54,13 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "corporate.payment.voided": "Administrative payment voided",
   "corporate.custom_field.created": "Administrative custom field created",
   "corporate.custom_field.updated": "Administrative custom field updated",
+  "corporate.work_item.created": "Administrative work item created",
+  "corporate.work_item.updated": "Administrative work item updated",
+  "corporate.work_item.resolved": "Administrative work item resolved",
+  "corporate.work_item.escalated": "Administrative work item escalated",
+  "corporate.reminder.sent": "Administrative reminder sent",
+  "corporate.reminder.blocked": "Administrative reminder blocked",
+  "corporate.reminder.failed": "Administrative reminder failed",
 };
 
 export const AUDIT_ACTION_OPTIONS = Object.keys(AUDIT_ACTION_LABELS) as AuditAction[];
@@ -62,10 +79,7 @@ export type AuditDisplayRow = {
 
 export type AuditFilter = { action: string | null; from: Date | null; to: Date | null };
 
-export function auditActionLabel(action: string): string {
-  return AUDIT_ACTION_LABELS[action as AuditAction] ?? action;
-}
-
+export function auditActionLabel(action: string): string { return AUDIT_ACTION_LABELS[action as AuditAction] ?? action; }
 export function filterAuditRows(rows: AuditDisplayRow[], filter: AuditFilter): AuditDisplayRow[] {
   return rows.filter((row) => {
     if (filter.action && row.action !== filter.action) return false;
@@ -74,19 +88,8 @@ export function filterAuditRows(rows: AuditDisplayRow[], filter: AuditFilter): A
     return true;
   });
 }
-
-export function endOfLocalDay(date: Date): Date {
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
-  return end;
-}
-
-export function startOfLocalDay(date: Date): Date {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  return start;
-}
-
+export function endOfLocalDay(date: Date): Date { const end = new Date(date); end.setHours(23, 59, 59, 999); return end; }
+export function startOfLocalDay(date: Date): Date { const start = new Date(date); start.setHours(0, 0, 0, 0); return start; }
 export function formatAuditMeta(meta: unknown): { key: string; value: string }[] {
   if (!meta || typeof meta !== "object" || Array.isArray(meta)) return [];
   const banned = new Set(["email", "fullname", "name", "token", "password"]);
