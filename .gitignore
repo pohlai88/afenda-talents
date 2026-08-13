@@ -55,3 +55,6 @@ server.log
 
 .vercel
 .env*
+
+# superpowers SDD scratch workspace
+.superpowers/
