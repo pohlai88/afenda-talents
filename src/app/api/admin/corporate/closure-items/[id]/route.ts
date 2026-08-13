@@ -17,8 +17,15 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid reconciliation update" }, { status: 400 });
   const { id } = await context.params;
 
+  const initial = await db.administrativeReconciliationItem.findUnique({
+    where: { id },
+    select: { closure: { select: { obligationId: true } } },
+  });
+  if (!initial) return NextResponse.json({ error: "Reconciliation item not found" }, { status: 404 });
+
   try {
     const item = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "AdministrativeObligation" WHERE "id" = ${initial.closure.obligationId} FOR UPDATE`;
       const existing = await tx.administrativeReconciliationItem.findUnique({ where: { id }, include: { closure: { select: { obligationId: true, status: true } } } });
       if (!existing) throw new Error("Reconciliation item not found");
       if (existing.closure.status === "CLOSED") throw new Error("Closed files cannot be changed");
