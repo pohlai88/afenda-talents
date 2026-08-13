@@ -85,7 +85,6 @@ async function resolveDueItem(tx: Tx, row: z.infer<typeof historicalPaymentRowSc
       currency: row.currency ?? line.currency,
       invoiceRequired: line.invoiceRequired,
       notes: "Created from historical payment import",
-      customFields: { historicalImport: true },
     },
   });
 }
@@ -117,6 +116,14 @@ export async function POST(request: Request) {
       const result = await db.$transaction(async (tx) => {
         const dueItem = await resolveDueItem(tx, parsed.data);
         await tx.$queryRaw`SELECT "id" FROM "ObligationDueItem" WHERE "id" = ${dueItem.id} FOR UPDATE`;
+
+        const closure = await tx.administrativeClosure.findUnique({
+          where: { obligationId: dueItem.obligationId },
+          select: { status: true },
+        });
+        if (closure?.status === "CLOSED") {
+          throw new Error("Closed administrative files cannot receive additional historical payments");
+        }
 
         const paymentDate = parseDateOnly(parsed.data.paymentDate);
         const reference = cleanOptionalString(parsed.data.paymentReference);
@@ -151,10 +158,13 @@ export async function POST(request: Request) {
             reconciledAt: parsed.data.reconciled ? new Date() : null,
             reconciledById: parsed.data.reconciled ? session.userId : null,
             notes: cleanOptionalString(parsed.data.notes),
-            customFields: {
-              origin: envelope.data.source === "MANUAL" ? "HISTORICAL_MANUAL" : "HISTORICAL_IMPORT",
-              approvalRequired: false,
-            },
+          },
+        });
+        await tx.administrativeHistoricalPayment.create({
+          data: {
+            paymentId: payment.id,
+            origin: envelope.data.source === "MANUAL" ? "HISTORICAL_MANUAL" : "HISTORICAL_IMPORT",
+            approvalRequired: false,
           },
         });
         await syncDueItemCompletion(tx, dueItem.id);
@@ -162,6 +172,7 @@ export async function POST(request: Request) {
           paymentId: payment.id,
           dueItemId: dueItem.id,
           source: envelope.data.source.toLowerCase(),
+          approvalRequired: false,
           reconciled: parsed.data.reconciled,
         }, tx);
         return { status: "IMPORTED" as const, paymentId: payment.id, dueItemId: dueItem.id };
