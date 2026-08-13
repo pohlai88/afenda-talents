@@ -63,6 +63,19 @@ audit trail remains intact (D21). The counterparty on a coverage row or obligati
 and the site on an obligation link, are identity and cannot be edited; stand the row down
 and create the correct one instead.
 
+Every Corporate record now carries Edit and Deactivate controls for admins. Deactivating
+keeps the row visible, marked Inactive, with a Reactivate control — nothing disappears,
+because nothing is deleted (D21). A primary contact or coverage row cannot be deactivated
+until another is made primary; the server refuses it and the reason appears in the toast.
+
+Identity fields stay fixed: the counterparty on a coverage row, the counterparty and role
+code on an obligation party, and the site on an obligation link. Those are primary-key
+columns. To change one, stand the row down and create the correct one.
+
+Stood-down obligation links remain listed on the obligation so they can be reactivated,
+but are excluded from data-quality findings, site and counterparty counts, and the
+operations views — an inactive link is history, not current state.
+
 ## Custom fields
 
 `SITE` is now a valid custom-field scope. Site-specific scalar metadata can therefore be configured without migrations. Relational concepts must not be stored as IDs inside JSON custom fields.
