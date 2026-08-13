@@ -12,6 +12,8 @@ export type PaymentDto = {
   reconciledAt: string | null;
   notes: string | null;
   customFields: Record<string, unknown>;
+  recordOrigin: "WORKFLOW" | "HISTORICAL_MANUAL" | "HISTORICAL_IMPORT";
+  approvalRequired: boolean;
 };
 
 export type DueItemDto = {
