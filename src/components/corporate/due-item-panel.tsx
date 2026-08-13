@@ -42,6 +42,12 @@ export function DueItemPanel({ dueItem, dueFields, paymentFields, isAdmin }: {
   const [notes, setNotes] = useState(dueItem.notes ?? "");
   const [customFields, setCustomFields] = useState<Record<string, unknown>>(dueItem.customFields);
   const displayState = deriveDueState(dueItem.status, dueItem.dueDate, todayDateOnly());
+  const recordedPayments = dueItem.payments.filter((payment) => payment.paymentStatus === "PAID" || payment.paymentStatus === "PARTIALLY_PAID");
+  const paidTotal = recordedPayments.reduce((sum, payment) => sum + (payment.paidAmount ?? 0), 0);
+  const target = dueItem.invoiceAmount ?? dueItem.expectedAmount;
+  const residual = target == null ? null : Math.max(0, target - paidTotal);
+  const hasResidualAfterPayment = dueItem.status === "OPEN" && recordedPayments.length > 0 && residual != null && residual > 0.000001;
+  const recordedPaymentsReconciled = recordedPayments.length > 0 && recordedPayments.every((payment) => Boolean(payment.reconciledAt));
 
   async function save() {
     setBusy(true);
@@ -63,20 +69,20 @@ export function DueItemPanel({ dueItem, dueFields, paymentFields, isAdmin }: {
     }
   }
 
-  async function cancelDue() {
+  async function patchDue(action: "CANCEL" | "RESOLVE_BALANCE", reason: string, success: string) {
     setBusy(true);
     try {
       const response = await fetch(`/api/admin/corporate/due-items/${dueItem.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "CANCEL", notes: notes || "Cancelled / waived during administrative settlement." }),
+        body: JSON.stringify({ action, notes: reason }),
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : "Could not cancel due item");
-      toast.success("Due item cancelled / waived.");
+      if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : "Could not update due item");
+      toast.success(success);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not cancel due item");
+      toast.error(error instanceof Error ? error.message : "Could not update due item");
     } finally {
       setBusy(false);
     }
@@ -111,7 +117,14 @@ export function DueItemPanel({ dueItem, dueFields, paymentFields, isAdmin }: {
           </CardTitle>
           <CardDescription>Due {dueItem.dueDate} · {formatMoney(dueItem.currency, dueItem.invoiceAmount ?? dueItem.expectedAmount)}</CardDescription>
         </div>
-        {isAdmin && dueItem.status !== "CANCELLED" ? <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>Update invoice / due</Button><AfendaConfirmButton busy={busy} destructive title="Cancel or waive this due item?" description="Use this only when the charge is no longer valid or has been waived. Due items with recorded payment history cannot be cancelled. Any un-settled payment request on this due item will also be cancelled. Update the due-item notes first if a specific waiver reason should be retained." confirmLabel="Cancel / waive due" onConfirm={cancelDue}>Cancel / waive</AfendaConfirmButton></div> : null}
+        {isAdmin && dueItem.status !== "CANCELLED" ? (
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>Update invoice / due</Button>
+            {recordedPayments.length === 0 ? (
+              <AfendaConfirmButton busy={busy} destructive title="Cancel or waive this due item?" description="Use this only when the charge is no longer valid or has been waived. Any un-settled payment request on this due item will also be cancelled. Update the due-item notes first if a specific waiver reason should be retained." confirmLabel="Cancel / waive due" onConfirm={() => patchDue("CANCEL", notes || "Cancelled / waived during administrative settlement.", "Due item cancelled / waived.")}>Cancel / waive</AfendaConfirmButton>
+            ) : null}
+          </div>
+        ) : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <AfendaMetadataGrid
@@ -126,6 +139,27 @@ export function DueItemPanel({ dueItem, dueFields, paymentFields, isAdmin }: {
         <AfendaEvidenceList title="Due-item evidence" description="Invoice and settlement evidence attached to this occurrence." items={evidence} />
         {isAdmin && dueItem.status !== "CANCELLED" ? <div className="flex flex-wrap items-center gap-2"><HistoricalPaymentRecorder dueItem={dueItem} /><span className="text-xs text-muted-foreground">For already-paid legacy records; no new approval request is created.</span></div> : null}
         <PaymentWorkflow dueItem={dueItem} fields={paymentFields} isAdmin={isAdmin} />
+        {isAdmin && hasResidualAfterPayment ? (
+          <div className="rounded-lg border border-dashed p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Residual balance: {formatMoney(dueItem.currency, residual)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">If the remaining amount is waived, credited or otherwise resolved during final settlement, first reconcile every recorded payment, then use this action. The payment history remains intact; only the residual due is closed.</p>
+              </div>
+              <AfendaConfirmButton
+                busy={busy}
+                disabled={!recordedPaymentsReconciled}
+                title="Resolve the remaining due balance?"
+                description="Use this only after termination/final reconciliation has started and the residual balance has been formally waived, credited or adjusted. Recorded payments are preserved. Any un-settled payment request for the residual is cancelled."
+                confirmLabel="Resolve remaining balance"
+                onConfirm={() => patchDue("RESOLVE_BALANCE", notes || "Residual balance resolved through final settlement adjustment.", "Remaining balance resolved; due item completed.")}
+              >
+                Resolve remaining balance
+              </AfendaConfirmButton>
+            </div>
+            {!recordedPaymentsReconciled ? <p className="mt-2 text-xs text-muted-foreground">Reconcile the recorded payment(s) before this control becomes available.</p> : null}
+          </div>
+        ) : null}
       </CardContent>
 
       <AfendaResponsiveOverlay
