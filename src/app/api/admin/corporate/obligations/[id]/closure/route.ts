@@ -53,31 +53,16 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
         ? await tx.administrativeClosure.update({ where: { id: existing.id }, data })
         : await tx.administrativeClosure.create({ data: { obligationId, lifecycleManaged, createdById: session.userId, ...data } });
 
-      // The closure record is the authoritative termination boundary. Do not shorten line-level
-      // schedules destructively: an admin may correct the effective date later. Due generation
-      // re-checks this boundary transactionally before creating an occurrence.
       if (lifecycleManaged) {
-        const generalLine = await tx.administrativeObligationLine.findFirst({
-          where: { obligationId, code: "GENERAL" },
-          select: { nextDueDate: true },
-        });
+        const generalLine = await tx.administrativeObligationLine.findFirst({ where: { obligationId, code: "GENERAL" }, select: { nextDueDate: true } });
         const generalNextDue = generalLine?.nextDueDate ?? null;
         const visibleNextDue = !effectiveNow && generalNextDue && generalNextDue <= effective ? generalNextDue : null;
         await tx.administrativeObligation.update({
           where: { id: obligationId },
-          data: {
-            status: effectiveNow ? "ENDED" : "ACTIVE",
-            endDate: effective,
-            nextDueDate: visibleNextDue,
-            autoRenew: false,
-            renewalDate: null,
-          },
+          data: { status: effectiveNow ? "ENDED" : "ACTIVE", endDate: effective, nextDueDate: visibleNextDue, autoRenew: false, renewalDate: null },
         });
       } else {
-        await tx.administrativeObligation.update({
-          where: { id: obligationId },
-          data: { endDate: effective, autoRenew: false, renewalDate: null },
-        });
+        await tx.administrativeObligation.update({ where: { id: obligationId }, data: { endDate: effective, autoRenew: false, renewalDate: null } });
       }
 
       await audit(session.userId, existing ? "corporate.closure.updated" : "corporate.closure.started", record.id, {
@@ -108,15 +93,19 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
   try {
     const result = await db.$transaction(async (tx) => {
-      // All due/payment/closure mutations serialize on the obligation row. This prevents a
-      // historical import or payment mutation from committing after the close gate is checked.
       await tx.$queryRaw`SELECT "id" FROM "AdministrativeObligation" WHERE "id" = ${obligationId} FOR UPDATE`;
       const closure = await tx.administrativeClosure.findUnique({ where: { obligationId } });
       if (!closure) throw new Error("Start termination and reconciliation before closing the file");
 
       const [openDueItems, pendingApprovals, unreconciledPayments, unresolvedReconciliationItems] = await Promise.all([
         tx.obligationDueItem.count({ where: { obligationId, status: "OPEN" } }),
-        tx.administrativePayment.count({ where: { dueItem: { obligationId }, approvalStatus: "PENDING" } }),
+        tx.administrativePayment.count({
+          where: {
+            dueItem: { obligationId },
+            paymentStatus: "NOT_PAID",
+            approvalStatus: { in: ["PENDING", "APPROVED"] },
+          },
+        }),
         tx.administrativePayment.count({ where: { dueItem: { obligationId }, paymentStatus: { in: ["PAID", "PARTIALLY_PAID"] }, reconciledAt: null } }),
         tx.administrativeReconciliationItem.count({ where: { closureId: closure.id, status: { in: ["OPEN", "DISPUTED"] } } }),
       ]);
@@ -132,20 +121,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       });
       if (blockers.length > 0) return { closed: false as const, blockers };
 
-      const updated = await tx.administrativeClosure.update({
-        where: { id: closure.id },
-        data: { status: "CLOSED", closedAt: new Date(), closedById: session.userId },
-      });
+      const updated = await tx.administrativeClosure.update({ where: { id: closure.id }, data: { status: "CLOSED", closedAt: new Date(), closedById: session.userId } });
       if (closure.lifecycleManaged) {
-        await tx.administrativeObligation.update({
-          where: { id: obligationId },
-          data: { status: "ENDED", nextDueDate: null, autoRenew: false, renewalDate: null },
-        });
+        await tx.administrativeObligation.update({ where: { id: obligationId }, data: { status: "ENDED", nextDueDate: null, autoRenew: false, renewalDate: null } });
       } else {
-        await tx.administrativeObligation.update({
-          where: { id: obligationId },
-          data: { nextDueDate: null, autoRenew: false, renewalDate: null },
-        });
+        await tx.administrativeObligation.update({ where: { id: obligationId }, data: { nextDueDate: null, autoRenew: false, renewalDate: null } });
       }
       await audit(session.userId, "corporate.closure.closed", updated.id, { closureId: updated.id, obligationId }, tx);
       return { closed: true as const, blockers: [] as string[] };
