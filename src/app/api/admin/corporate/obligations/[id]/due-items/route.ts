@@ -9,7 +9,7 @@ import {
   nextOccurrence,
   parseDateOnly,
 } from "@/lib/corporate-admin/domain";
-import { createDueItemWithLineSchema } from "@/lib/corporate-admin/obligation-lines";
+import { createDueItemWithLineSchema, duplicateDueItemMessage } from "@/lib/corporate-admin/obligation-lines";
 import { db } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -31,6 +31,9 @@ export async function POST(
   }
 
   const { id: obligationId } = await context.params;
+
+  // Decided inside the transaction, reported by the catch below.
+  let attemptedLabel = "";
 
   try {
     const dueItem = await db.$transaction(async (tx) => {
@@ -58,11 +61,12 @@ export async function POST(
       }
 
       const customFields = await validateAdministrativeCustomFields("DUE_ITEM", parsed.data.customFields, tx);
+      attemptedLabel = parsed.data.periodLabel?.trim() || defaultPeriodLabel(dueDateText);
       const created = await tx.obligationDueItem.create({
         data: {
           obligationId,
           lineId: line.id,
-          periodLabel: parsed.data.periodLabel?.trim() || defaultPeriodLabel(dueDateText),
+          periodLabel: attemptedLabel,
           dueDate: parseDateOnly(dueDateText),
           expectedAmount: parsed.data.expectedAmount ?? line.expectedAmount,
           invoiceAmount: parsed.data.invoiceAmount ?? null,
@@ -102,7 +106,7 @@ export async function POST(
     const duplicate = message.includes("Unique constraint") || message.includes("unique constraint");
     const missing = message === "Obligation not found" || message === "Obligation line not found";
     return NextResponse.json(
-      { error: duplicate ? "A due item already exists for that line and date" : message },
+      { error: duplicate ? duplicateDueItemMessage(attemptedLabel) : message },
       { status: missing ? 404 : duplicate ? 409 : 400 },
     );
   }
