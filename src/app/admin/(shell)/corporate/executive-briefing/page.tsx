@@ -8,6 +8,7 @@ import { requireWorkspaceUser } from "@/lib/auth-workspace";
 import { listAutomationRuns } from "@/lib/corporate-admin/automation-server";
 import { buildExecutiveBriefing } from "@/lib/corporate-admin/executive-briefing";
 import { listWorkItems } from "@/lib/corporate-admin/work-items-server";
+import { env } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -16,18 +17,20 @@ export default async function CorporateExecutiveBriefingPage() {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone:"Asia/Kuala_Lumpur", year:"numeric", month:"2-digit", day:"2-digit" }).format(new Date());
   const [items,runs]=await Promise.all([listWorkItems(),listAutomationRuns(20)]);
   const briefing=buildExecutiveBriefing(items,today);
+  const cronArmed=Boolean(env.CRON_SECRET);
   const metrics=[
     ["Open",briefing.open,"Unresolved administrative work"],
     ["Overdue",briefing.overdue,"Past target date"],
     ["Escalated",briefing.escalated,"Current escalation > 0"],
     ["Unassigned",briefing.unassigned,"No accountable owner"],
     ["Due 7 days",briefing.due7d,"Upcoming commitments"],
-    ["Closure 30d",`${briefing.closureRate30d}%`,`${briefing.resolved30d} resolved / ${briefing.created30d} created`],
+    ["30d cohort closed",`${briefing.closureRate30d}%`,`${briefing.created30d} items created in cohort`],
   ] as const;
 
   return <AfendaPageFrame width="wide">
     <PageHeader eyebrow="Corporate Administration · Executive Briefing" title="Executive administration briefing" description="Management exceptions, aging, owner workload and closure performance derived directly from authoritative Administrative Work." />
     <CorporateNav />
+    <Card className={cronArmed?undefined:"border-amber-300"}><CardContent className="flex flex-wrap items-center justify-between gap-3 py-4"><div><div className="font-medium">Recurring automation</div><div className="text-xs text-muted-foreground">Daily 08:30 MYT · Weekly Monday 08:45 MYT · production cron only.</div></div><Badge variant={cronArmed?"outline":"secondary"}>{cronArmed?"ARMED":"NOT ARMED · configure CRON_SECRET"}</Badge></CardContent></Card>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">{metrics.map(([label,value,description])=><Card key={label}><CardHeader><CardDescription>{label}</CardDescription><CardTitle className="text-3xl tabular-nums">{value}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">{description}</CardContent></Card>)}</div>
 
     <div className="grid gap-4 lg:grid-cols-2">
