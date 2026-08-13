@@ -1,0 +1,87 @@
+enum AdministrativeClosureStatus {
+  OPEN
+  RECONCILING
+  READY
+  CLOSED
+}
+
+enum AdministrativeTerminationType {
+  EXPIRED
+  TERMINATED
+  CANCELLED
+  SURRENDERED
+  OTHER
+}
+
+enum AdministrativeReconciliationCategory {
+  DEPOSIT
+  RENTAL
+  CLEANING
+  UTILITIES
+  REPAIR_MAINTENANCE
+  SERVICE_CHARGE
+  PENALTY_INTEREST
+  CREDIT_REFUND
+  OTHER
+}
+
+enum AdministrativeReconciliationDirection {
+  PAYABLE
+  RECEIVABLE
+}
+
+enum AdministrativeReconciliationStatus {
+  OPEN
+  SETTLED
+  WAIVED
+  DISPUTED
+}
+
+model AdministrativeClosure {
+  id                     String                        @id @default(cuid())
+  obligationId           String                        @unique
+  status                 AdministrativeClosureStatus   @default(OPEN)
+  terminationType        AdministrativeTerminationType?
+  noticeDate             DateTime?                     @db.Date
+  effectiveDate          DateTime?                     @db.Date
+  handoverDate           DateTime?                     @db.Date
+  terminationReason      String?
+  terminationDocumentUrl String?
+  notes                  String?
+  createdById            String?
+  closedById             String?
+  closedAt               DateTime?
+  createdAt              DateTime                      @default(now())
+  updatedAt              DateTime                      @updatedAt
+
+  items AdministrativeReconciliationItem[]
+
+  @@index([status, effectiveDate])
+  @@index([closedAt])
+}
+
+model AdministrativeReconciliationItem {
+  id             String                              @id @default(cuid())
+  closureId      String
+  category       AdministrativeReconciliationCategory
+  direction      AdministrativeReconciliationDirection
+  description    String
+  expectedAmount Decimal?                            @db.Decimal(18, 2)
+  actualAmount   Decimal?                            @db.Decimal(18, 2)
+  currency       String
+  status         AdministrativeReconciliationStatus  @default(OPEN)
+  evidenceUrl    String?
+  dueItemId      String?
+  paymentId      String?
+  notes          String?
+  createdById    String?
+  createdAt      DateTime                            @default(now())
+  updatedAt      DateTime                            @updatedAt
+
+  closure AdministrativeClosure @relation(fields: [closureId], references: [id], onDelete: Cascade)
+
+  @@index([closureId, status])
+  @@index([category, status])
+  @@index([dueItemId])
+  @@index([paymentId])
+}
