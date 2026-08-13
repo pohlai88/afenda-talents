@@ -48,6 +48,9 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
 
   try {
     const updated = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "AdministrativeObligation" WHERE "id" = ${id} FOR UPDATE`;
+      const closure = await tx.administrativeClosure.findUnique({ where: { obligationId: id }, select: { status: true } });
+      if (closure?.status === "CLOSED") throw new Error("Closed administrative files are read-only");
       const record = await tx.administrativeObligation.update({
         where: { id },
         data: {
@@ -96,22 +99,29 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const parsed = patchObligationSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid obligation action" }, { status: 400 });
   const { id } = await context.params;
-  const obligation = await db.administrativeObligation.findUnique({ where: { id } });
-  if (!obligation) return NextResponse.json({ error: "Obligation not found" }, { status: 404 });
-  const target = TARGET[parsed.data.action];
-  try { assertObligationTransition(obligation.status, target); }
-  catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid transition" }, { status: 409 }); }
+  try {
+    const updated = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "AdministrativeObligation" WHERE "id" = ${id} FOR UPDATE`;
+      const obligation = await tx.administrativeObligation.findUnique({ where: { id } });
+      if (!obligation) throw new Error("Obligation not found");
+      const closure = await tx.administrativeClosure.findUnique({ where: { obligationId: id }, select: { status: true } });
+      if (closure?.status === "CLOSED") throw new Error("Closed administrative files are read-only");
 
-  if (parsed.data.action === "ACTIVATE") {
-    if (obligation.contractRequired && !obligation.contractFileUrl) return NextResponse.json({ error: "Attach or link the required contract before activation" }, { status: 400 });
-    if (obligation.recurring && (!obligation.recurrenceInterval || !obligation.recurrenceUnit || !obligation.nextDueDate)) {
-      return NextResponse.json({ error: "Recurring obligations need recurrence settings and a next due date before activation" }, { status: 400 });
-    }
+      const target = TARGET[parsed.data.action];
+      assertObligationTransition(obligation.status, target);
+      if (parsed.data.action === "ACTIVATE") {
+        if (obligation.contractRequired && !obligation.contractFileUrl) throw new Error("Attach or link the required contract before activation");
+        if (obligation.recurring && (!obligation.recurrenceInterval || !obligation.recurrenceUnit || !obligation.nextDueDate)) {
+          throw new Error("Recurring obligations need recurrence settings and a next due date before activation");
+        }
+      }
+      const record = await tx.administrativeObligation.update({ where: { id }, data: { status: target } });
+      await audit(session.userId, ACTION[parsed.data.action], id, { obligationId: id }, tx);
+      return record;
+    });
+    return NextResponse.json({ obligation: { id: updated.id, status: updated.status } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Invalid transition";
+    return NextResponse.json({ error: message }, { status: message === "Obligation not found" ? 404 : 409 });
   }
-  const updated = await db.$transaction(async (tx) => {
-    const record = await tx.administrativeObligation.update({ where: { id }, data: { status: target } });
-    await audit(session.userId, ACTION[parsed.data.action], id, { obligationId: id }, tx);
-    return record;
-  });
-  return NextResponse.json({ obligation: { id: updated.id, status: updated.status } });
 }
