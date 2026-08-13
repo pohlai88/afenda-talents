@@ -34,3 +34,29 @@ export const patchCounterpartyContactSchema = z.discriminatedUnion("action", [
   setActive,
   createCounterpartyContactSchema.omit({ isActive: true }).extend({ action: z.literal("UPDATE") }),
 ]);
+
+const coverageDateOnly = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+  .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`)), "Invalid date");
+
+export const patchServiceCoverageSchema = z.discriminatedUnion("action", [
+  setActive,
+  z
+    .object({
+      action: z.literal("UPDATE"),
+      serviceCategory: z.string().trim().min(1).max(120),
+      roleCode: z.string().trim().max(120).optional().nullable(),
+      effectiveFrom: coverageDateOnly.optional().nullable(),
+      effectiveTo: coverageDateOnly.optional().nullable(),
+      isPrimary: z.boolean().default(false),
+      serviceLevel: z.string().trim().max(500).optional().nullable(),
+      emergencyContact: z.string().trim().max(500).optional().nullable(),
+      notes: z.string().trim().max(10_000).optional().nullable(),
+    })
+    .superRefine((value, ctx) => {
+      if (value.effectiveFrom && value.effectiveTo && value.effectiveTo < value.effectiveFrom) {
+        ctx.addIssue({ code: "custom", path: ["effectiveTo"], message: "Effective-to date cannot be before effective-from date" });
+      }
+    }),
+]);

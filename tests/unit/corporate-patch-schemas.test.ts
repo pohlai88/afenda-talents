@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { patchSiteSchema, patchCounterpartyContactSchema } from "@/lib/corporate-admin/update-schemas";
+import { patchSiteSchema, patchCounterpartyContactSchema, patchServiceCoverageSchema } from "@/lib/corporate-admin/update-schemas";
 
 describe("patchSiteSchema", () => {
   it("accepts a deactivation", () => {
@@ -88,5 +88,52 @@ describe("patchCounterpartyContactSchema", () => {
       isActive: false,
     });
     expect(parsed.success && "isActive" in parsed.data).toBe(false);
+  });
+});
+
+describe("patchServiceCoverageSchema", () => {
+  it("accepts a deactivation", () => {
+    expect(patchServiceCoverageSchema.safeParse({ action: "SET_ACTIVE", isActive: false }).success).toBe(true);
+  });
+
+  it("accepts a field edit", () => {
+    expect(patchServiceCoverageSchema.safeParse({
+      action: "UPDATE",
+      serviceCategory: "CLEANING",
+      isPrimary: true,
+      effectiveFrom: "2026-01-01",
+      effectiveTo: "2026-12-31",
+    }).success).toBe(true);
+  });
+
+  it("rejects an effective-to before effective-from", () => {
+    expect(patchServiceCoverageSchema.safeParse({
+      action: "UPDATE",
+      serviceCategory: "CLEANING",
+      isPrimary: false,
+      effectiveFrom: "2026-12-31",
+      effectiveTo: "2026-01-01",
+    }).success).toBe(false);
+  });
+
+  it("does not let the covering counterparty be swapped", () => {
+    const parsed = patchServiceCoverageSchema.safeParse({
+      action: "UPDATE",
+      serviceCategory: "CLEANING",
+      isPrimary: false,
+      counterpartyId: "cp_other",
+    });
+    expect(parsed.success && "counterpartyId" in parsed.data).toBe(false);
+  });
+
+  it("strips isActive from an update so activation changes only via SET_ACTIVE", () => {
+    const parsed = patchServiceCoverageSchema.safeParse({
+      action: "UPDATE",
+      serviceCategory: "CLEANING",
+      isPrimary: false,
+      isActive: false,
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect("isActive" in parsed.data).toBe(false);
   });
 });
