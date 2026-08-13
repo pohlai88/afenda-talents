@@ -159,8 +159,8 @@ export default async function ObligationDetailPage({ params }: { params: Promise
     ...obligationFields.map((field) => ({ label: field.label, value: renderValue(obligationCustom[field.key]) })),
   ];
 
-  const relationshipSites = obligation.sites.map((link) => ({ id: link.site.id, code: link.site.code, name: link.site.name, type: link.site.type, scopeRole: link.scopeRole, isActive: link.isActive }));
-  const relationshipParties = obligation.parties.map((party) => ({ counterpartyId: party.counterpartyId, code: party.counterparty.code, name: party.counterparty.name, roleCode: party.roleCode, isPrimary: party.isPrimary, effectiveFrom: party.effectiveFrom ? formatDateOnly(party.effectiveFrom) : null, effectiveTo: party.effectiveTo ? formatDateOnly(party.effectiveTo) : null, isActive: party.isActive }));
+  const relationshipSites = obligation.sites.map((link) => ({ id: link.site.id, code: link.site.code, name: link.site.name, type: link.site.type, scopeRole: link.scopeRole, isActive: link.isActive, notes: link.notes }));
+  const relationshipParties = obligation.parties.map((party) => ({ counterpartyId: party.counterpartyId, code: party.counterparty.code, name: party.counterparty.name, roleCode: party.roleCode, isPrimary: party.isPrimary, effectiveFrom: party.effectiveFrom ? formatDateOnly(party.effectiveFrom) : null, effectiveTo: party.effectiveTo ? formatDateOnly(party.effectiveTo) : null, isActive: party.isActive, notes: party.notes }));
   const latestDue = dueItems[0];
   const latestPayment = latestDue?.payments[0];
 
