@@ -35,6 +35,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         effectiveFrom: parsed.data.effectiveFrom ? parseDateOnly(parsed.data.effectiveFrom) : null,
         effectiveTo: parsed.data.effectiveTo ? parseDateOnly(parsed.data.effectiveTo) : null,
         notes: cleanOptionalString(parsed.data.notes),
+        isActive: true,
       },
       create: {
         obligationId,

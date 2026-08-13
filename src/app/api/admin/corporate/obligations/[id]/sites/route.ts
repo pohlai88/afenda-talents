@@ -25,7 +25,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const link = await db.administrativeObligationSite.upsert({
     where: { obligationId_siteId: { obligationId, siteId: parsed.data.siteId } },
-    update: { scopeRole: cleanOptionalString(parsed.data.scopeRole), notes: cleanOptionalString(parsed.data.notes) },
+    update: { scopeRole: cleanOptionalString(parsed.data.scopeRole), notes: cleanOptionalString(parsed.data.notes), isActive: true },
     create: { obligationId, siteId: parsed.data.siteId, scopeRole: cleanOptionalString(parsed.data.scopeRole), notes: cleanOptionalString(parsed.data.notes) },
   });
   await audit(session.userId, "corporate.obligation.site.linked", obligationId, { siteId: link.siteId });

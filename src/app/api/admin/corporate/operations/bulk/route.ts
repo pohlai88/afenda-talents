@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       for (const obligation of obligations) {
         await tx.administrativeObligationSite.upsert({
           where: { obligationId_siteId: { obligationId: obligation.id, siteId: site.id } },
-          update: { scopeRole: cleanOptionalString(parsed.data.scopeRole) },
+          update: { scopeRole: cleanOptionalString(parsed.data.scopeRole), isActive: true },
           create: { obligationId: obligation.id, siteId: site.id, scopeRole: cleanOptionalString(parsed.data.scopeRole) },
         });
         await audit(session.userId, "corporate.obligation.site.linked", obligation.id, { siteId: site.id }, tx);
