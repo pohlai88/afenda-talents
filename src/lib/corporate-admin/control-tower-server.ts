@@ -5,6 +5,7 @@ import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { listWorkItems } from "@/lib/corporate-admin/work-items-server";
+import { deriveEscalationLevel, type WorkItemRow } from "@/lib/corporate-admin/work-items";
 import { reminderCopy, reminderEligible, sendReminderSchema, type ReminderDeliveryRow } from "@/lib/corporate-admin/control-tower";
 
 export async function listReminderDeliveries(limit = 100): Promise<ReminderDeliveryRow[]> {
@@ -18,7 +19,12 @@ export async function listReminderDeliveries(limit = 100): Promise<ReminderDeliv
   `);
 }
 
-function todayUtc(): string { return new Date().toISOString().slice(0, 10); }
+function todayLocal(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone:"Asia/Kuala_Lumpur", year:"numeric", month:"2-digit", day:"2-digit" }).format(new Date());
+}
+function withCurrentEscalation(item: WorkItemRow, today: string): WorkItemRow {
+  return { ...item, escalationLevel: deriveEscalationLevel(item.status, item.dueDate, today) };
+}
 
 async function reserveDelivery(input: {
   workItemId: string;
@@ -51,8 +57,8 @@ async function markDelivery(id: string, status: "SENT" | "BLOCKED" | "FAILED", p
   `);
 }
 
-export async function generateInAppReminders(actorId: string, today = todayUtc()): Promise<{ created: number; skipped: number }> {
-  const items = await listWorkItems();
+export async function generateInAppReminders(actorId: string, today = todayLocal()): Promise<{ created: number; skipped: number }> {
+  const items = (await listWorkItems()).map(item => withCurrentEscalation(item, today));
   let created = 0;
   let skipped = 0;
   for (const item of items.filter(item => reminderEligible(item, today))) {
@@ -67,11 +73,11 @@ export async function generateInAppReminders(actorId: string, today = todayUtc()
   return { created, skipped };
 }
 
-export async function sendReminder(input: unknown, actorId: string, today = todayUtc()): Promise<{ status: "SENT" | "BLOCKED" | "FAILED" | "SKIPPED"; deliveryId?: string }> {
+export async function sendReminder(input: unknown, actorId: string, today = todayLocal()): Promise<{ status: "SENT" | "BLOCKED" | "FAILED" | "SKIPPED"; deliveryId?: string }> {
   const data = sendReminderSchema.parse(input);
-  const items = await listWorkItems();
-  const item = items.find(row => row.id === data.workItemId);
-  if (!item) throw new Error("Work item not found");
+  const rawItem = (await listWorkItems()).find(row => row.id === data.workItemId);
+  if (!rawItem) throw new Error("Work item not found");
+  const item = withCurrentEscalation(rawItem, today);
   if (!item.ownerId) throw new Error("Assign an owner before sending a reminder");
   const owner = await db.user.findUnique({ where:{ id:item.ownerId }, select:{ id:true, email:true } });
   if (!owner) throw new Error("Work item owner not found");
