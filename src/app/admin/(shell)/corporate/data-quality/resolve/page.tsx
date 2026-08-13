@@ -55,7 +55,7 @@ export default async function CorporateGuidedCleanupPage() {
   const obligationGroups: ObligationPartyResolutionGroup[] = obligations.flatMap((obligation) => {
     const primaries = obligation.parties.filter((party) => party.isPrimary && party.isActive);
     const inSync = primaries.length === 1 && primaries[0]?.counterpartyId === obligation.counterpartyId;
-    return inSync ? [] : [{ obligationId:obligation.id,code:obligation.code,title:obligation.title,legacyCounterpartyId:obligation.counterpartyId,parties:obligation.parties.map((party) => ({ counterpartyId:party.counterpartyId,counterparty:party.counterparty.name,roleCode:party.roleCode,isPrimary:party.isPrimary })) }];
+    return inSync ? [] : [{ obligationId:obligation.id,code:obligation.code,title:obligation.title,legacyCounterpartyId:obligation.counterpartyId,parties:obligation.parties.map((party) => ({ counterpartyId:party.counterpartyId,counterparty:party.counterparty.name,roleCode:party.roleCode,isPrimary:party.isPrimary,isActive:party.isActive })) }];
   });
 
   return (
