@@ -14,6 +14,17 @@ import {
 import type { AfendaGuidance } from "@/lib/afenda-guidance";
 import { cn } from "@/lib/utils";
 
+type FieldGuidance = AfendaGuidance | string;
+
+function guidanceSummary(guidance: FieldGuidance | undefined, description: string | undefined): string | undefined {
+  if (typeof guidance === "string") return guidance;
+  return guidance?.summary ?? description;
+}
+
+function guidanceDetail(guidance: FieldGuidance | undefined): AfendaGuidance | undefined {
+  return typeof guidance === "string" ? undefined : guidance;
+}
+
 export function AfendaField({
   label,
   id,
@@ -28,11 +39,12 @@ export function AfendaField({
   children: ReactNode;
   className?: string;
   required?: boolean;
-  guidance?: AfendaGuidance;
+  guidance?: FieldGuidance;
   description?: string;
 }) {
   const { enabled } = useAfendaGuidedMode();
-  const helper = guidance?.summary ?? description;
+  const helper = guidanceSummary(guidance, description);
+  const detail = guidanceDetail(guidance);
   const labelId = `${id}-label`;
   const descriptionId = `${id}-description`;
 
@@ -47,7 +59,7 @@ export function AfendaField({
           <span>{label}</span>
           {required ? <><span aria-hidden="true"> *</span><span className="sr-only"> (required)</span></> : null}
         </FieldLabel>
-        {guidance ? <AfendaGuidanceButton title={label} guidance={guidance} /> : null}
+        {detail ? <AfendaGuidanceButton title={label} guidance={detail} /> : null}
       </div>
       {children}
       {enabled && helper ? <FieldDescription id={descriptionId}>{helper}</FieldDescription> : null}
@@ -66,13 +78,14 @@ export function AfendaCheckField({
   label: string;
   checked: boolean;
   onChange: (value: boolean) => void;
-  guidance?: AfendaGuidance;
+  guidance?: FieldGuidance;
   description?: string;
   className?: string;
 }) {
   const generatedId = useId();
   const { enabled } = useAfendaGuidedMode();
-  const helper = guidance?.summary ?? description;
+  const helper = guidanceSummary(guidance, description);
+  const detail = guidanceDetail(guidance);
   const controlId = `afenda-check-${generatedId.replaceAll(":", "")}`;
   const descriptionId = `${controlId}-description`;
 
@@ -87,7 +100,7 @@ export function AfendaCheckField({
       <FieldContent>
         <div className="flex min-w-0 items-start justify-between gap-2">
           <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
-          {guidance ? <AfendaGuidanceButton title={label} guidance={guidance} /> : null}
+          {detail ? <AfendaGuidanceButton title={label} guidance={detail} /> : null}
         </div>
         {enabled && helper ? <FieldDescription id={descriptionId}>{helper}</FieldDescription> : null}
       </FieldContent>
