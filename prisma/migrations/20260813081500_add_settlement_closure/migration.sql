@@ -16,6 +16,7 @@ CREATE TABLE "AdministrativeClosure" (
   "terminationReason" TEXT,
   "terminationDocumentUrl" TEXT,
   "notes" TEXT,
+  "lifecycleManaged" BOOLEAN NOT NULL DEFAULT false,
   "createdById" TEXT,
   "closedById" TEXT,
   "closedAt" TIMESTAMP(3),
