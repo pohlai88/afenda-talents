@@ -110,7 +110,7 @@ export function closureBlockers(input: ClosureGateInput): string[] {
   if (!input.effectiveDate) blockers.push("Termination effective date is required");
   else if (input.effectiveDate > input.today) blockers.push(`Termination is not effective until ${input.effectiveDate}`);
   if (input.openDueItems > 0) blockers.push(`${input.openDueItems} due item(s) remain open`);
-  if (input.pendingApprovals > 0) blockers.push(`${input.pendingApprovals} payment approval(s) remain pending`);
+  if (input.pendingApprovals > 0) blockers.push(`${input.pendingApprovals} payment request(s) remain pending or approved but unpaid`);
   if (input.unreconciledPayments > 0) blockers.push(`${input.unreconciledPayments} recorded payment(s) remain unreconciled`);
   if (input.unresolvedReconciliationItems > 0) blockers.push(`${input.unresolvedReconciliationItems} reconciliation item(s) remain unresolved`);
   if (input.alreadyClosed) blockers.push("File is already closed");
@@ -119,5 +119,6 @@ export function closureBlockers(input: ClosureGateInput): string[] {
 
 export function reconciliationDifference(expected: number | null, actual: number | null): number | null {
   if (expected == null || actual == null) return null;
-  return Math.round((actual - expected) * 100) / 100;
+  const cents = (actual - expected) * 100;
+  return (Math.sign(cents) * Math.round(Math.abs(cents))) / 100;
 }
