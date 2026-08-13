@@ -39,6 +39,13 @@ export async function POST(
       if (!obligation) throw new Error("Obligation not found");
       if (obligation.status !== "ACTIVE") throw new Error("Only active obligations can create due items");
 
+      const closure = await tx.administrativeClosure.findUnique({
+        where: { obligationId },
+        select: { status: true, effectiveDate: true },
+      });
+      if (closure?.status === "CLOSED") throw new Error("Closed administrative files are read-only");
+      const terminationDate = closure?.effectiveDate ? formatDateOnly(closure.effectiveDate) : null;
+
       const line = parsed.data.lineId
         ? await tx.administrativeObligationLine.findFirst({ where: { id: parsed.data.lineId, obligationId } })
         : await tx.administrativeObligationLine.findFirst({ where: { obligationId, code: "GENERAL" } });
@@ -55,6 +62,10 @@ export async function POST(
       } else {
         if (!parsed.data.dueDate) throw new Error("Manual due items require a due date");
         dueDateText = parsed.data.dueDate;
+      }
+
+      if (terminationDate && dueDateText > terminationDate) {
+        throw new Error(`Due date falls after the termination effective date (${terminationDate})`);
       }
 
       const customFields = await validateAdministrativeCustomFields("DUE_ITEM", parsed.data.customFields, tx);
@@ -79,12 +90,16 @@ export async function POST(
       if (parsed.data.mode === "NEXT" && line.recurrenceInterval && line.recurrenceUnit) {
         const candidateNext = nextOccurrence(dueDateText, line.recurrenceInterval, line.recurrenceUnit);
         const beyondLineEnd = line.endDate && candidateNext > formatDateOnly(line.endDate);
+        // The contractual line schedule remains reversible if a termination date is corrected.
+        // Termination is enforced above, rather than destructively nulling the line pointer.
         const nextDueDate = beyondLineEnd ? null : parseDateOnly(candidateNext);
         await tx.administrativeObligationLine.update({ where: { id: line.id }, data: { nextDueDate } });
 
-        // Keep the legacy obligation pointer synchronized for the default GENERAL line during CA-03 adoption.
+        // Keep the legacy obligation pointer synchronized for GENERAL, but hide a candidate
+        // that sits beyond the current termination boundary.
         if (line.code === "GENERAL") {
-          await tx.administrativeObligation.update({ where: { id: obligationId }, data: { nextDueDate } });
+          const visibleNextDue = terminationDate && candidateNext > terminationDate ? null : nextDueDate;
+          await tx.administrativeObligation.update({ where: { id: obligationId }, data: { nextDueDate: visibleNextDue } });
         }
       }
 
