@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { AfendaConfirmButton } from "@/components/afenda/confirm-action";
 import { AfendaCheckField, AfendaField } from "@/components/afenda/form-layout";
 import { AfendaEmptyState } from "@/components/afenda/page-state";
 import { AfendaResponsiveOverlay } from "@/components/afenda/responsive-overlay";
@@ -16,8 +17,8 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Textarea } from "@/components/ui/textarea";
 import { OBLIGATION_PARTY_ROLE_SUGGESTIONS } from "@/lib/corporate-admin/domain";
 
-export type ObligationSiteRelation = { id: string; code: string; name: string; type: string; scopeRole: string | null };
-export type ObligationPartyRelation = { counterpartyId: string; code: string; name: string; roleCode: string; isPrimary: boolean; effectiveFrom: string | null; effectiveTo: string | null };
+export type ObligationSiteRelation = { id: string; code: string; name: string; type: string; scopeRole: string | null; isActive: boolean };
+export type ObligationPartyRelation = { counterpartyId: string; code: string; name: string; roleCode: string; isPrimary: boolean; effectiveFrom: string | null; effectiveTo: string | null; isActive: boolean };
 
 export function ObligationRelationshipManager({
   obligationId,
@@ -36,6 +37,7 @@ export function ObligationRelationshipManager({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [updatingKey, setUpdatingKey] = useState<string | null>(null);
   const [siteOpen, setSiteOpen] = useState(false);
   const [partyOpen, setPartyOpen] = useState(false);
   const [siteId, setSiteId] = useState("");
@@ -70,19 +72,56 @@ export function ObligationRelationshipManager({
     finally { setBusy(false); }
   }
 
+  async function setSiteLinkActive(site: ObligationSiteRelation, isActive: boolean) {
+    setUpdatingKey(site.id);
+    try {
+      const response = await fetch(`/api/admin/corporate/obligations/${obligationId}/sites/${site.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "SET_ACTIVE", isActive }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : "Could not update site link");
+      toast.success(isActive ? "Site link reactivated." : "Site link stood down.");
+      router.refresh();
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not update site link"); }
+    finally { setUpdatingKey(null); }
+  }
+
+  async function setPartyActive(party: ObligationPartyRelation, isActive: boolean) {
+    const key = `${party.counterpartyId}-${party.roleCode}`;
+    setUpdatingKey(key);
+    try {
+      const response = await fetch(`/api/admin/corporate/obligations/${obligationId}/parties`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "SET_ACTIVE", counterpartyId: party.counterpartyId, roleCode: party.roleCode, isActive }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : "Could not update party");
+      toast.success(isActive ? "Party reactivated." : "Party stood down.");
+      router.refresh();
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not update party"); }
+    finally { setUpdatingKey(null); }
+  }
+
   return <>
     <AfendaSection title="Relationship graph" description="The obligation may span many sites and involve many counterparties in distinct roles." actions={isAdmin ? <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => setSiteOpen(true)}>Link site</Button><Button size="sm" variant="outline" onClick={() => setPartyOpen(true)}>Link party</Button></div> : undefined}>
       <div className="grid gap-5 lg:grid-cols-2">
         <section aria-labelledby="obligation-sites-title" className="rounded-lg border p-4">
           <h3 id="obligation-sites-title" className="text-sm font-semibold">Sites</h3>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">Where this commitment applies operationally.</p>
-          {sites.length === 0 ? <div className="mt-4"><AfendaEmptyState compact title="No sites linked" description="Link one or more locations so the obligation appears in site context." /></div> : <ul className="mt-4 divide-y">{sites.map((site) => <li key={site.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"><div><Link href={`/admin/corporate/sites/${site.id}`} className="font-medium underline-offset-4 hover:underline">{site.name}</Link><p className="font-mono text-xs text-muted-foreground">{site.code} · {site.type.replaceAll("_", " ")}</p></div>{site.scopeRole ? <Badge variant="outline">{site.scopeRole.replaceAll("_", " ")}</Badge> : null}</li>)}</ul>}
+          {sites.length === 0 ? <div className="mt-4"><AfendaEmptyState compact title="No sites linked" description="Link one or more locations so the obligation appears in site context." /></div> : <ul className="mt-4 divide-y">{sites.map((site) => <li key={site.id} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"><div><Link href={`/admin/corporate/sites/${site.id}`} className="font-medium underline-offset-4 hover:underline">{site.name}</Link><p className="font-mono text-xs text-muted-foreground">{site.code} · {site.type.replaceAll("_", " ")}</p></div><div className="flex flex-col items-end gap-2"><div className="flex flex-wrap items-center justify-end gap-1">{site.scopeRole ? <Badge variant="outline">{site.scopeRole.replaceAll("_", " ")}</Badge> : null}{site.isActive ? null : <Badge variant="secondary">Inactive</Badge>}</div>{isAdmin ? (site.isActive
+    ? <AfendaConfirmButton size="sm" variant="outline" title="Stand down this site link?" description="The link stays in history but the obligation no longer counts as applying at this site." confirmLabel="Stand down" onConfirm={() => setSiteLinkActive(site, false)} busy={updatingKey === site.id}>Stand down</AfendaConfirmButton>
+    : <Button type="button" size="sm" variant="outline" disabled={updatingKey === site.id} onClick={() => void setSiteLinkActive(site, true)}>Reactivate</Button>) : null}</div></li>)}</ul>}
         </section>
 
         <section aria-labelledby="obligation-parties-title" className="rounded-lg border p-4">
           <h3 id="obligation-parties-title" className="text-sm font-semibold">Parties</h3>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">Who participates and in what role.</p>
-          {parties.length === 0 ? <div className="mt-4"><AfendaEmptyState compact title="No parties linked" description="The primary compatibility party will be backfilled by the migration; add other roles here." /></div> : <ul className="mt-4 divide-y">{parties.map((party) => <li key={`${party.counterpartyId}-${party.roleCode}`} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"><div><Link href={`/admin/corporate/counterparties/${party.counterpartyId}`} className="font-medium underline-offset-4 hover:underline">{party.name}</Link><p className="font-mono text-xs text-muted-foreground">{party.code}</p></div><div className="flex flex-wrap items-center gap-1"><Badge variant="secondary">{party.roleCode.replaceAll("_", " ")}</Badge>{party.isPrimary ? <Badge variant="outline">Primary</Badge> : null}</div></li>)}</ul>}
+          {parties.length === 0 ? <div className="mt-4"><AfendaEmptyState compact title="No parties linked" description="The primary compatibility party will be backfilled by the migration; add other roles here." /></div> : <ul className="mt-4 divide-y">{parties.map((party) => <li key={`${party.counterpartyId}-${party.roleCode}`} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"><div><Link href={`/admin/corporate/counterparties/${party.counterpartyId}`} className="font-medium underline-offset-4 hover:underline">{party.name}</Link><p className="font-mono text-xs text-muted-foreground">{party.code}</p></div><div className="flex flex-col items-end gap-2"><div className="flex flex-wrap items-center justify-end gap-1"><Badge variant="secondary">{party.roleCode.replaceAll("_", " ")}</Badge>{party.isPrimary ? <Badge variant="outline">Primary</Badge> : null}{party.isActive ? null : <Badge variant="secondary">Inactive</Badge>}</div>{isAdmin ? (party.isActive
+    ? <AfendaConfirmButton size="sm" variant="outline" title="Stand down this party?" description="The link stays in history but the obligation no longer counts this counterparty as an active party." confirmLabel="Stand down" onConfirm={() => setPartyActive(party, false)} busy={updatingKey === `${party.counterpartyId}-${party.roleCode}`}>Stand down</AfendaConfirmButton>
+    : <Button type="button" size="sm" variant="outline" disabled={updatingKey === `${party.counterpartyId}-${party.roleCode}`} onClick={() => void setPartyActive(party, true)}>Reactivate</Button>) : null}</div></li>)}</ul>}
         </section>
       </div>
     </AfendaSection>

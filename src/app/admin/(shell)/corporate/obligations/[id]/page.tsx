@@ -81,8 +81,8 @@ export default async function ObligationDetailPage({ params }: { params: Promise
         counterparty: true,
         owner: { select: { name: true } },
         dueItems: { orderBy: { dueDate: "desc" }, include: { payments: { orderBy: { requestDate: "desc" } } } },
-        sites: { where: { isActive: true }, orderBy: { createdAt: "asc" }, include: { site: { select: { id: true, code: true, name: true, type: true } } } },
-        parties: { where: { isActive: true }, orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], include: { counterparty: { select: { id: true, code: true, name: true } } } },
+        sites: { orderBy: { createdAt: "asc" }, include: { site: { select: { id: true, code: true, name: true, type: true } } } },
+        parties: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], include: { counterparty: { select: { id: true, code: true, name: true } } } },
       },
     }),
     db.administrativeCustomFieldDefinition.findMany({ where: { isActive: true, scope: { in: ["OBLIGATION", "DUE_ITEM", "PAYMENT"] } }, orderBy: [{ scope: "asc" }, { sortOrder: "asc" }, { label: "asc" }] }),
@@ -159,8 +159,8 @@ export default async function ObligationDetailPage({ params }: { params: Promise
     ...obligationFields.map((field) => ({ label: field.label, value: renderValue(obligationCustom[field.key]) })),
   ];
 
-  const relationshipSites = obligation.sites.map((link) => ({ id: link.site.id, code: link.site.code, name: link.site.name, type: link.site.type, scopeRole: link.scopeRole }));
-  const relationshipParties = obligation.parties.map((party) => ({ counterpartyId: party.counterpartyId, code: party.counterparty.code, name: party.counterparty.name, roleCode: party.roleCode, isPrimary: party.isPrimary, effectiveFrom: party.effectiveFrom ? formatDateOnly(party.effectiveFrom) : null, effectiveTo: party.effectiveTo ? formatDateOnly(party.effectiveTo) : null }));
+  const relationshipSites = obligation.sites.map((link) => ({ id: link.site.id, code: link.site.code, name: link.site.name, type: link.site.type, scopeRole: link.scopeRole, isActive: link.isActive }));
+  const relationshipParties = obligation.parties.map((party) => ({ counterpartyId: party.counterpartyId, code: party.counterparty.code, name: party.counterparty.name, roleCode: party.roleCode, isPrimary: party.isPrimary, effectiveFrom: party.effectiveFrom ? formatDateOnly(party.effectiveFrom) : null, effectiveTo: party.effectiveTo ? formatDateOnly(party.effectiveTo) : null, isActive: party.isActive }));
   const latestDue = dueItems[0];
   const latestPayment = latestDue?.payments[0];
 
