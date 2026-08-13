@@ -55,6 +55,14 @@ The obligation record can attach multiple sites and additional counterparties wi
 
 The Corporate overview now exposes active Sites and surfaces active locations that have no active service-coverage relationship recorded. This is intentionally a **review signal**, not a policy or compliance finding.
 
+## Editability and lifecycle
+
+Every Corporate record can be corrected after creation and stood down when it was
+created in error. Deactivation is not deletion — the row stays visible as inactive so the
+audit trail remains intact (D21). The counterparty on a coverage row or obligation party,
+and the site on an obligation link, are identity and cannot be edited; stand the row down
+and create the correct one instead.
+
 ## Custom fields
 
 `SITE` is now a valid custom-field scope. Site-specific scalar metadata can therefore be configured without migrations. Relational concepts must not be stored as IDs inside JSON custom fields.

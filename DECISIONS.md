@@ -271,3 +271,33 @@ rule editor UI through Delivery 2; an Assessment Designer role; or a separate Te
 in Delivery 1.
 
 Design: `docs/superpowers/specs/2026-08-05-configurable-assessments-design.md`.
+
+## D21 — Corporate corrects and stands down, it never deletes
+
+Sites, counterparty contacts, service coverage, obligation parties and obligation-site
+links were create-only: a mistyped address or a wrongly attached site was permanent.
+Each now has a `PATCH` endpoint taking `UPDATE` to correct fields or `SET_ACTIVE` to
+stand the record down.
+
+No `DELETE` handler was added, because Corporate has never had one and an administration
+record that vanishes takes its history with it. `AdministrativeObligationParty` and
+`AdministrativeObligationSite` gained an `isActive` column so all five stand down the
+same way; the site link previously had no removal affordance at all.
+
+**Partial-update semantics.** The `UPDATE` action is a genuine partial update: omitting
+an optional field in the request leaves the stored value untouched, while sending `null`
+or `""` clears it to null. This contract matters because naive implementations null
+omitted fields, which would silently destroy data. Every handler uses the pattern
+`field === undefined ? undefined : value`, and string fields are passed through
+`cleanOptionalString()` which converts empty and whitespace-only strings to null, so the
+caller's explicit intent to clear a field is honoured.
+
+Identity fields are not editable. The counterparty on a coverage row, the counterparty
+and role code on an obligation party, and the site on an obligation link cannot be
+changed. For `AdministrativeServiceCoverage` this is a policy choice — a coverage
+relationship is defined by its endpoints and cannot be edited in place. For the two link
+tables, the constraint is structural: `AdministrativeObligationParty` is keyed
+`@@id([obligationId, counterpartyId, roleCode])` and `AdministrativeObligationSite` is
+keyed `@@id([obligationId, siteId])`, so those columns are the composite primary key and
+cannot be updated. To fix an attachment in either case, stand the row down and create
+the correct one.
