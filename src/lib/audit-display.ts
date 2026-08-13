@@ -58,6 +58,9 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "corporate.work_item.updated": "Administrative work item updated",
   "corporate.work_item.resolved": "Administrative work item resolved",
   "corporate.work_item.escalated": "Administrative work item escalated",
+  "corporate.reminder.sent": "Administrative reminder sent",
+  "corporate.reminder.blocked": "Administrative reminder blocked",
+  "corporate.reminder.failed": "Administrative reminder failed",
 };
 
 export const AUDIT_ACTION_OPTIONS = Object.keys(AUDIT_ACTION_LABELS) as AuditAction[];
