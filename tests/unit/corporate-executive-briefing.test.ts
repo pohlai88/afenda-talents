@@ -1,0 +1,15 @@
+import { describe, expect, it } from "vitest";
+import { buildExecutiveBriefing, renderExecutiveDigest } from "@/lib/corporate-admin/executive-briefing";
+import type { WorkItemRow } from "@/lib/corporate-admin/work-items";
+
+function item(overrides:Partial<WorkItemRow>={}):WorkItemRow{return{
+  id:"w1",title:"Task",description:null,status:"OPEN",priority:"NORMAL",ownerId:"u1",ownerName:"Alex",sourceType:"DUE_ITEM",sourceId:"d1",sourceKey:"due:d1",sourceHref:"/admin/corporate/obligations/o1",dueDate:"2026-08-13",escalationLevel:0,escalateAfter:null,escalatedAt:null,acknowledgedAt:null,resolvedAt:null,resolutionNote:null,createdAt:new Date("2026-08-10T00:00:00Z"),updatedAt:new Date("2026-08-10T00:00:00Z"),...overrides};}
+
+describe("Corporate executive briefing",()=>{
+  it("counts open, overdue, due-soon and unassigned work",()=>{const b=buildExecutiveBriefing([item({id:"a",dueDate:"2026-08-12"}),item({id:"b",ownerId:null,ownerName:null,dueDate:"2026-08-18"})],"2026-08-13");expect(b.open).toBe(2);expect(b.overdue).toBe(1);expect(b.due7d).toBe(1);expect(b.unassigned).toBe(1);});
+  it("keeps closure percentage bounded to the 30-day created cohort",()=>{const b=buildExecutiveBriefing([item({id:"old",status:"RESOLVED",createdAt:new Date("2026-01-01T00:00:00Z"),resolvedAt:new Date("2026-08-12T00:00:00Z")}),item({id:"new",status:"RESOLVED",createdAt:new Date("2026-08-01T00:00:00Z"),resolvedAt:new Date("2026-08-05T00:00:00Z")}),item({id:"open",createdAt:new Date("2026-08-02T00:00:00Z")})],"2026-08-13");expect(b.resolved30d).toBe(2);expect(b.created30d).toBe(2);expect(b.closureRate30d).toBe(50);});
+  it("buckets unresolved work by creation age",()=>{const b=buildExecutiveBriefing([item({id:"a",createdAt:new Date("2026-08-12T00:00:00Z")}),item({id:"b",createdAt:new Date("2026-08-08T00:00:00Z")}),item({id:"c",createdAt:new Date("2026-08-03T00:00:00Z")}),item({id:"d",createdAt:new Date("2026-07-20T00:00:00Z")})],"2026-08-13");expect(b.aging).toEqual({under3:1,days3to6:1,days7to13:1,days14plus:1});});
+  it("sorts owner workload by overdue burden then open volume",()=>{const b=buildExecutiveBriefing([item({id:"a",ownerId:"u1",ownerName:"Alex",dueDate:"2026-08-12"}),item({id:"b",ownerId:"u2",ownerName:"Blair",dueDate:"2026-08-20"}),item({id:"c",ownerId:"u2",ownerName:"Blair",dueDate:"2026-08-21"})],"2026-08-13");expect(b.owners.map(o=>o.ownerName)).toEqual(["Alex","Blair"]);});
+  it("computes median resolution days for work resolved in the last 30 days",()=>{const b=buildExecutiveBriefing([item({id:"a",status:"RESOLVED",createdAt:new Date("2026-08-01T00:00:00Z"),resolvedAt:new Date("2026-08-03T00:00:00Z")}),item({id:"b",status:"RESOLVED",createdAt:new Date("2026-08-01T00:00:00Z"),resolvedAt:new Date("2026-08-07T00:00:00Z")})],"2026-08-13");expect(b.medianResolutionDays30d).toBe(4);});
+  it("renders deterministic daily and weekly digest copy",()=>{const b=buildExecutiveBriefing([item()],"2026-08-13");expect(renderExecutiveDigest(b,"DAILY","2026-08-13").subject).toContain("Daily");expect(renderExecutiveDigest(b,"WEEKLY","2026-08-13").subject).toContain("Weekly");});
+});

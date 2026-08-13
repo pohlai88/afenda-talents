@@ -6,13 +6,15 @@ export type AuditAction =
   | "invite.created" | "invite.resent" | "invite.revoked" | "candidate.consented" | "assessment.submitted" | "result.viewed"
   | "export.downloaded" | "candidate.deleted" | "data.purged" | "assessment.seeded" | "assessment.created" | "assessment.duplicated"
   | "assessment.published" | "assessment.archived" | "draft.validated" | "round.created" | "round.opened" | "round.closed" | "round.archived"
-  | "corporate.counterparty.created" | "corporate.counterparty.updated" | "corporate.counterparty.contact.created"
+  | "corporate.counterparty.created" | "corporate.counterparty.updated" | "corporate.counterparty.contact.created" | "corporate.counterparty.contact.updated"
   | "corporate.site.created" | "corporate.site.updated" | "corporate.site.coverage.created" | "corporate.site.coverage.updated"
   | "corporate.obligation.created" | "corporate.obligation.updated" | "corporate.obligation.activated" | "corporate.obligation.ended" | "corporate.obligation.cancelled"
   | "corporate.obligation.site.linked" | "corporate.obligation.party.linked" | "corporate.obligation.line.created" | "corporate.obligation.line.updated"
   | "corporate.due_item.created" | "corporate.due_item.updated" | "corporate.payment.requested" | "corporate.payment.approved"
   | "corporate.payment.rejected" | "corporate.payment.recorded" | "corporate.payment.reconciled" | "corporate.payment.voided"
-  | "corporate.custom_field.created" | "corporate.custom_field.updated";
+  | "corporate.custom_field.created" | "corporate.custom_field.updated"
+  | "corporate.work_item.created" | "corporate.work_item.updated" | "corporate.work_item.resolved" | "corporate.work_item.escalated"
+  | "corporate.reminder.sent" | "corporate.reminder.blocked" | "corporate.reminder.failed";
 
 const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 const TOKEN_ALPHABET = /^[A-Za-z0-9_-]{40,}$/;
