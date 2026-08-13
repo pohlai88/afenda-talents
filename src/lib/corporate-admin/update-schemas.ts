@@ -60,3 +60,26 @@ export const patchServiceCoverageSchema = z.discriminatedUnion("action", [
       }
     }),
 ]);
+
+const partyKey = {
+  counterpartyId: z.string().trim().min(1),
+  roleCode: z.string().trim().min(1).max(120),
+};
+
+export const patchObligationPartySchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("SET_ACTIVE"), ...partyKey, isActive: z.boolean() }),
+  z
+    .object({
+      action: z.literal("UPDATE"),
+      ...partyKey,
+      isPrimary: z.boolean().default(false),
+      effectiveFrom: coverageDateOnly.optional().nullable(),
+      effectiveTo: coverageDateOnly.optional().nullable(),
+      notes: z.string().trim().max(10_000).optional().nullable(),
+    })
+    .superRefine((value, ctx) => {
+      if (value.effectiveFrom && value.effectiveTo && value.effectiveTo < value.effectiveFrom) {
+        ctx.addIssue({ code: "custom", path: ["effectiveTo"], message: "Effective-to date cannot be before effective-from date" });
+      }
+    }),
+]);

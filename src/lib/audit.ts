@@ -9,7 +9,7 @@ export type AuditAction =
   | "corporate.counterparty.created" | "corporate.counterparty.updated" | "corporate.counterparty.contact.created" | "corporate.counterparty.contact.updated"
   | "corporate.site.created" | "corporate.site.updated" | "corporate.site.coverage.created" | "corporate.site.coverage.updated"
   | "corporate.obligation.created" | "corporate.obligation.updated" | "corporate.obligation.activated" | "corporate.obligation.ended" | "corporate.obligation.cancelled"
-  | "corporate.obligation.site.linked" | "corporate.obligation.party.linked" | "corporate.obligation.line.created" | "corporate.obligation.line.updated"
+  | "corporate.obligation.site.linked" | "corporate.obligation.party.linked" | "corporate.obligation.party.updated" | "corporate.obligation.line.created" | "corporate.obligation.line.updated"
   | "corporate.due_item.created" | "corporate.due_item.updated" | "corporate.payment.requested" | "corporate.payment.approved"
   | "corporate.payment.rejected" | "corporate.payment.recorded" | "corporate.payment.reconciled" | "corporate.payment.voided"
   | "corporate.custom_field.created" | "corporate.custom_field.updated"

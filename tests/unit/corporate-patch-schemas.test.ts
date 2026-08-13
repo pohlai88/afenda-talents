@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { patchSiteSchema, patchCounterpartyContactSchema, patchServiceCoverageSchema } from "@/lib/corporate-admin/update-schemas";
+import { patchSiteSchema, patchCounterpartyContactSchema, patchServiceCoverageSchema, patchObligationPartySchema } from "@/lib/corporate-admin/update-schemas";
 
 describe("patchSiteSchema", () => {
   it("accepts a deactivation", () => {
@@ -138,5 +138,31 @@ describe("patchServiceCoverageSchema", () => {
     });
     expect(parsed.success).toBe(true);
     if (parsed.success) expect("isActive" in parsed.data).toBe(false);
+  });
+});
+
+describe("patchObligationPartySchema", () => {
+  const key = { counterpartyId: "cp_1", roleCode: "LANDLORD" };
+
+  it("accepts a deactivation carrying the composite key", () => {
+    expect(patchObligationPartySchema.safeParse({ action: "SET_ACTIVE", ...key, isActive: false }).success).toBe(true);
+  });
+
+  it("rejects a deactivation with no key to identify the row", () => {
+    expect(patchObligationPartySchema.safeParse({ action: "SET_ACTIVE", isActive: false }).success).toBe(false);
+  });
+
+  it("accepts an edit of the non-key fields", () => {
+    expect(patchObligationPartySchema.safeParse({ action: "UPDATE", ...key, isPrimary: true }).success).toBe(true);
+  });
+
+  it("rejects an effective-to before effective-from", () => {
+    expect(patchObligationPartySchema.safeParse({
+      action: "UPDATE",
+      ...key,
+      isPrimary: false,
+      effectiveFrom: "2026-06-01",
+      effectiveTo: "2026-01-01",
+    }).success).toBe(false);
   });
 });

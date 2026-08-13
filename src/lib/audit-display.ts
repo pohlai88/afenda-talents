@@ -42,6 +42,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "corporate.obligation.cancelled": "Administrative obligation cancelled",
   "corporate.obligation.site.linked": "Obligation linked to site",
   "corporate.obligation.party.linked": "Counterparty role linked to obligation",
+  "corporate.obligation.party.updated": "Obligation party updated",
   "corporate.obligation.line.created": "Agreement line created",
   "corporate.obligation.line.updated": "Agreement line updated",
   "corporate.due_item.created": "Administrative due item created",
