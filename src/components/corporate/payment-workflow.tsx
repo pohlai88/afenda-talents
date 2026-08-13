@@ -19,8 +19,7 @@ import { PAYMENT_METHOD_SUGGESTIONS } from "@/lib/corporate-admin/domain";
 import { PAYMENT_GUIDANCE } from "@/lib/corporate-admin/workflow-guidance";
 
 function isHistorical(payment: PaymentDto): boolean {
-  const origin = payment.customFields.origin;
-  return origin === "HISTORICAL_MANUAL" || origin === "HISTORICAL_IMPORT";
+  return !payment.approvalRequired && payment.recordOrigin !== "WORKFLOW";
 }
 
 export function PaymentWorkflow({ dueItem, fields, isAdmin }: { dueItem: DueItemDto; fields: CorporateCustomFieldDefinitionDto[]; isAdmin: boolean }) {
@@ -67,11 +66,7 @@ export function PaymentWorkflow({ dueItem, fields, isAdmin }: { dueItem: DueItem
       </div>
 
       {dueItem.payments.length === 0 ? (
-        <AfendaEmptyState
-          title="No payment records yet"
-          description="Use the normal request workflow for new payments, or record historical payment evidence for money already paid."
-          compact
-        />
+        <AfendaEmptyState title="No payment records yet" description="Use the normal request workflow for new payments, or record historical payment evidence for money already paid." compact />
       ) : (
         <ul className="flex flex-col gap-2">{dueItem.payments.map((payment) => {
           const historical = isHistorical(payment);
@@ -89,15 +84,11 @@ export function PaymentWorkflow({ dueItem, fields, isAdmin }: { dueItem: DueItem
                 </div> : null}
               </div>
               {payment.approvedAmount != null || payment.paidAmount != null ? (
-                <AfendaMetadataGrid
-                  columns={3}
-                  className="mt-3"
-                  items={[
-                    { label: historical ? "History source" : "Approved", value: historical ? String(payment.customFields.origin ?? "HISTORICAL") : formatMoney(dueItem.currency, payment.approvedAmount) },
-                    { label: "Paid", value: formatMoney(dueItem.currency, payment.paidAmount) },
-                    { label: "Reference", value: payment.paymentReference || "—" },
-                  ]}
-                />
+                <AfendaMetadataGrid columns={3} className="mt-3" items={[
+                  { label: historical ? "History source" : "Approved", value: historical ? payment.recordOrigin.replaceAll("_", " ") : formatMoney(dueItem.currency, payment.approvedAmount) },
+                  { label: "Paid", value: formatMoney(dueItem.currency, payment.paidAmount) },
+                  { label: "Reference", value: payment.paymentReference || "—" },
+                ]} />
               ) : null}
             </li>
           );
@@ -110,12 +101,7 @@ export function PaymentWorkflow({ dueItem, fields, isAdmin }: { dueItem: DueItem
         title="Request payment"
         description="Request against the current outstanding balance. Approval is recorded separately."
         contentClassName="sm:max-w-2xl"
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setRequestOpen(false)}>Cancel</Button>
-            <Button disabled={busy || Number(requestAmount) <= 0} onClick={async () => { const ok = await call(`/api/admin/corporate/due-items/${dueItem.id}/payments`, { requestedAmount: Number(requestAmount), notes: requestNotes || null, customFields: requestCustom }, "POST", "Payment requested."); if (ok) { setRequestOpen(false); setRequestNotes(""); setRequestCustom({}); } }}>Request</Button>
-          </>
-        }
+        footer={<><Button variant="outline" onClick={() => setRequestOpen(false)}>Cancel</Button><Button disabled={busy || Number(requestAmount) <= 0} onClick={async () => { const ok = await call(`/api/admin/corporate/due-items/${dueItem.id}/payments`, { requestedAmount: Number(requestAmount), notes: requestNotes || null, customFields: requestCustom }, "POST", "Payment requested."); if (ok) { setRequestOpen(false); setRequestNotes(""); setRequestCustom({}); } }}>Request</Button></>}
       >
         <div className="flex flex-col gap-4">
           <AfendaField label={`Amount (${dueItem.currency})`} id={`request-${dueItem.id}`} required guidance={PAYMENT_GUIDANCE.requestAmount}><Input id={`request-${dueItem.id}`} type="number" min="0.01" step="0.01" value={requestAmount} onChange={(e) => setRequestAmount(e.target.value)} /></AfendaField>
@@ -129,12 +115,7 @@ export function PaymentWorkflow({ dueItem, fields, isAdmin }: { dueItem: DueItem
         onOpenChange={(open) => !open && setApproval(null)}
         title="Approve payment"
         description="Approval cannot exceed the request or the due item’s uncommitted balance."
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setApproval(null)}>Cancel</Button>
-            <Button disabled={busy || !approval || Number(approvedAmount) <= 0} onClick={async () => { if (!approval) return; const ok = await call(`/api/admin/corporate/payments/${approval.id}`, { action: "APPROVE", approvedAmount: Number(approvedAmount) }, "PATCH", "Payment approved."); if (ok) setApproval(null); }}>Approve</Button>
-          </>
-        }
+        footer={<><Button variant="outline" onClick={() => setApproval(null)}>Cancel</Button><Button disabled={busy || !approval || Number(approvedAmount) <= 0} onClick={async () => { if (!approval) return; const ok = await call(`/api/admin/corporate/payments/${approval.id}`, { action: "APPROVE", approvedAmount: Number(approvedAmount) }, "PATCH", "Payment approved."); if (ok) setApproval(null); }}>Approve</Button></>}
       >
         <AfendaField label={`Approved amount (${dueItem.currency})`} id="approval-amount" required guidance={PAYMENT_GUIDANCE.approvedAmount}><Input id="approval-amount" type="number" min="0.01" step="0.01" value={approvedAmount} onChange={(e) => setApprovedAmount(e.target.value)} /></AfendaField>
       </AfendaResponsiveOverlay>
@@ -145,12 +126,7 @@ export function PaymentWorkflow({ dueItem, fields, isAdmin }: { dueItem: DueItem
         title="Record payment"
         description="Capture the actual settlement details and proof link. Reconciliation remains a separate step."
         contentClassName="sm:max-w-2xl"
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setRecording(null)}>Cancel</Button>
-            <Button disabled={busy || !recording || Number(paidAmount) <= 0 || !paymentDate || !paymentMethod} onClick={async () => { if (!recording) return; const ok = await call(`/api/admin/corporate/payments/${recording.id}`, { action: "RECORD_PAYMENT", paidAmount: Number(paidAmount), paymentDate, paymentMethod, paymentReference: paymentReference || null, paymentProofUrl: paymentProofUrl || null }, "PATCH", "Payment recorded."); if (ok) { setRecording(null); setPaymentReference(""); setPaymentProofUrl(""); } }}>Record</Button>
-          </>
-        }
+        footer={<><Button variant="outline" onClick={() => setRecording(null)}>Cancel</Button><Button disabled={busy || !recording || Number(paidAmount) <= 0 || !paymentDate || !paymentMethod} onClick={async () => { if (!recording) return; const ok = await call(`/api/admin/corporate/payments/${recording.id}`, { action: "RECORD_PAYMENT", paidAmount: Number(paidAmount), paymentDate, paymentMethod, paymentReference: paymentReference || null, paymentProofUrl: paymentProofUrl || null }, "PATCH", "Payment recorded."); if (ok) { setRecording(null); setPaymentReference(""); setPaymentProofUrl(""); } }}>Record</Button></>}
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <AfendaField label={`Paid amount (${dueItem.currency})`} id="paid-amount" required guidance={PAYMENT_GUIDANCE.paidAmount}><Input id="paid-amount" type="number" min="0.01" step="0.01" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} /></AfendaField>
