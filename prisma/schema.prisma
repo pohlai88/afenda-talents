@@ -383,6 +383,7 @@ model AdministrativeObligationSite {
   obligationId String
   siteId       String
   scopeRole    String?
+  isActive     Boolean @default(true)
   notes        String?
   createdAt    DateTime @default(now())
 
@@ -400,6 +401,7 @@ model AdministrativeObligationParty {
   isPrimary     Boolean   @default(false)
   effectiveFrom DateTime? @db.Date
   effectiveTo   DateTime? @db.Date
+  isActive      Boolean   @default(true)
   notes         String?
   createdAt     DateTime  @default(now())
 
