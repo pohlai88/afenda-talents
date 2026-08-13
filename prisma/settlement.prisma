@@ -37,6 +37,11 @@ enum AdministrativeReconciliationStatus {
   DISPUTED
 }
 
+enum AdministrativeHistoricalPaymentOrigin {
+  HISTORICAL_MANUAL
+  HISTORICAL_IMPORT
+}
+
 model AdministrativeClosure {
   id                     String                        @id @default(cuid())
   obligationId           String                        @unique
@@ -61,13 +66,13 @@ model AdministrativeClosure {
 }
 
 model AdministrativeReconciliationItem {
-  id             String                              @id @default(cuid())
+  id             String                               @id @default(cuid())
   closureId      String
   category       AdministrativeReconciliationCategory
   direction      AdministrativeReconciliationDirection
   description    String
-  expectedAmount Decimal?                            @db.Decimal(18, 2)
-  actualAmount   Decimal?                            @db.Decimal(18, 2)
+  expectedAmount Decimal?                             @db.Decimal(18, 2)
+  actualAmount   Decimal?                             @db.Decimal(18, 2)
   currency       String
   status         AdministrativeReconciliationStatus  @default(OPEN)
   evidenceUrl    String?
@@ -75,8 +80,8 @@ model AdministrativeReconciliationItem {
   paymentId      String?
   notes          String?
   createdById    String?
-  createdAt      DateTime                            @default(now())
-  updatedAt      DateTime                            @updatedAt
+  createdAt      DateTime                             @default(now())
+  updatedAt      DateTime                             @updatedAt
 
   closure AdministrativeClosure @relation(fields: [closureId], references: [id], onDelete: Cascade)
 
@@ -84,4 +89,12 @@ model AdministrativeReconciliationItem {
   @@index([category, status])
   @@index([dueItemId])
   @@index([paymentId])
+}
+
+model AdministrativeHistoricalPayment {
+  paymentId String                                @id
+  origin    AdministrativeHistoricalPaymentOrigin
+  createdAt DateTime                              @default(now())
+
+  @@index([origin, createdAt])
 }
