@@ -44,7 +44,9 @@ Recurring due generation operates on the selected line and advances only that li
 
 Manual due items should be created from the Agreement Lines workspace so the operator explicitly chooses the commercial component. Manual due creation never advances recurrence.
 
-Uniqueness is line + due date, not obligation + due date. This allows Rent, Service Charge and Parking to all fall due on the same day.
+Uniqueness is line + due date + period label, not obligation + due date. This allows Rent, Service Charge and Parking to all fall due on the same day.
+
+A single line may also hold several due items on one date — a split invoice, or a partial billing plus a top-up. They are distinguished by period label, which is part of the due item's unique key (D20). The add-due-item form lists any items already on the chosen date and pre-fills a free label; keeping the suggestion adds a second item to the same line, while a genuinely different charge belongs on its own line. An accidental resubmit reuses the default label, still collides, and is still rejected.
 
 ## Line lifecycle
 
