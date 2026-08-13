@@ -19,6 +19,7 @@ export function buildExecutiveBriefing(items: WorkItemRow[], today: string): Exe
   const cutoff = thirtyDaysAgo.toISOString().slice(0,10);
   const resolved30 = items.filter(i=>i.resolvedAt && i.resolvedAt.toISOString().slice(0,10)>=cutoff);
   const created30 = items.filter(i=>i.createdAt.toISOString().slice(0,10)>=cutoff);
+  const created30Resolved = created30.filter(i=>i.status==="RESOLVED");
   const durations = resolved30.map(i=>Math.max(0, Math.floor(((i.resolvedAt as Date).getTime()-i.createdAt.getTime())/86_400_000))).sort((a,b)=>a-b);
   const median = durations.length===0?null:durations.length%2?durations[(durations.length-1)/2]:Math.round((durations[durations.length/2-1]+durations[durations.length/2])/2);
   const aging={under3:0,days3to6:0,days7to13:0,days14plus:0};
@@ -34,7 +35,7 @@ export function buildExecutiveBriefing(items: WorkItemRow[], today: string): Exe
     due7d:unresolved.filter(i=>i.dueDate&&i.dueDate>=today&&i.dueDate<=horizonStr).length,
     resolved30d:resolved30.length,
     created30d:created30.length,
-    closureRate30d:created30.length?Math.round((resolved30.length/created30.length)*100):0,
+    closureRate30d:created30.length?Math.round((created30Resolved.length/created30.length)*100):0,
     medianResolutionDays30d:median,
     aging,
     owners:[...byOwner.values()].sort((a,b)=>b.overdue-a.overdue||b.open-a.open||a.ownerName.localeCompare(b.ownerName)),
@@ -55,7 +56,7 @@ export function renderExecutiveDigest(briefing: ExecutiveBriefing, period:"DAILY
     "",
     `Created in last 30 days: ${briefing.created30d}`,
     `Resolved in last 30 days: ${briefing.resolved30d}`,
-    `Closure ratio: ${briefing.closureRate30d}%`,
+    `30-day created cohort already resolved: ${briefing.closureRate30d}%`,
     `Median resolution time: ${briefing.medianResolutionDays30d ?? "n/a"} days`,
     "",
     `Aging: <3d ${briefing.aging.under3} · 3-6d ${briefing.aging.days3to6} · 7-13d ${briefing.aging.days7to13} · 14+d ${briefing.aging.days14plus}`,
