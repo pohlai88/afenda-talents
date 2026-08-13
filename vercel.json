@@ -3,5 +3,15 @@
   "fluid": true,
   "framework": "nextjs",
   "buildCommand": "pnpm vercel-build",
-  "regions": ["sin1"]
+  "regions": ["sin1"],
+  "crons": [
+    {
+      "path": "/api/admin/corporate/automation/cron",
+      "schedule": "30 0 * * *"
+    },
+    {
+      "path": "/api/admin/corporate/automation/cron",
+      "schedule": "45 0 * * 1"
+    }
+  ]
 }
