@@ -35,4 +35,15 @@ describe("patchSiteSchema", () => {
     });
     expect(parsed.success).toBe(true);
   });
+
+  it("strips isActive from an update so activation changes only via SET_ACTIVE", () => {
+    const parsed = patchSiteSchema.safeParse({
+      action: "UPDATE",
+      name: "Klang Headquarters",
+      type: "OFFICE",
+      isActive: false,
+      customFields: {},
+    });
+    expect(parsed.success && "isActive" in parsed.data).toBe(false);
+  });
 });
