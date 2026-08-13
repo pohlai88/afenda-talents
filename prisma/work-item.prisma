@@ -47,6 +47,8 @@ model AdministrativeWorkItem {
   createdAt          DateTime                         @default(now())
   updatedAt          DateTime                         @updatedAt
 
+  reminders AdministrativeReminderDelivery[]
+
   @@index([status, dueDate])
   @@index([ownerId, status])
   @@index([priority, status])
