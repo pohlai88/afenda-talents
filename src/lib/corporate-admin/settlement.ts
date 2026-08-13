@@ -16,7 +16,13 @@ export const reconciliationDirections = ["PAYABLE", "RECEIVABLE"] as const;
 export const reconciliationStatuses = ["OPEN", "SETTLED", "WAIVED", "DISPUTED"] as const;
 export const terminationTypes = ["EXPIRED", "TERMINATED", "CANCELLED", "SURRENDERED", "OTHER"] as const;
 
-const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
+function isCalendarDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD").refine(isCalendarDate, "Use a valid calendar date");
 const optionalText = z.string().trim().max(10_000).optional().nullable();
 const optionalUrl = z.string().trim().url().max(2_000).optional().nullable().or(z.literal(""));
 const money = z.number().min(0).max(999_999_999_999_999.99).optional().nullable();
