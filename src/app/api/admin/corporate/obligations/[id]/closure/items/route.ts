@@ -19,6 +19,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   try {
     const item = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "AdministrativeObligation" WHERE "id" = ${obligationId} FOR UPDATE`;
       const obligation = await tx.administrativeObligation.findUnique({ where: { id: obligationId }, select: { currency: true } });
       if (!obligation) throw new Error("Obligation not found");
       if (parsed.data.currency !== obligation.currency.toUpperCase()) {
