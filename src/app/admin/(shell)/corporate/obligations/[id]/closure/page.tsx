@@ -27,7 +27,7 @@ export default async function SettlementClosurePage({ params }: { params: Promis
     db.administrativeObligation.findUnique({ where: { id }, select: { id: true, code: true, title: true, status: true, currency: true } }),
     db.administrativeClosure.findUnique({ where: { obligationId: id }, include: { items: { orderBy: { createdAt: "asc" } } } }),
     db.obligationDueItem.count({ where: { obligationId: id, status: "OPEN" } }),
-    db.administrativePayment.count({ where: { dueItem: { obligationId: id }, approvalStatus: "PENDING" } }),
+    db.administrativePayment.count({ where: { dueItem: { obligationId: id }, paymentStatus: "NOT_PAID", approvalStatus: { in: ["PENDING", "APPROVED"] } } }),
     db.administrativePayment.count({ where: { dueItem: { obligationId: id }, paymentStatus: { in: ["PAID", "PARTIALLY_PAID"] }, reconciledAt: null } }),
   ]);
   if (!obligation) notFound();
