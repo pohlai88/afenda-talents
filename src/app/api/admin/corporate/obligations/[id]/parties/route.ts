@@ -92,9 +92,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         where: key,
         data: {
           isPrimary: parsed.data.isPrimary,
-          effectiveFrom: parsed.data.effectiveFrom ? parseDateOnly(parsed.data.effectiveFrom) : null,
-          effectiveTo: parsed.data.effectiveTo ? parseDateOnly(parsed.data.effectiveTo) : null,
-          notes: cleanOptionalString(parsed.data.notes),
+          effectiveFrom: parsed.data.effectiveFrom === undefined ? undefined : parsed.data.effectiveFrom ? parseDateOnly(parsed.data.effectiveFrom) : null,
+          effectiveTo: parsed.data.effectiveTo === undefined ? undefined : parsed.data.effectiveTo ? parseDateOnly(parsed.data.effectiveTo) : null,
+          notes: parsed.data.notes === undefined ? undefined : cleanOptionalString(parsed.data.notes),
         },
       });
       await audit(session.userId, "corporate.obligation.party.updated", subject, { obligationId, action: "UPDATE" }, tx);

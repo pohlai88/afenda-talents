@@ -32,13 +32,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         where: { id: coverageId },
         data: {
           serviceCategory: parsed.data.serviceCategory,
-          roleCode: cleanOptionalString(parsed.data.roleCode),
-          effectiveFrom: parsed.data.effectiveFrom ? parseDateOnly(parsed.data.effectiveFrom) : null,
-          effectiveTo: parsed.data.effectiveTo ? parseDateOnly(parsed.data.effectiveTo) : null,
+          roleCode: parsed.data.roleCode === undefined ? undefined : cleanOptionalString(parsed.data.roleCode),
+          effectiveFrom: parsed.data.effectiveFrom === undefined ? undefined : parsed.data.effectiveFrom ? parseDateOnly(parsed.data.effectiveFrom) : null,
+          effectiveTo: parsed.data.effectiveTo === undefined ? undefined : parsed.data.effectiveTo ? parseDateOnly(parsed.data.effectiveTo) : null,
           isPrimary: parsed.data.isPrimary,
-          serviceLevel: cleanOptionalString(parsed.data.serviceLevel),
-          emergencyContact: cleanOptionalString(parsed.data.emergencyContact),
-          notes: cleanOptionalString(parsed.data.notes),
+          serviceLevel: parsed.data.serviceLevel === undefined ? undefined : cleanOptionalString(parsed.data.serviceLevel),
+          emergencyContact: parsed.data.emergencyContact === undefined ? undefined : cleanOptionalString(parsed.data.emergencyContact),
+          notes: parsed.data.notes === undefined ? undefined : cleanOptionalString(parsed.data.notes),
         },
       });
       await audit(session.userId, "corporate.site.coverage.updated", coverageId, { siteId, coverageId, action: "UPDATE" }, tx);

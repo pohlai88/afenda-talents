@@ -32,14 +32,14 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         where: { id: contactId },
         data: {
           name: parsed.data.name,
-          jobTitle: cleanOptionalString(parsed.data.jobTitle),
-          department: cleanOptionalString(parsed.data.department),
-          email: cleanOptionalString(parsed.data.email),
-          phone: cleanOptionalString(parsed.data.phone),
-          mobile: cleanOptionalString(parsed.data.mobile),
-          role: cleanOptionalString(parsed.data.role),
+          jobTitle: parsed.data.jobTitle === undefined ? undefined : cleanOptionalString(parsed.data.jobTitle),
+          department: parsed.data.department === undefined ? undefined : cleanOptionalString(parsed.data.department),
+          email: parsed.data.email === undefined ? undefined : cleanOptionalString(parsed.data.email),
+          phone: parsed.data.phone === undefined ? undefined : cleanOptionalString(parsed.data.phone),
+          mobile: parsed.data.mobile === undefined ? undefined : cleanOptionalString(parsed.data.mobile),
+          role: parsed.data.role === undefined ? undefined : cleanOptionalString(parsed.data.role),
           isPrimary: parsed.data.isPrimary,
-          notes: cleanOptionalString(parsed.data.notes),
+          notes: parsed.data.notes === undefined ? undefined : cleanOptionalString(parsed.data.notes),
         },
       });
       await audit(session.userId, "corporate.counterparty.contact.updated", contactId, { counterpartyId, contactId, action: "UPDATE" }, tx);

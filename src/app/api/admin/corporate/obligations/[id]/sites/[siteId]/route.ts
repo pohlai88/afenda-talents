@@ -35,8 +35,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       await tx.administrativeObligationSite.update({
         where: key,
         data: {
-          scopeRole: cleanOptionalString(parsed.data.scopeRole),
-          notes: cleanOptionalString(parsed.data.notes),
+          scopeRole: parsed.data.scopeRole === undefined ? undefined : cleanOptionalString(parsed.data.scopeRole),
+          notes: parsed.data.notes === undefined ? undefined : cleanOptionalString(parsed.data.notes),
         },
       });
       await audit(session.userId, "corporate.obligation.site.updated", subject, { obligationId, siteId, action: "UPDATE" }, tx);
