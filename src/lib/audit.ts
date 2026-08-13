@@ -13,7 +13,8 @@ export type AuditAction =
   | "corporate.due_item.created" | "corporate.due_item.updated" | "corporate.payment.requested" | "corporate.payment.approved"
   | "corporate.payment.rejected" | "corporate.payment.recorded" | "corporate.payment.reconciled" | "corporate.payment.voided"
   | "corporate.custom_field.created" | "corporate.custom_field.updated"
-  | "corporate.work_item.created" | "corporate.work_item.updated" | "corporate.work_item.resolved" | "corporate.work_item.escalated";
+  | "corporate.work_item.created" | "corporate.work_item.updated" | "corporate.work_item.resolved" | "corporate.work_item.escalated"
+  | "corporate.reminder.sent" | "corporate.reminder.blocked" | "corporate.reminder.failed";
 
 const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 const TOKEN_ALPHABET = /^[A-Za-z0-9_-]{40,}$/;
