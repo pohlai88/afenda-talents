@@ -125,7 +125,7 @@ const dateOnly = z
 const optionalTrimmed = z.string().trim().max(500).optional().nullable();
 const optionalLongText = z.string().trim().max(10_000).optional().nullable();
 const currency = z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/, "Use a 3-letter currency code");
-const countryCode = z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/, "Use a 2-letter country code").optional().nullable();
+const countryCode = z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/, "Use a 2-letter country code").optional().nullable().or(z.literal(""));
 const customFields = z.record(z.string(), z.unknown()).default({});
 
 export const createCounterpartySchema = z.object({

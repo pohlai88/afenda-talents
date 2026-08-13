@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   assertObligationTransition,
+  cleanOptionalString,
+  createCounterpartySchema,
+  createSiteSchema,
   defaultPeriodLabel,
   deriveDueState,
   nextOccurrence,
@@ -33,5 +36,33 @@ describe("corporate administration domain", () => {
 
   it("uses a stable monthly period label", () => {
     expect(defaultPeriodLabel("2026-08-31")).toBe("2026-08");
+  });
+
+  it("accepts a blank countryCode like its sibling defaultCurrency, instead of 400ing a blank form field", () => {
+    const counterparty = createCounterpartySchema.safeParse({
+      name: "Acme Sdn Bhd",
+      type: "VENDOR",
+      countryCode: "",
+    });
+    expect(counterparty.success).toBe(true);
+    if (counterparty.success) expect(counterparty.data.countryCode).toBe("");
+
+    const site = createSiteSchema.safeParse({
+      name: "Klang Warehouse",
+      type: "WAREHOUSE",
+      countryCode: "",
+    });
+    expect(site.success).toBe(true);
+    if (site.success) expect(site.data.countryCode).toBe("");
+  });
+
+  it("still rejects a malformed (non-blank) countryCode", () => {
+    const result = createCounterpartySchema.safeParse({ name: "Acme Sdn Bhd", type: "VENDOR", countryCode: "MYS" });
+    expect(result.success).toBe(false);
+  });
+
+  it("clears a blank countryCode to null the same way the sites route stores it", () => {
+    // Sites route: countryCode: cleanOptionalString(parsed.data.countryCode)?.toUpperCase() ?? null
+    expect(cleanOptionalString("")?.toUpperCase() ?? null).toBeNull();
   });
 });

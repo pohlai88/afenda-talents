@@ -47,6 +47,27 @@ describe("patchSiteSchema", () => {
     expect(parsed.success).toBe(true);
     if (parsed.success) expect("isActive" in parsed.data).toBe(false);
   });
+
+  it("leaves customFields undefined when omitted, instead of defaulting to {} and wiping stored values", () => {
+    const parsed = patchSiteSchema.safeParse({
+      action: "UPDATE",
+      name: "Klang Headquarters",
+      type: "OFFICE",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success && parsed.data.action === "UPDATE") expect(parsed.data.customFields).toBeUndefined();
+  });
+
+  it("still accepts an explicit customFields object on update", () => {
+    const parsed = patchSiteSchema.safeParse({
+      action: "UPDATE",
+      name: "Klang Headquarters",
+      type: "OFFICE",
+      customFields: { floor: "12" },
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success && parsed.data.action === "UPDATE") expect(parsed.data.customFields).toEqual({ floor: "12" });
+  });
 });
 
 describe("patchCounterpartyContactSchema", () => {
@@ -90,6 +111,15 @@ describe("patchCounterpartyContactSchema", () => {
     });
     expect(parsed.success).toBe(true);
     if (parsed.success) expect("isActive" in parsed.data).toBe(false);
+  });
+
+  it("leaves isPrimary undefined when omitted, instead of defaulting to false and silently demoting", () => {
+    const parsed = patchCounterpartyContactSchema.safeParse({
+      action: "UPDATE",
+      name: "Siti Rahman",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success && parsed.data.action === "UPDATE") expect(parsed.data.isPrimary).toBeUndefined();
   });
 });
 
@@ -139,6 +169,15 @@ describe("patchServiceCoverageSchema", () => {
     expect(parsed.success).toBe(true);
     if (parsed.success) expect("isActive" in parsed.data).toBe(false);
   });
+
+  it("leaves isPrimary undefined when omitted, instead of defaulting to false and silently demoting", () => {
+    const parsed = patchServiceCoverageSchema.safeParse({
+      action: "UPDATE",
+      serviceCategory: "CLEANING",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success && parsed.data.action === "UPDATE") expect(parsed.data.isPrimary).toBeUndefined();
+  });
 });
 
 describe("patchObligationPartySchema", () => {
@@ -164,6 +203,12 @@ describe("patchObligationPartySchema", () => {
       effectiveFrom: "2026-06-01",
       effectiveTo: "2026-01-01",
     }).success).toBe(false);
+  });
+
+  it("leaves isPrimary undefined when omitted, instead of defaulting to false and silently demoting", () => {
+    const parsed = patchObligationPartySchema.safeParse({ action: "UPDATE", ...key });
+    expect(parsed.success).toBe(true);
+    if (parsed.success && parsed.data.action === "UPDATE") expect(parsed.data.isPrimary).toBeUndefined();
   });
 });
 

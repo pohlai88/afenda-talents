@@ -27,12 +27,20 @@ export const patchSiteSchema = z.discriminatedUnion("action", [
     // createSiteSchema still rejects "" for code on this branch; a blank code here
     // means "keep the generated one", so it must parse.
     code: z.string().trim().min(2).max(50).optional().nullable().or(z.literal("")),
+    // Omitting customFields on a partial update must mean "leave it alone", not "erase it".
+    // createSiteSchema's .default({}) would otherwise parse an omitted key to {} and wipe every stored value.
+    customFields: z.record(z.string(), z.unknown()).optional(),
   }),
 ]);
 
 export const patchCounterpartyContactSchema = z.discriminatedUnion("action", [
   setActive,
-  createCounterpartyContactSchema.omit({ isActive: true }).extend({ action: z.literal("UPDATE") }),
+  createCounterpartyContactSchema.omit({ isActive: true }).extend({
+    action: z.literal("UPDATE"),
+    // createCounterpartyContactSchema's .default(false) would parse an omitted isPrimary to false,
+    // silently demoting the contact. Omitted must mean "leave primary status alone".
+    isPrimary: z.boolean().optional(),
+  }),
 ]);
 
 const coverageDateOnly = z
@@ -49,7 +57,8 @@ export const patchServiceCoverageSchema = z.discriminatedUnion("action", [
       roleCode: z.string().trim().max(120).optional().nullable(),
       effectiveFrom: coverageDateOnly.optional().nullable(),
       effectiveTo: coverageDateOnly.optional().nullable(),
-      isPrimary: z.boolean().default(false),
+      // Omitted must mean "leave primary status alone" — .default(false) would silently demote.
+      isPrimary: z.boolean().optional(),
       serviceLevel: z.string().trim().max(500).optional().nullable(),
       emergencyContact: z.string().trim().max(500).optional().nullable(),
       notes: z.string().trim().max(10_000).optional().nullable(),
@@ -72,7 +81,8 @@ export const patchObligationPartySchema = z.discriminatedUnion("action", [
     .object({
       action: z.literal("UPDATE"),
       ...partyKey,
-      isPrimary: z.boolean().default(false),
+      // Omitted must mean "leave primary status alone" — .default(false) would silently demote.
+      isPrimary: z.boolean().optional(),
       effectiveFrom: coverageDateOnly.optional().nullable(),
       effectiveTo: coverageDateOnly.optional().nullable(),
       notes: z.string().trim().max(10_000).optional().nullable(),

@@ -29,7 +29,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         return record;
       }
 
-      const customFields = await validateAdministrativeCustomFields("SITE", parsed.data.customFields, tx);
+      const customFields = parsed.data.customFields === undefined ? undefined : await validateAdministrativeCustomFields("SITE", parsed.data.customFields, tx);
       const record = await tx.administrativeSite.update({
         where: { id },
         data: {

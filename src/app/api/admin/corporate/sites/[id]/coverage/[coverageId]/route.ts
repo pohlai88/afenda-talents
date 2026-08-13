@@ -17,8 +17,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid coverage update" }, { status: 400 });
 
   const { id: siteId, coverageId } = await context.params;
-  const coverage = await db.administrativeServiceCoverage.findFirst({ where: { id: coverageId, siteId }, select: { id: true } });
+  const coverage = await db.administrativeServiceCoverage.findFirst({ where: { id: coverageId, siteId }, select: { id: true, isPrimary: true } });
   if (!coverage) return NextResponse.json({ error: "Service coverage not found" }, { status: 404 });
+
+  if (parsed.data.action === "SET_ACTIVE" && parsed.data.isActive === false && coverage.isPrimary) {
+    return NextResponse.json({ error: "Primary service coverage must be reassigned before deactivation" }, { status: 400 });
+  }
 
   try {
     await db.$transaction(async (tx) => {
@@ -35,7 +39,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
           roleCode: parsed.data.roleCode === undefined ? undefined : cleanOptionalString(parsed.data.roleCode),
           effectiveFrom: parsed.data.effectiveFrom === undefined ? undefined : parsed.data.effectiveFrom ? parseDateOnly(parsed.data.effectiveFrom) : null,
           effectiveTo: parsed.data.effectiveTo === undefined ? undefined : parsed.data.effectiveTo ? parseDateOnly(parsed.data.effectiveTo) : null,
-          isPrimary: parsed.data.isPrimary,
+          isPrimary: parsed.data.isPrimary === undefined ? undefined : parsed.data.isPrimary,
           serviceLevel: parsed.data.serviceLevel === undefined ? undefined : cleanOptionalString(parsed.data.serviceLevel),
           emergencyContact: parsed.data.emergencyContact === undefined ? undefined : cleanOptionalString(parsed.data.emergencyContact),
           notes: parsed.data.notes === undefined ? undefined : cleanOptionalString(parsed.data.notes),
