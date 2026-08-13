@@ -13,7 +13,7 @@ export function AfendaMetadataGrid({
   className,
 }: {
   items: AfendaMetadataItem[];
-  columns?: 1 | 2 | 3;
+  columns?: 1 | 2 | 3 | 4;
   className?: string;
 }) {
   return (
@@ -22,6 +22,7 @@ export function AfendaMetadataGrid({
         "grid gap-x-6 gap-y-4",
         columns === 2 && "sm:grid-cols-2",
         columns === 3 && "sm:grid-cols-2 xl:grid-cols-3",
+        columns === 4 && "sm:grid-cols-2 xl:grid-cols-4",
         className,
       )}
     >
