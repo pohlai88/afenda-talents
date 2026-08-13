@@ -18,6 +18,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { PAYMENT_METHOD_SUGGESTIONS } from "@/lib/corporate-admin/domain";
 import { PAYMENT_GUIDANCE } from "@/lib/corporate-admin/workflow-guidance";
 
+function isHistorical(payment: PaymentDto): boolean {
+  const origin = payment.customFields.origin;
+  return origin === "HISTORICAL_MANUAL" || origin === "HISTORICAL_IMPORT";
+}
+
 export function PaymentWorkflow({ dueItem, fields, isAdmin }: { dueItem: DueItemDto; fields: CorporateCustomFieldDefinitionDto[]; isAdmin: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -63,37 +68,40 @@ export function PaymentWorkflow({ dueItem, fields, isAdmin }: { dueItem: DueItem
 
       {dueItem.payments.length === 0 ? (
         <AfendaEmptyState
-          title="No payment requests yet"
-          description="Request a payment when this due item is ready to move into approval and settlement."
+          title="No payment records yet"
+          description="Use the normal request workflow for new payments, or record historical payment evidence for money already paid."
           compact
         />
       ) : (
-        <ul className="flex flex-col gap-2">{dueItem.payments.map((payment) => (
-          <li key={payment.id} className="rounded-lg border p-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="font-medium tabular-nums">Requested {formatMoney(dueItem.currency, payment.requestedAmount)}</p>
-                <div className="mt-1 flex flex-wrap gap-1.5"><CorporateStatusBadge status={payment.approvalStatus} /><CorporateStatusBadge status={payment.paymentStatus} />{payment.reconciledAt ? <CorporateStatusBadge status="RECONCILED" /> : null}</div>
+        <ul className="flex flex-col gap-2">{dueItem.payments.map((payment) => {
+          const historical = isHistorical(payment);
+          return (
+            <li key={payment.id} className="rounded-lg border p-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium tabular-nums">{historical ? `Historical payment ${formatMoney(dueItem.currency, payment.paidAmount ?? payment.requestedAmount)}` : `Requested ${formatMoney(dueItem.currency, payment.requestedAmount)}`}</p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">{historical ? <CorporateStatusBadge status="HISTORICAL" /> : <CorporateStatusBadge status={payment.approvalStatus} />}<CorporateStatusBadge status={payment.paymentStatus} />{payment.reconciledAt ? <CorporateStatusBadge status="RECONCILED" /> : null}</div>
+                </div>
+                {isAdmin ? <div className="flex flex-wrap gap-2">
+                  {!historical && payment.approvalStatus === "PENDING" ? <><Button size="sm" onClick={() => { setApprovedAmount(String(payment.requestedAmount)); setApproval(payment); }}>Approve</Button><AfendaConfirmButton busy={busy} destructive title="Reject this payment request?" description="The request will move to Rejected and cannot continue to settlement under its current approval lifecycle. The due item remains available for a new payment request if needed." confirmLabel="Reject request" onConfirm={() => call(`/api/admin/corporate/payments/${payment.id}`, { action: "REJECT" }, "PATCH", "Payment request rejected.")}>Reject</AfendaConfirmButton></> : null}
+                  {!historical && payment.approvalStatus === "APPROVED" && payment.paymentStatus === "NOT_PAID" ? <Button size="sm" onClick={() => { setPaidAmount(String(payment.approvedAmount ?? payment.requestedAmount)); setPaymentDate(todayDateOnly()); setRecording(payment); }}>Record payment</Button> : null}
+                  {(payment.paymentStatus === "PAID" || payment.paymentStatus === "PARTIALLY_PAID") && !payment.reconciledAt ? <><AfendaConfirmButton busy={busy} title="Reconcile this payment?" description="Reconciliation records that the settlement evidence and recorded payment have been checked. Only confirm after the payment has been independently verified." confirmLabel="Reconcile payment" onConfirm={() => call(`/api/admin/corporate/payments/${payment.id}`, { action: "RECONCILE" }, "PATCH", "Payment reconciled.")}>Reconcile</AfendaConfirmButton><AfendaConfirmButton busy={busy} destructive title="Void this recorded payment?" description="Voiding removes this settlement from the amount counted as paid and may reopen the due item. Use this only when the recorded payment should no longer be treated as a valid settlement." confirmLabel="Void payment" onConfirm={() => call(`/api/admin/corporate/payments/${payment.id}`, { action: "VOID", notes: "Voided from Corporate Administration" }, "PATCH", "Payment voided.")}>Void</AfendaConfirmButton></> : null}
+                </div> : null}
               </div>
-              {isAdmin ? <div className="flex flex-wrap gap-2">
-                {payment.approvalStatus === "PENDING" ? <><Button size="sm" onClick={() => { setApprovedAmount(String(payment.requestedAmount)); setApproval(payment); }}>Approve</Button><AfendaConfirmButton busy={busy} destructive title="Reject this payment request?" description="The request will move to Rejected and cannot continue to settlement under its current approval lifecycle. The due item remains available for a new payment request if needed." confirmLabel="Reject request" onConfirm={() => call(`/api/admin/corporate/payments/${payment.id}`, { action: "REJECT" }, "PATCH", "Payment request rejected.")}>Reject</AfendaConfirmButton></> : null}
-                {payment.approvalStatus === "APPROVED" && payment.paymentStatus === "NOT_PAID" ? <Button size="sm" onClick={() => { setPaidAmount(String(payment.approvedAmount ?? payment.requestedAmount)); setPaymentDate(todayDateOnly()); setRecording(payment); }}>Record payment</Button> : null}
-                {(payment.paymentStatus === "PAID" || payment.paymentStatus === "PARTIALLY_PAID") && !payment.reconciledAt ? <><AfendaConfirmButton busy={busy} title="Reconcile this payment?" description="Reconciliation records that the settlement evidence and recorded payment have been checked. Only confirm after the payment has been independently verified." confirmLabel="Reconcile payment" onConfirm={() => call(`/api/admin/corporate/payments/${payment.id}`, { action: "RECONCILE" }, "PATCH", "Payment reconciled.")}>Reconcile</AfendaConfirmButton><AfendaConfirmButton busy={busy} destructive title="Void this recorded payment?" description="Voiding removes this settlement from the amount counted as paid and may reopen the due item. Use this only when the recorded payment should no longer be treated as a valid settlement." confirmLabel="Void payment" onConfirm={() => call(`/api/admin/corporate/payments/${payment.id}`, { action: "VOID", notes: "Voided from Corporate Administration" }, "PATCH", "Payment voided.")}>Void</AfendaConfirmButton></> : null}
-              </div> : null}
-            </div>
-            {payment.approvedAmount != null || payment.paidAmount != null ? (
-              <AfendaMetadataGrid
-                columns={3}
-                className="mt-3"
-                items={[
-                  { label: "Approved", value: formatMoney(dueItem.currency, payment.approvedAmount) },
-                  { label: "Paid", value: formatMoney(dueItem.currency, payment.paidAmount) },
-                  { label: "Reference", value: payment.paymentReference || "—" },
-                ]}
-              />
-            ) : null}
-          </li>
-        ))}</ul>
+              {payment.approvedAmount != null || payment.paidAmount != null ? (
+                <AfendaMetadataGrid
+                  columns={3}
+                  className="mt-3"
+                  items={[
+                    { label: historical ? "History source" : "Approved", value: historical ? String(payment.customFields.origin ?? "HISTORICAL") : formatMoney(dueItem.currency, payment.approvedAmount) },
+                    { label: "Paid", value: formatMoney(dueItem.currency, payment.paidAmount) },
+                    { label: "Reference", value: payment.paymentReference || "—" },
+                  ]}
+                />
+              ) : null}
+            </li>
+          );
+        })}</ul>
       )}
 
       <AfendaResponsiveOverlay
