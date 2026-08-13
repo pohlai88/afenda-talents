@@ -14,11 +14,7 @@ import { db } from "@/lib/db";
 
 export const runtime = "nodejs";
 
-const TARGET: Record<"ACTIVATE" | "END" | "CANCEL", ObligationStatus> = {
-  ACTIVATE: "ACTIVE",
-  END: "ENDED",
-  CANCEL: "CANCELLED",
-};
+const TARGET: Record<"ACTIVATE" | "END" | "CANCEL", ObligationStatus> = { ACTIVATE: "ACTIVE", END: "ENDED", CANCEL: "CANCELLED" };
 const ACTION = {
   ACTIVATE: "corporate.obligation.activated",
   END: "corporate.obligation.ended",
@@ -50,7 +46,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     const updated = await db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "AdministrativeObligation" WHERE "id" = ${id} FOR UPDATE`;
       const closure = await tx.administrativeClosure.findUnique({ where: { obligationId: id }, select: { status: true } });
-      if (closure?.status === "CLOSED") throw new Error("Closed administrative files are read-only");
+      if (closure) throw new Error(closure.status === "CLOSED" ? "Closed administrative files are read-only" : "Obligation terms are frozen once settlement and closure has started");
       const record = await tx.administrativeObligation.update({
         where: { id },
         data: {
@@ -105,7 +101,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       const obligation = await tx.administrativeObligation.findUnique({ where: { id } });
       if (!obligation) throw new Error("Obligation not found");
       const closure = await tx.administrativeClosure.findUnique({ where: { obligationId: id }, select: { status: true } });
-      if (closure?.status === "CLOSED") throw new Error("Closed administrative files are read-only");
+      if (closure) throw new Error(closure.status === "CLOSED" ? "Closed administrative files are read-only" : "Lifecycle actions are controlled by the active settlement and termination record");
 
       const target = TARGET[parsed.data.action];
       assertObligationTransition(obligation.status, target);
