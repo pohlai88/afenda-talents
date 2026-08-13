@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { audit } from "@/lib/audit";
 import { requireWorkspaceAdmin } from "@/lib/auth-workspace";
 import { validateAdministrativeCustomFields } from "@/lib/corporate-admin/custom-fields";
@@ -7,6 +8,11 @@ import { updateDueItemSchema } from "@/lib/corporate-admin/update-schemas";
 import { db } from "@/lib/db";
 
 export const runtime = "nodejs";
+
+const dueItemActionSchema = z.object({
+  action: z.literal("CANCEL"),
+  notes: z.string().trim().max(10_000).optional().nullable(),
+});
 
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   let session;
@@ -46,5 +52,54 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     const message = error instanceof Error ? error.message : "Could not update due item";
     const duplicate = /unique constraint/i.test(message);
     return NextResponse.json({ error: duplicate ? "A due item already exists for that obligation and date" : message }, { status: duplicate ? 409 : 400 });
+  }
+}
+
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  let session;
+  try { session = await requireWorkspaceAdmin(); }
+  catch { return NextResponse.json({ error: "Admin access required" }, { status: 403 }); }
+
+  const parsed = dueItemActionSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Invalid due item action" }, { status: 400 });
+  const { id } = await context.params;
+
+  try {
+    const updated = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "ObligationDueItem" WHERE "id" = ${id} FOR UPDATE`;
+      const dueItem = await tx.obligationDueItem.findUnique({
+        where: { id },
+        include: { payments: { select: { id: true, paymentStatus: true } } },
+      });
+      if (!dueItem) throw new Error("Due item not found");
+      if (dueItem.status === "CANCELLED") throw new Error("Due item is already cancelled");
+      const recorded = dueItem.payments.some((payment) => payment.paymentStatus === "PAID" || payment.paymentStatus === "PARTIALLY_PAID");
+      if (recorded) throw new Error("A due item with recorded payment history cannot be cancelled. Reconcile the payment and resolve any remaining balance through final reconciliation instead.");
+
+      await tx.administrativePayment.updateMany({
+        where: { dueItemId: id, paymentStatus: "NOT_PAID" },
+        data: { approvalStatus: "CANCELLED" },
+      });
+      const reason = cleanOptionalString(parsed.data.notes);
+      const record = await tx.obligationDueItem.update({
+        where: { id },
+        data: {
+          status: "CANCELLED",
+          completedDate: null,
+          disputeFlag: false,
+          notes: reason ?? dueItem.notes,
+        },
+      });
+      await audit(session.userId, "corporate.due_item.cancelled", id, {
+        dueItemId: id,
+        obligationId: record.obligationId,
+        unrecordedPaymentRequestsCancelled: dueItem.payments.filter((payment) => payment.paymentStatus === "NOT_PAID").length,
+      }, tx);
+      return record;
+    });
+    return NextResponse.json({ dueItem: { id: updated.id, status: updated.status } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not cancel due item";
+    return NextResponse.json({ error: message }, { status: message === "Due item not found" ? 404 : 409 });
   }
 }
