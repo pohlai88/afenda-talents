@@ -34,7 +34,7 @@ function fieldDto(field: Awaited<ReturnType<typeof db.administrativeCustomFieldD
 export default async function SitesPage() {
   const session = await requireWorkspaceUser();
   const [sites, definitions] = await Promise.all([
-    db.administrativeSite.findMany({ orderBy: [{ isActive: "desc" }, { name: "asc" }], include: { _count: { select: { serviceCoverage: true, obligations: true } } } }),
+    db.administrativeSite.findMany({ orderBy: [{ isActive: "desc" }, { name: "asc" }], include: { _count: { select: { serviceCoverage: true, obligations: { where: { isActive: true } } } } } }),
     db.administrativeCustomFieldDefinition.findMany({ where: { scope: "SITE", isActive: true }, orderBy: [{ sortOrder: "asc" }, { label: "asc" }] }),
   ]);
 

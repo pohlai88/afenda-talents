@@ -30,7 +30,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
       where: { id },
       include: {
         serviceCoverage: { orderBy: [{ isActive: "desc" }, { serviceCategory: "asc" }], include: { counterparty: { select: { id: true, code: true, name: true } } } },
-        obligations: { include: { obligation: { include: { counterparty: { select: { name: true } }, dueItems: { where: { status: "OPEN" }, orderBy: { dueDate: "asc" }, take: 1 } } } }, orderBy: { createdAt: "desc" } },
+        obligations: { where: { isActive: true }, include: { obligation: { include: { counterparty: { select: { name: true } }, dueItems: { where: { status: "OPEN" }, orderBy: { dueDate: "asc" }, take: 1 } } } }, orderBy: { createdAt: "desc" } },
       },
     }),
     db.administrativeCounterparty.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, code: true, name: true } }),

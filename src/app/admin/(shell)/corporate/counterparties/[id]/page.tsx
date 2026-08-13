@@ -29,7 +29,7 @@ export default async function CounterpartyDetailPage({ params }: { params: Promi
       include: {
         contacts: { orderBy: [{ isPrimary: "desc" }, { isActive: "desc" }, { name: "asc" }] },
         serviceCoverage: { orderBy: [{ isActive: "desc" }, { serviceCategory: "asc" }], include: { site: { select: { id: true, code: true, name: true, type: true, isActive: true } } } },
-        obligationRoles: { orderBy: [{ isPrimary: "desc" }, { createdAt: "desc" }], include: { obligation: { select: { id: true, code: true, title: true, status: true, category: true } } } },
+        obligationRoles: { where: { isActive: true }, orderBy: [{ isPrimary: "desc" }, { createdAt: "desc" }], include: { obligation: { select: { id: true, code: true, title: true, status: true, category: true } } } },
       },
     }),
     db.administrativeCustomFieldDefinition.findMany({ where: { scope: "COUNTERPARTY", isActive: true }, orderBy: [{ sortOrder: "asc" }, { label: "asc" }] }),
