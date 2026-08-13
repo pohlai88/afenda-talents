@@ -26,6 +26,11 @@ function malaysiaDateOnly(): string {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
+async function initialObligationId(dueItemId: string): Promise<string | null> {
+  const dueItem = await db.obligationDueItem.findUnique({ where: { id: dueItemId }, select: { obligationId: true } });
+  return dueItem?.obligationId ?? null;
+}
+
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   let session;
   try { session = await requireWorkspaceAdmin(); }
@@ -33,13 +38,20 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   const parsed = updateDueItemSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid due item" }, { status: 400 });
   const { id } = await context.params;
-  const existing = await db.obligationDueItem.findUnique({ where: { id }, select: { id: true, status: true } });
-  if (!existing) return NextResponse.json({ error: "Due item not found" }, { status: 404 });
-  if (existing.status === "CANCELLED") return NextResponse.json({ error: "Cancelled due items are read-only" }, { status: 409 });
+  const obligationId = await initialObligationId(id);
+  if (!obligationId) return NextResponse.json({ error: "Due item not found" }, { status: 404 });
 
   try {
-    const customFields = await validateAdministrativeCustomFields("DUE_ITEM", parsed.data.customFields);
     const updated = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "AdministrativeObligation" WHERE "id" = ${obligationId} FOR UPDATE`;
+      const closure = await tx.administrativeClosure.findUnique({ where: { obligationId }, select: { status: true } });
+      if (closure?.status === "CLOSED") throw new Error("Closed administrative files are read-only");
+      await tx.$queryRaw`SELECT "id" FROM "ObligationDueItem" WHERE "id" = ${id} FOR UPDATE`;
+      const existing = await tx.obligationDueItem.findUnique({ where: { id }, select: { status: true } });
+      if (!existing) throw new Error("Due item not found");
+      if (existing.status === "CANCELLED") throw new Error("Cancelled due items are read-only");
+
+      const customFields = await validateAdministrativeCustomFields("DUE_ITEM", parsed.data.customFields, tx);
       const record = await tx.obligationDueItem.update({
         where: { id },
         data: {
@@ -63,7 +75,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not update due item";
     const duplicate = /unique constraint/i.test(message);
-    return NextResponse.json({ error: duplicate ? "A due item already exists for that obligation and date" : message }, { status: duplicate ? 409 : 400 });
+    return NextResponse.json({ error: duplicate ? "A due item already exists for that obligation and date" : message }, { status: message === "Due item not found" ? 404 : duplicate ? 409 : 400 });
   }
 }
 
@@ -75,9 +87,14 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const parsed = dueItemActionSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid due item action" }, { status: 400 });
   const { id } = await context.params;
+  const obligationId = await initialObligationId(id);
+  if (!obligationId) return NextResponse.json({ error: "Due item not found" }, { status: 404 });
 
   try {
     const updated = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "AdministrativeObligation" WHERE "id" = ${obligationId} FOR UPDATE`;
+      const closure = await tx.administrativeClosure.findUnique({ where: { obligationId }, select: { status: true } });
+      if (closure?.status === "CLOSED") throw new Error("Closed administrative files are read-only");
       await tx.$queryRaw`SELECT "id" FROM "ObligationDueItem" WHERE "id" = ${id} FOR UPDATE`;
       const dueItem = await tx.obligationDueItem.findUnique({
         where: { id },
@@ -114,9 +131,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       if (recordedPayments.some((payment) => !payment.reconciledAt)) {
         throw new Error("Reconcile every recorded payment before resolving the remaining balance");
       }
-      const closure = await tx.administrativeClosure.findUnique({ where: { obligationId: dueItem.obligationId }, select: { status: true } });
       if (!closure) throw new Error("Start termination and final reconciliation before resolving the remaining balance");
-      if (closure.status === "CLOSED") throw new Error("Closed files cannot be changed");
 
       await tx.administrativePayment.updateMany({
         where: { dueItemId: id, paymentStatus: "NOT_PAID", approvalStatus: { in: ["PENDING", "APPROVED"] } },
