@@ -17,7 +17,18 @@ const envelopeSchema = z.object({
 
 type Tx = Prisma.TransactionClient;
 
-async function syncDueItemCompletion(tx: Tx, dueItemId: string) {
+async function lockMutableObligation(tx: Tx, obligationId: string) {
+  await tx.$queryRaw`SELECT "id" FROM "AdministrativeObligation" WHERE "id" = ${obligationId} FOR UPDATE`;
+  const closure = await tx.administrativeClosure.findUnique({
+    where: { obligationId },
+    select: { status: true },
+  });
+  if (closure?.status === "CLOSED") {
+    throw new Error("Closed administrative files cannot receive additional historical payments");
+  }
+}
+
+async function syncDueItemCompletion(tx: Tx, dueItemId: string, paymentDate: Date) {
   const dueItem = await tx.obligationDueItem.findUnique({
     where: { id: dueItemId },
     include: { payments: { select: { paymentStatus: true, paidAmount: true } } },
@@ -36,16 +47,25 @@ async function syncDueItemCompletion(tx: Tx, dueItemId: string) {
     where: { id: dueItemId },
     data: {
       status: complete ? "COMPLETED" : "OPEN",
-      completedDate: complete ? parseDateOnly(new Date().toISOString().slice(0, 10)) : null,
+      completedDate: complete ? paymentDate : null,
     },
   });
 }
 
 async function resolveDueItem(tx: Tx, row: z.infer<typeof historicalPaymentRowSchema>) {
   if (row.dueItemId) {
+    const initial = await tx.obligationDueItem.findUnique({
+      where: { id: row.dueItemId },
+      select: { obligationId: true },
+    });
+    if (!initial) throw new Error(`Due item ${row.dueItemId} was not found`);
+    await lockMutableObligation(tx, initial.obligationId);
     const dueItem = await tx.obligationDueItem.findUnique({ where: { id: row.dueItemId } });
     if (!dueItem) throw new Error(`Due item ${row.dueItemId} was not found`);
     if (dueItem.status === "CANCELLED") throw new Error("Cancelled due items cannot receive historical payments");
+    if (row.currency && row.currency !== dueItem.currency.toUpperCase()) {
+      throw new Error(`Imported currency ${row.currency} does not match due-item currency ${dueItem.currency.toUpperCase()}`);
+    }
     return dueItem;
   }
 
@@ -53,18 +73,19 @@ async function resolveDueItem(tx: Tx, row: z.infer<typeof historicalPaymentRowSc
   const lineCode = row.lineCode!.toUpperCase();
   const obligation = await tx.administrativeObligation.findUnique({
     where: { code: obligationCode },
-    select: {
-      id: true,
-      lines: {
-        where: { code: lineCode },
-        take: 1,
-        select: { id: true, currency: true, invoiceRequired: true },
-      },
-    },
+    select: { id: true },
   });
   if (!obligation) throw new Error(`Obligation ${obligationCode} was not found`);
-  const line = obligation.lines[0];
+  await lockMutableObligation(tx, obligation.id);
+
+  const line = await tx.administrativeObligationLine.findFirst({
+    where: { obligationId: obligation.id, code: lineCode },
+    select: { id: true, currency: true, invoiceRequired: true },
+  });
   if (!line) throw new Error(`Line ${lineCode} was not found on obligation ${obligationCode}`);
+  if (row.currency && row.currency !== line.currency.toUpperCase()) {
+    throw new Error(`Imported currency ${row.currency} does not match line currency ${line.currency.toUpperCase()}`);
+  }
 
   const dueDate = parseDateOnly(row.dueDate!);
   const existing = await tx.obligationDueItem.findUnique({
@@ -72,6 +93,9 @@ async function resolveDueItem(tx: Tx, row: z.infer<typeof historicalPaymentRowSc
   });
   if (existing) {
     if (existing.status === "CANCELLED") throw new Error("Cancelled due items cannot receive historical payments");
+    if (row.currency && row.currency !== existing.currency.toUpperCase()) {
+      throw new Error(`Imported currency ${row.currency} does not match due-item currency ${existing.currency.toUpperCase()}`);
+    }
     return existing;
   }
 
@@ -82,7 +106,7 @@ async function resolveDueItem(tx: Tx, row: z.infer<typeof historicalPaymentRowSc
       periodLabel: cleanOptionalString(row.periodLabel) ?? defaultPeriodLabel(row.dueDate!),
       dueDate,
       expectedAmount: row.expectedAmount ?? row.paidAmount,
-      currency: row.currency ?? line.currency,
+      currency: line.currency,
       invoiceRequired: line.invoiceRequired,
       notes: "Created from historical payment import",
     },
@@ -116,14 +140,6 @@ export async function POST(request: Request) {
       const result = await db.$transaction(async (tx) => {
         const dueItem = await resolveDueItem(tx, parsed.data);
         await tx.$queryRaw`SELECT "id" FROM "ObligationDueItem" WHERE "id" = ${dueItem.id} FOR UPDATE`;
-
-        const closure = await tx.administrativeClosure.findUnique({
-          where: { obligationId: dueItem.obligationId },
-          select: { status: true },
-        });
-        if (closure?.status === "CLOSED") {
-          throw new Error("Closed administrative files cannot receive additional historical payments");
-        }
 
         const paymentDate = parseDateOnly(parsed.data.paymentDate);
         const reference = cleanOptionalString(parsed.data.paymentReference);
@@ -167,7 +183,7 @@ export async function POST(request: Request) {
             approvalRequired: false,
           },
         });
-        await syncDueItemCompletion(tx, dueItem.id);
+        await syncDueItemCompletion(tx, dueItem.id, paymentDate);
         await audit(session.userId, "corporate.payment.history_recorded", payment.id, {
           paymentId: payment.id,
           dueItemId: dueItem.id,
