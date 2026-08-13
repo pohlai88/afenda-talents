@@ -24,11 +24,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!counterparty) return NextResponse.json({ error: "Counterparty not found" }, { status: 404 });
   if (!counterparty.isActive) return NextResponse.json({ error: "Inactive counterparties cannot receive new obligation roles" }, { status: 409 });
 
-  const party = await db.$transaction(async (tx) => {
+  const { party, reactivated } = await db.$transaction(async (tx) => {
     if (parsed.data.isPrimary) {
       await tx.administrativeObligationParty.updateMany({ where: { obligationId, isPrimary: true }, data: { isPrimary: false } });
     }
-    return tx.administrativeObligationParty.upsert({
+    const priorParty = await tx.administrativeObligationParty.findUnique({
+      where: { obligationId_counterpartyId_roleCode: { obligationId, counterpartyId: parsed.data.counterpartyId, roleCode: parsed.data.roleCode } },
+      select: { isActive: true },
+    });
+    const party = await tx.administrativeObligationParty.upsert({
       where: { obligationId_counterpartyId_roleCode: { obligationId, counterpartyId: parsed.data.counterpartyId, roleCode: parsed.data.roleCode } },
       update: {
         isPrimary: parsed.data.isPrimary,
@@ -47,8 +51,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         notes: cleanOptionalString(parsed.data.notes),
       },
     });
+    return { party, reactivated: priorParty?.isActive === false };
   });
-  await audit(session.userId, "corporate.obligation.party.linked", obligationId, { counterpartyId: party.counterpartyId, roleCode: party.roleCode });
+  await audit(
+    session.userId,
+    "corporate.obligation.party.linked",
+    obligationId,
+    reactivated
+      ? { counterpartyId: party.counterpartyId, roleCode: party.roleCode, reactivated: true }
+      : { counterpartyId: party.counterpartyId, roleCode: party.roleCode },
+  );
   return NextResponse.json({ party: { counterpartyId: party.counterpartyId, roleCode: party.roleCode } });
 }
 

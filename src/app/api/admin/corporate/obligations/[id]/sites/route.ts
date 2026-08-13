@@ -23,11 +23,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!site) return NextResponse.json({ error: "Site not found" }, { status: 404 });
   if (!site.isActive) return NextResponse.json({ error: "Inactive sites cannot receive new obligation links" }, { status: 409 });
 
+  const priorLink = await db.administrativeObligationSite.findUnique({
+    where: { obligationId_siteId: { obligationId, siteId: parsed.data.siteId } },
+    select: { isActive: true },
+  });
+
   const link = await db.administrativeObligationSite.upsert({
     where: { obligationId_siteId: { obligationId, siteId: parsed.data.siteId } },
     update: { scopeRole: cleanOptionalString(parsed.data.scopeRole), notes: cleanOptionalString(parsed.data.notes), isActive: true },
     create: { obligationId, siteId: parsed.data.siteId, scopeRole: cleanOptionalString(parsed.data.scopeRole), notes: cleanOptionalString(parsed.data.notes) },
   });
-  await audit(session.userId, "corporate.obligation.site.linked", obligationId, { siteId: link.siteId });
+  const reactivated = priorLink?.isActive === false;
+  await audit(session.userId, "corporate.obligation.site.linked", obligationId, reactivated ? { siteId: link.siteId, reactivated: true } : { siteId: link.siteId });
   return NextResponse.json({ site: { id: link.siteId } });
 }

@@ -45,13 +45,20 @@ export async function POST(request: Request) {
       const obligations = await tx.administrativeObligation.findMany({ where: { id: { in: parsed.data.obligationIds } }, select: { id: true } });
       if (obligations.length !== parsed.data.obligationIds.length) throw new Error("One or more obligations were not found");
 
+      const priorLinks = await tx.administrativeObligationSite.findMany({
+        where: { obligationId: { in: obligations.map((obligation) => obligation.id) }, siteId: site.id },
+        select: { obligationId: true, isActive: true },
+      });
+      const priorActiveByObligationId = new Map(priorLinks.map((link) => [link.obligationId, link.isActive]));
+
       for (const obligation of obligations) {
+        const reactivated = priorActiveByObligationId.get(obligation.id) === false;
         await tx.administrativeObligationSite.upsert({
           where: { obligationId_siteId: { obligationId: obligation.id, siteId: site.id } },
           update: { scopeRole: cleanOptionalString(parsed.data.scopeRole), isActive: true },
           create: { obligationId: obligation.id, siteId: site.id, scopeRole: cleanOptionalString(parsed.data.scopeRole) },
         });
-        await audit(session.userId, "corporate.obligation.site.linked", obligation.id, { siteId: site.id }, tx);
+        await audit(session.userId, "corporate.obligation.site.linked", obligation.id, reactivated ? { siteId: site.id, reactivated: true } : { siteId: site.id }, tx);
       }
       return { affected: obligations.length };
     });
