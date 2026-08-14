@@ -5,7 +5,7 @@ export type AuditAction =
   | "admin.login" | "user.created" | "user.role_changed" | "user.password_reset" | "user.password_changed" | "user.removed"
   | "invite.created" | "invite.resent" | "invite.revoked" | "candidate.consented" | "assessment.submitted" | "result.viewed"
   | "export.downloaded" | "candidate.deleted" | "data.purged" | "assessment.seeded" | "assessment.created" | "assessment.duplicated"
-  | "assessment.published" | "assessment.archived" | "draft.validated" | "round.created" | "round.opened" | "round.closed" | "round.archived"
+  | "assessment.published" | "assessment.archived" | "assessment.imported" | "draft.validated" | "round.created" | "round.opened" | "round.closed" | "round.archived"
   | "corporate.counterparty.created" | "corporate.counterparty.updated" | "corporate.counterparty.contact.created" | "corporate.counterparty.contact.updated"
   | "corporate.site.created" | "corporate.site.updated" | "corporate.site.coverage.created" | "corporate.site.coverage.updated"
   | "corporate.obligation.created" | "corporate.obligation.updated" | "corporate.obligation.activated" | "corporate.obligation.ended" | "corporate.obligation.cancelled"

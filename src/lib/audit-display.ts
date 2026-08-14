@@ -20,6 +20,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "assessment.seeded": "Assessment seeded",
   "assessment.created": "Assessment created",
   "assessment.duplicated": "Assessment duplicated",
+  "assessment.imported": "Assessment imported",
   "assessment.published": "Assessment published",
   "assessment.archived": "Assessment archived",
   "draft.validated": "Draft validated",

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DuplicateAssessmentButton, NewAssessmentButton } from "@/components/assessment-builder/assessments-toolbar";
+import { ImportAssessmentButton } from "@/components/assessment-builder/import-assessment-button";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,7 +74,14 @@ export default async function AssessmentsPage() {
 				eyebrow="Workspace"
 				title="Assessments"
 				description="Every instrument in the workspace, its latest published version, and where it is in use. Preview any of them; the visual builder is live for edits, duplicates, and new drafts."
-				actions={isAdmin ? <NewAssessmentButton /> : undefined}
+				actions={
+					isAdmin ? (
+						<div className="flex flex-wrap items-center gap-2">
+							<ImportAssessmentButton />
+							<NewAssessmentButton />
+						</div>
+					) : undefined
+				}
 			/>
 
 			{rows.length === 0 ? (

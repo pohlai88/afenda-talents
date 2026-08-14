@@ -102,8 +102,29 @@ export const draftInstrumentDocumentSchema = z.object({
 
 export type DraftInstrumentDocument = z.infer<typeof draftInstrumentDocumentSchema>;
 
+/**
+ * Published documents store `type: "scale"`, but the builder's draft vocabulary is
+ * still "likert". Map on read so a published version can be reopened as a draft —
+ * the mirror of normalizeLegacyDocument, which maps "likert" to "scale" on the
+ * document side. Without this, duplicating an assessment or starting a new draft
+ * throws for anything published after the rename.
+ */
+function normalizeToDraftShape(input: unknown): unknown {
+	if (typeof input !== "object" || input === null) return input;
+	const doc = input as Record<string, unknown>;
+	if (!Array.isArray(doc.items)) return input;
+	return {
+		...doc,
+		items: doc.items.map((item) => {
+			if (typeof item !== "object" || item === null) return item;
+			const record = item as Record<string, unknown>;
+			return record.type === "scale" ? { ...record, type: "likert" } : record;
+		}),
+	};
+}
+
 export function parseDraftDocument(input: unknown): DraftInstrumentDocument {
-	return draftInstrumentDocumentSchema.parse(input);
+	return draftInstrumentDocumentSchema.parse(normalizeToDraftShape(input));
 }
 
 export function blankInstrumentDocument(title = "Untitled assessment"): DraftInstrumentDocument {
