@@ -40,8 +40,18 @@ export function RoundContextSwitcher({
     );
   }
 
+  // Base UI's Select.Value renders the raw `value` unless Root is given an
+  // items map. Without this the top bar showed the round's cuid.
+  const roundLabels = Object.fromEntries(
+    rounds.map((round) => [
+      round.id,
+      `${round.name} · ${round.assessmentTitle}`,
+    ]),
+  );
+
   return (
     <Select
+      items={roundLabels}
       value={currentRoundId}
       onValueChange={(roundId) => {
         if (!roundId || roundId === currentRoundId) return;

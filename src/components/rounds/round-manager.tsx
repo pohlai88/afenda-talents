@@ -155,6 +155,12 @@ export function RoundManager({
   const [name, setName] = useState("");
   const [versionId, setVersionId] = useState(versionOptions[0]?.id ?? "");
 
+  // Base UI's SelectValue renders the raw value unless Root gets an items map;
+  // without this the trigger showed the version's cuid.
+  const versionLabels = Object.fromEntries(
+    versionOptions.map((v) => [v.id, `${v.assessmentTitle} v${v.versionNumber}`]),
+  );
+
   const [edit, setEdit] = useState<RoundRow | null>(null);
   const [editName, setEditName] = useState("");
   const [editVersionId, setEditVersionId] = useState("");
@@ -275,7 +281,7 @@ export function RoundManager({
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-round-version">Assessment version</Label>
-              <Select value={editVersionId} onValueChange={(v) => v && setEditVersionId(v)}>
+              <Select items={versionLabels} value={editVersionId} onValueChange={(v) => v && setEditVersionId(v)}>
                 <SelectTrigger id="edit-round-version" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -445,7 +451,7 @@ export function RoundManager({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="new-round-version">Assessment version</Label>
-                  <Select value={versionId} onValueChange={(v) => v && setVersionId(v)}>
+                  <Select items={versionLabels} value={versionId} onValueChange={(v) => v && setVersionId(v)}>
                     <SelectTrigger id="new-round-version" className="w-full">
                       <SelectValue placeholder="Choose a published version" />
                     </SelectTrigger>

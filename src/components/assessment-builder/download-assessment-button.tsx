@@ -53,6 +53,7 @@ export function DownloadAssessmentButton({
           <Label className="flex flex-col gap-1.5">
             Version
             <Select
+              items={{ draft: "Current draft", published: "Latest published" }}
               value={source}
               onValueChange={(v) => setSource(v as "draft" | "published")}
             >
@@ -75,7 +76,11 @@ export function DownloadAssessmentButton({
 
           <Label className="flex flex-col gap-1.5">
             Format
-            <Select value={format} onValueChange={(v) => setFormat(v as DownloadFormat)}>
+            <Select
+              items={{ xlsx: "Excel", json: "JSON", csv: "CSV — items only" }}
+              value={format}
+              onValueChange={(v) => setFormat(v as DownloadFormat)}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>

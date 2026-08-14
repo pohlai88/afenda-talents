@@ -58,6 +58,11 @@ export function DownloadTemplateButton() {
 
   const formatHint = FORMAT_COPY.find((f) => f.value === format)?.hint ?? "";
 
+  // Base UI's SelectValue renders the raw `value` unless Root is given an items
+  // map — without these the closed trigger reads "blank" and "xlsx".
+  const kindLabels = Object.fromEntries(KIND_COPY.map((k) => [k.value, k.label]));
+  const formatLabels = Object.fromEntries(FORMAT_COPY.map((f) => [f.value, f.label]));
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant="outline" />}>
@@ -76,7 +81,7 @@ export function DownloadTemplateButton() {
         <div className="flex flex-col gap-4 py-4">
           <Label className="flex flex-col gap-1.5">
             Starting point
-            <Select value={kind} onValueChange={(v) => setKind(v as TemplateKind)}>
+            <Select items={kindLabels} value={kind} onValueChange={(v) => setKind(v as TemplateKind)}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -95,7 +100,7 @@ export function DownloadTemplateButton() {
 
           <Label className="flex flex-col gap-1.5">
             Format
-            <Select value={format} onValueChange={(v) => setFormat(v as DownloadFormat)}>
+            <Select items={formatLabels} value={format} onValueChange={(v) => setFormat(v as DownloadFormat)}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>

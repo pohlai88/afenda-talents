@@ -231,6 +231,10 @@ export function ImportAssessmentButton({
 							<Label className="flex flex-col gap-1.5">
 								Import as
 								<Select
+									items={{
+										ORGANISATION: "Assessment — send this to candidates",
+										TEMPLATE: "Template — a blueprint to copy from",
+									}}
 									value={targetKind}
 									onValueChange={(v) => setTargetKind(v as "TEMPLATE" | "ORGANISATION")}
 									disabled={busy}
