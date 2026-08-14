@@ -7,18 +7,23 @@
  * (cannot_connect_now) until recovery finishes. A plain TCP check passes here
  * and hands a broken DB to `next dev`, which is how you get a wedged server.
  *
- * Usage:  node scripts/wait-for-db.mjs
+ * Usage:  pnpm exec tsx scripts/wait-for-db.mts
  * Env:    DATABASE_URL (required), DB_WAIT_TIMEOUT_MS (optional, default 30000)
  *
  * predev runs before Next loads env files, so this script reads `.env` /
  * `.env.local` itself. The URL is passed through `stabilizePgUrl` — the same
  * helper `db.ts` uses — so sslmode / uselibpqcompat match the app.
+ *
+ * Runs under tsx, like scripts/local-db.ts and prisma/seed.ts, so it can import
+ * the one `stabilizePgUrl`. That function's own comment explains how subtle the
+ * sslmode/uselibpqcompat pairing is; a second hand-kept copy for plain node to
+ * import is a liability, not a convenience.
  */
 import { config } from "dotenv";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "pg";
-import { stabilizePgUrl } from "../src/lib/pg-url.mjs";
+import { stabilizePgUrl } from "../src/lib/pg-url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 config({ path: resolve(root, ".env") });
@@ -35,7 +40,7 @@ const timeoutMs = Number(process.env.DB_WAIT_TIMEOUT_MS ?? 30_000);
 const pollMs = 500;
 const deadline = Date.now() + timeoutMs;
 
-let lastError = null;
+let lastError: (Error & { code?: string }) | null = null;
 let announced = false;
 
 while (Date.now() < deadline) {
@@ -51,7 +56,7 @@ while (Date.now() < deadline) {
 		if (announced) console.log("[wait-for-db] ready");
 		process.exit(0);
 	} catch (err) {
-		lastError = err;
+		lastError = err as Error & { code?: string };
 		await client.end().catch(() => {});
 
 		if (!announced) {
@@ -78,7 +83,7 @@ console.error(
 );
 process.exit(1);
 
-function safeHost(connectionString) {
+function safeHost(connectionString: string): string {
 	try {
 		const u = new URL(connectionString);
 		return `${u.hostname}:${u.port || 5432}`;

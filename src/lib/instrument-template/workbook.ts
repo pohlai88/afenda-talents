@@ -638,11 +638,17 @@ export async function parseWorkbook(buf: Buffer): Promise<ParseWorkbookResult> {
 				sectionId: ccId(itemsSheet, rowNum, 7),
 			};
 
+			// An empty cell in a text column is an empty string, not an absent
+			// field. Leaving the key unset makes the draft schema reject the row
+			// with "expected string, received undefined" — which is exactly what
+			// a blank template is: every text cell legitimately empty.
 			const textVal = ccText(itemsSheet, rowNum, 4);
 			if (textVal !== null) item.text = textVal;
+			else if (typeVal !== "info") item.text = "";
 
 			const bodyVal = ccText(itemsSheet, rowNum, 5);
 			if (bodyVal !== null) item.body = bodyVal;
+			else if (typeVal === "info") item.body = "";
 
 			const reqRaw = canonicalCell(getCellValue(itemsSheet, rowNum, 6), "bool");
 			if (reqRaw.ok && reqRaw.value !== null) {
