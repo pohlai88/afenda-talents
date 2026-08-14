@@ -68,7 +68,7 @@ export function buildCandidateBlocks(
 			blocks.push({
 				kind: "item",
 				item:
-					item.type === "likert"
+					item.type === "scale"
 						? {
 								id: item.id,
 								order,

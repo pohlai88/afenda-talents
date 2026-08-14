@@ -49,7 +49,7 @@ export async function GET(
   const itemMeta = new Map(
     answerable.map((item, index) => {
       let dimension = "";
-      if (item.type === "likert") {
+      if (item.type === "scale") {
         dimension = item.dimensionId
           ? (versionDoc.dimensions.find(
               (dimensionItem) => dimensionItem.id === item.dimensionId,

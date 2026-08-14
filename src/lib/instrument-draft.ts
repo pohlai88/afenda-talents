@@ -17,6 +17,9 @@ const draftLikertSchema = z.object({
 	scored: z.boolean(),
 	dimensionId: z.string().nullable(),
 	reverseScored: z.boolean(),
+	// Optional: canonicalizeDocumentOrder stamps it, and the workbook round-trip
+	// carries it back. Stripping it here silently reorders an imported draft.
+	order: z.number().int().optional(),
 });
 
 const draftTextItemSchema = z.object({
@@ -26,12 +29,14 @@ const draftTextItemSchema = z.object({
 	required: z.boolean(),
 	helperText: z.string().optional(),
 	maxLength: z.number().int().positive().optional(),
+	order: z.number().int().optional(),
 });
 
 const draftInfoSchema = z.object({
 	type: z.literal("info"),
 	id: z.string().min(1),
 	body: z.string(),
+	order: z.number().int().optional(),
 });
 
 const draftItemSchema = z.discriminatedUnion("type", [
