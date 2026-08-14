@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/wait-for-db.mjs",
     "dev": "next dev",
+    "db:wait": "node scripts/wait-for-db.mjs",
     "build": "prisma generate && next build",
     "vercel-build": "pnpm check && if [ \"$VERCEL_ENV\" = \"production\" ]; then pnpm db:deploy; fi",
     "start": "next start",
