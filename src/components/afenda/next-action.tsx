@@ -34,23 +34,24 @@ export function AfendaNextAction({
         <CardTitle className="text-sm">{title}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
-        <dl className="grid gap-3">
-          <div>
+        {/* A dl allows one level of div grouping around each dt/dd pair, not two — the
+            side-by-side row is laid out by spanning columns rather than by nesting, so
+            every pair stays a direct child of the list. */}
+        <dl className="grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
             <dt className="font-mono text-[0.6875rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">Do this</dt>
             <dd className="mt-1 text-sm font-medium leading-6">{action}</dd>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <dt className="font-mono text-[0.6875rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">Why</dt>
-              <dd className="mt-1 text-sm leading-6 text-muted-foreground">{why}</dd>
-            </div>
-            {who ? (
-              <div>
-                <dt className="font-mono text-[0.6875rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">Who</dt>
-                <dd className="mt-1 text-sm leading-6 text-muted-foreground">{who}</dd>
-              </div>
-            ) : null}
+          <div>
+            <dt className="font-mono text-[0.6875rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">Why</dt>
+            <dd className="mt-1 text-sm leading-6 text-muted-foreground">{why}</dd>
           </div>
+          {who ? (
+            <div>
+              <dt className="font-mono text-[0.6875rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">Who</dt>
+              <dd className="mt-1 text-sm leading-6 text-muted-foreground">{who}</dd>
+            </div>
+          ) : null}
         </dl>
         {children ? <div className="flex flex-wrap gap-2 sm:justify-end">{children}</div> : null}
       </CardContent>

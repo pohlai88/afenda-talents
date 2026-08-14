@@ -36,7 +36,13 @@ export function AfendaReadinessChecklist({
             <CardTitle>{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
           </div>
-          <div className="shrink-0 text-right" aria-label={`${ready} of ${requiredItems.length} required items ready`}>
+          {/* aria-label is ignored on a generic div, so the count is carried by real
+              off-screen text instead — the split "3/5" and "required ready" fragments
+              below read poorly on their own. */}
+          <div className="shrink-0 text-right">
+            <p className="sr-only">
+              {ready} of {requiredItems.length} required items ready
+            </p>
             <p className="text-lg font-semibold tabular-nums" aria-hidden="true">{ready}/{requiredItems.length}</p>
             <p className="text-xs text-muted-foreground" aria-hidden="true">required ready</p>
           </div>
