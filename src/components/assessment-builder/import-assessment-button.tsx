@@ -16,6 +16,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { apiErrorMessage } from "@/lib/api-responses";
 import { IMPORT_FORMATS, MAX_IMPORT_BYTES, type ImportFormat } from "@/lib/instrument-import";
 
@@ -92,6 +99,7 @@ export function ImportAssessmentButton({
 	const [preview, setPreview] = useState<PreviewOk | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [targetKind, setTargetKind] = useState<"TEMPLATE" | "ORGANISATION">("ORGANISATION");
 
 	function reset() {
 		setFile(null);
@@ -152,6 +160,7 @@ export function ImportAssessmentButton({
 					targetId,
 					content: await fileToBase64(file),
 					previewHash: preview.documentHash,
+					targetKind,
 				}),
 			});
 			const body = await response.json().catch(() => ({}));
@@ -215,6 +224,29 @@ export function ImportAssessmentButton({
 								}}
 							/>
 						</Label>
+
+						{targetId === null && (
+							<Label className="flex flex-col gap-1.5">
+								Import as
+								<Select
+									value={targetKind}
+									onValueChange={(v) => setTargetKind(v as "TEMPLATE" | "ORGANISATION")}
+									disabled={busy}
+								>
+									<SelectTrigger className="w-full">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="ORGANISATION">
+											Assessment — send this to candidates
+										</SelectItem>
+										<SelectItem value="TEMPLATE">
+											Template — a blueprint to copy from
+										</SelectItem>
+									</SelectContent>
+								</Select>
+							</Label>
+						)}
 
 						{preview && (
 							<div className="flex flex-col gap-3 rounded-md border p-3 text-sm">
