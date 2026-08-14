@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-admin";
 import { db } from "@/lib/db";
-import { importPreviewSchema, runImportPreview } from "@/lib/instrument-import";
+import {
+  ImportTargetError,
+  assertImportableTarget,
+  importPreviewSchema,
+  runImportPreview,
+} from "@/lib/instrument-import";
 
 export const runtime = "nodejs";
 
@@ -39,11 +44,13 @@ export async function POST(request: Request) {
     if (!assessment) {
       return NextResponse.json({ error: "Assessment not found" }, { status: 404 });
     }
-    if (assessment.status === "ARCHIVED") {
-      return NextResponse.json(
-        { error: "Archived assessments cannot be imported into" },
-        { status: 409 },
-      );
+    try {
+      assertImportableTarget(assessment);
+    } catch (error) {
+      if (error instanceof ImportTargetError) {
+        return NextResponse.json({ error: error.message }, { status: error.status });
+      }
+      throw error;
     }
     // Import edits the draft; fall back to the latest published document when
     // no draft is open, which is what the builder would show.

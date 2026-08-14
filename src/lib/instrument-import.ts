@@ -129,3 +129,35 @@ export function issueCounts(issues: ImportIssueOut[]): {
 		soft: issues.filter((i) => i.severity !== "hard").length,
 	};
 }
+
+export class ImportTargetError extends Error {
+	constructor(
+		message: string,
+		readonly status: number,
+	) {
+		super(message);
+		this.name = "ImportTargetError";
+	}
+}
+
+/**
+ * SYSTEM assessments are seed-owned: they may be downloaded as examples but never
+ * created, updated, or replaced by import (D24 §3, §8.1). Checked at preview as
+ * well as commit — a preview that succeeds where commit refuses is worse than
+ * refusing early.
+ */
+export function assertImportableTarget(assessment: {
+	isSystem: boolean;
+	kind: string;
+	status: string;
+}): void {
+	if (assessment.isSystem || assessment.kind === "SYSTEM") {
+		throw new ImportTargetError(
+			"This is a seed-owned instrument and cannot be changed by import. Duplicate it first, then import into the copy.",
+			409,
+		);
+	}
+	if (assessment.status === "ARCHIVED") {
+		throw new ImportTargetError("Archived assessments cannot be imported into", 409);
+	}
+}

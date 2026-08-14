@@ -4,6 +4,8 @@ import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { parseDraftDocument } from "@/lib/instrument-draft";
 import {
+  ImportTargetError,
+  assertImportableTarget,
   importCommitSchema,
   issueCounts,
   runImportPreview,
@@ -101,11 +103,13 @@ export async function POST(request: Request) {
           include: { versions: { orderBy: { versionNumber: "desc" }, take: 1 } },
         });
         if (!assessment) throw new ImportCommitError("Not found", 404);
-        if (assessment.status === "ARCHIVED") {
-          throw new ImportCommitError(
-            "Archived assessments cannot be imported into",
-            409,
-          );
+        try {
+          assertImportableTarget(assessment);
+        } catch (error) {
+          if (error instanceof ImportTargetError) {
+            throw new ImportCommitError(error.message, error.status);
+          }
+          throw error;
         }
 
         const outcome = await runImportPreview({
