@@ -36,6 +36,14 @@ export default async function ObligationLinesPage({ params }: { params: Promise<
   });
   if (!obligation) notFound();
 
+  // The nested include above is capped at 4 per line for the summary cards. Collision
+  // detection in the add-due form needs every label for a date, so fetch them flat.
+  const dueLabels = await db.obligationDueItem.findMany({
+    where: { obligationId: id },
+    select: { lineId: true, dueDate: true, periodLabel: true },
+    orderBy: { dueDate: "desc" },
+  });
+
   const summaries: ObligationLineSummaryRow[] = obligation.lines.map((line) => ({
     id: line.id,
     code: line.code,
@@ -73,6 +81,9 @@ export default async function ObligationLinesPage({ params }: { params: Promise<
     notes: line.notes,
     isActive: line.isActive,
     dueCount: line._count.dueItems,
+    dueItems: dueLabels
+      .filter((due) => due.lineId === line.id)
+      .map((due) => ({ dueDate: formatDateOnly(due.dueDate), periodLabel: due.periodLabel })),
   }));
 
   return (

@@ -89,3 +89,28 @@ export const patchObligationLineSchema = z.discriminatedUnion("action", [
 ]);
 
 export const createDueItemWithLineSchema = createDueItemSchema.extend({ lineId: z.string().trim().min(1).optional() });
+
+/** Mirrors the cap on `periodLabel` in `createDueItemSchema`. */
+export const PERIOD_LABEL_MAX_LENGTH = 80;
+
+/**
+ * A line may hold several due items on one date, so the period label is what tells
+ * them apart — and what the unique key uses. Given the labels already taken for that
+ * line and date, return a free one, never exceeding the schema's cap.
+ */
+export function suggestPeriodLabel(base: string, taken: string[]): string {
+  const trimmed = base.trim();
+  const used = new Set(taken.map((label) => label.trim()));
+  if (!used.has(trimmed)) return trimmed.slice(0, PERIOD_LABEL_MAX_LENGTH);
+
+  for (let counter = 2; counter <= used.size + 2; counter += 1) {
+    const suffix = ` · ${counter}`;
+    const candidate = `${trimmed.slice(0, PERIOD_LABEL_MAX_LENGTH - suffix.length)}${suffix}`;
+    if (!used.has(candidate)) return candidate;
+  }
+  return trimmed.slice(0, PERIOD_LABEL_MAX_LENGTH);
+}
+
+export function duplicateDueItemMessage(periodLabel: string): string {
+  return `A due item labelled "${periodLabel}" already exists for that line and date. Give this one a different period label.`;
+}

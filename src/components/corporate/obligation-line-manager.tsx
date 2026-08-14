@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMoney } from "@/components/corporate/status";
-import { OBLIGATION_LINE_TYPE_SUGGESTIONS } from "@/lib/corporate-admin/obligation-lines";
+import { defaultPeriodLabel } from "@/lib/corporate-admin/domain";
+import { OBLIGATION_LINE_TYPE_SUGGESTIONS, suggestPeriodLabel } from "@/lib/corporate-admin/obligation-lines";
 
 export type ObligationLineRow = {
   id: string;
@@ -36,6 +37,7 @@ export type ObligationLineRow = {
   notes: string | null;
   isActive: boolean;
   dueCount: number;
+  dueItems: { dueDate: string; periodLabel: string }[];
 };
 
 type LineDraft = {
@@ -117,6 +119,9 @@ export function ObligationLineManager({
   const [manualPeriod, setManualPeriod] = useState("");
   const [manualAmount, setManualAmount] = useState("");
   const canAdd = isAdmin && obligationStatus !== "ENDED" && obligationStatus !== "CANCELLED";
+  const clashingLabels = manualLine && manualDueDate
+    ? manualLine.dueItems.filter((due) => due.dueDate === manualDueDate).map((due) => due.periodLabel)
+    : [];
 
   function payloadFromDraft(source: LineDraft) {
     return {
@@ -321,7 +326,19 @@ export function ObligationLineManager({
 
     <AfendaResponsiveOverlay open={manualLine !== null} onOpenChange={(open) => !open && setManualLine(null)} title={manualLine ? `Add manual due · ${manualLine.name}` : "Add manual due"} description="Add an exceptional or one-off occurrence to this specific agreement line without advancing its recurrence pointer." contentClassName="sm:max-w-xl" footer={<><Button type="button" variant="outline" disabled={busy} onClick={() => setManualLine(null)}>Cancel</Button><Button type="button" disabled={busy || !manualDueDate} onClick={() => void addManualDue()}>{busy ? "Adding…" : "Add due item"}</Button></>}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <AfendaField label="Due date" id="line-manual-due" required><Input id="line-manual-due" type="date" value={manualDueDate} onChange={(event) => setManualDueDate(event.target.value)} /></AfendaField>
+        <AfendaField label="Due date" id="line-manual-due" required><Input id="line-manual-due" type="date" value={manualDueDate} onChange={(event) => {
+          const nextDate = event.target.value;
+          setManualDueDate(nextDate);
+          const taken = manualLine
+            ? manualLine.dueItems.filter((due) => due.dueDate === nextDate).map((due) => due.periodLabel)
+            : [];
+          setManualPeriod(taken.length === 0 ? "" : suggestPeriodLabel(defaultPeriodLabel(nextDate), taken));
+        }} /></AfendaField>
+        {clashingLabels.length > 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {clashingLabels.length} already on this date: {clashingLabels.join(", ")}. Keep the suggested period label to add a second item to this line, or cancel and add a separate agreement line if this is a different charge.
+          </p>
+        ) : null}
         <AfendaField label="Period label" id="line-manual-period"><Input id="line-manual-period" value={manualPeriod} onChange={(event) => setManualPeriod(event.target.value)} placeholder="Deposit or 2026-08" /></AfendaField>
         <AfendaField label={`Expected amount (${manualLine?.currency ?? ""})`} id="line-manual-amount" className="sm:col-span-2"><Input id="line-manual-amount" type="number" min="0" step="0.01" value={manualAmount} onChange={(event) => setManualAmount(event.target.value)} /></AfendaField>
       </div>
