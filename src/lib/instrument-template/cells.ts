@@ -4,7 +4,10 @@ export type CanonicalCellResult =
 	| { ok: true; value: string | boolean | number | null }
 	| { ok: false; issue: "scientific_notation" | "invalid" };
 
-const SCI_NOTATION = /e[+-]?\d+/i;
+// Anchored to the whole (trimmed) value: Excel renders an over-long numeric id as
+// e.g. "1.23E+21", but a normal alphanumeric id such as "EXE-1" also contains a
+// bare "e" followed by "-1" and must not be flagged.
+const SCI_NOTATION = /^-?\d+(?:\.\d+)?e[+-]?\d+$/i;
 
 function isEmpty(raw: unknown): boolean {
 	if (raw === null || raw === undefined) {
