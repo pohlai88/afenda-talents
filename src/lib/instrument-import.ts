@@ -35,6 +35,8 @@ export const importPreviewSchema = z.object({
 export const importCommitSchema = importPreviewSchema.extend({
 	/** sha256 of the document the admin approved in the preview. */
 	previewHash: z.string().regex(/^[0-9a-f]{64}$/),
+	/** Kind for a create. SYSTEM is deliberately unreachable through the API. */
+	targetKind: z.enum(["TEMPLATE", "ORGANISATION"]).default("ORGANISATION"),
 });
 
 export type ImportPreviewInput = z.infer<typeof importPreviewSchema>;

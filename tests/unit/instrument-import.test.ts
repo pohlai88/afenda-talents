@@ -195,3 +195,39 @@ describe("issueCounts", () => {
 		).toEqual({ hard: 1, soft: 2 });
 	});
 });
+
+describe("import commit schema — target kind", () => {
+	it("defaults to ORGANISATION when omitted", () => {
+		const parsed = importCommitSchema.safeParse({
+			format: "json",
+			content: "aGk=",
+			targetId: null,
+			previewHash: "a".repeat(64),
+		});
+		expect(parsed.success).toBe(true);
+		if (parsed.success) expect(parsed.data.targetKind).toBe("ORGANISATION");
+	});
+
+	it("accepts TEMPLATE", () => {
+		const parsed = importCommitSchema.safeParse({
+			format: "json",
+			content: "aGk=",
+			targetId: null,
+			previewHash: "a".repeat(64),
+			targetKind: "TEMPLATE",
+		});
+		expect(parsed.success).toBe(true);
+		if (parsed.success) expect(parsed.data.targetKind).toBe("TEMPLATE");
+	});
+
+	it("refuses SYSTEM, which is not reachable through the API", () => {
+		const parsed = importCommitSchema.safeParse({
+			format: "json",
+			content: "aGk=",
+			targetId: null,
+			previewHash: "a".repeat(64),
+			targetKind: "SYSTEM",
+		});
+		expect(parsed.success).toBe(false);
+	});
+});

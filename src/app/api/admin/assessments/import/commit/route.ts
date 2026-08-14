@@ -10,6 +10,7 @@ import {
   issueCounts,
   runImportPreview,
 } from "@/lib/instrument-import";
+import { allocateAssessmentKey, kindFlags } from "@/lib/instrument-kind";
 
 export const runtime = "nodejs";
 
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { targetId, previewHash, ...input } = parsed.data;
+  const { targetId, previewHash, targetKind, ...input } = parsed.data;
   const preview = { ...input, targetId };
 
   try {
@@ -72,9 +73,9 @@ export async function POST(request: Request) {
       const counts = issueCounts(outcome.issues);
       const created = await db.assessment.create({
         data: {
+          key: allocateAssessmentKey(targetKind),
           title: draft.title,
-          kind: "ORGANISATION",
-          isSystem: false,
+          ...kindFlags(targetKind),
           status: "DRAFT",
           draftDocument: draft,
         },
