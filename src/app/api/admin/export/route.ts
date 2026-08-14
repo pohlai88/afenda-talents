@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-admin";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
+import { filePart } from "@/lib/instrument-download";
 import { orderedDimensionCodes } from "@/lib/instrument-labels";
 import {
   legendFromDocument,
@@ -17,15 +18,6 @@ function cell(value: string | number | boolean | null | undefined): string {
   const text = value === null || value === undefined ? "" : String(value);
   const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
   return `"${safe.replace(/"/g, '""')}"`;
-}
-
-function filePart(value: string): string {
-  const normalized = value
-    .normalize("NFKD")
-    .replace(/[^a-zA-Z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .toLowerCase();
-  return normalized || "round";
 }
 
 function flagColumn(ruleId: string): string {
