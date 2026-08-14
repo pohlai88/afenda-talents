@@ -100,7 +100,7 @@ describe("Corporate settlement and closure", () => {
       alreadyClosed: false,
     })).toEqual([
       "1 due item(s) remain open",
-      "1 payment approval(s) remain pending",
+      "1 payment request(s) remain pending or approved but unpaid",
       "2 recorded payment(s) remain unreconciled",
       "1 reconciliation item(s) remain unresolved",
     ]);

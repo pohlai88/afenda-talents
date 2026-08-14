@@ -77,7 +77,13 @@ async function resolveDueItem(tx: Tx, row: z.infer<typeof historicalPaymentRowSc
   if (row.currency && row.currency !== line.currency.toUpperCase()) throw new Error(`Imported currency ${row.currency} does not match line currency ${line.currency.toUpperCase()}`);
 
   const dueDate = parseDateOnly(row.dueDate!);
-  const existing = await tx.obligationDueItem.findUnique({ where: { lineId_dueDate: { lineId: line.id, dueDate } } });
+  // A line may now hold several due items on one date, distinguished by period
+  // label (20260813070000_allow_multiple_due_items_per_date), so the label is
+  // part of the identity — match on the same one the create below would use.
+  const periodLabel = cleanOptionalString(row.periodLabel) ?? defaultPeriodLabel(row.dueDate!);
+  const existing = await tx.obligationDueItem.findUnique({
+    where: { lineId_dueDate_periodLabel: { lineId: line.id, dueDate, periodLabel } },
+  });
   if (existing) {
     if (existing.status === "CANCELLED") throw new Error("Cancelled due items cannot receive historical payments");
     if (row.currency && row.currency !== existing.currency.toUpperCase()) throw new Error(`Imported currency ${row.currency} does not match due-item currency ${existing.currency.toUpperCase()}`);
@@ -88,7 +94,7 @@ async function resolveDueItem(tx: Tx, row: z.infer<typeof historicalPaymentRowSc
     data: {
       obligationId: obligation.id,
       lineId: line.id,
-      periodLabel: cleanOptionalString(row.periodLabel) ?? defaultPeriodLabel(row.dueDate!),
+      periodLabel,
       dueDate,
       expectedAmount: row.expectedAmount ?? row.paidAmount,
       currency: line.currency,
