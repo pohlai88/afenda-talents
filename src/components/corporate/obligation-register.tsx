@@ -7,7 +7,7 @@ import { AfendaFilterToolbar } from "@/components/afenda/filter-toolbar";
 import { AfendaEmptyState } from "@/components/afenda/page-state";
 import { AfendaResponsiveDataView } from "@/components/afenda/responsive-data-view";
 import { AfendaSelectFilter } from "@/components/afenda/select-filter";
-import { CorporateStatusBadge, formatMoney } from "@/components/corporate/status";
+import { CorporateStatusBadge, formatMoney, corporateStatusLabel } from "@/components/corporate/status";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -27,7 +27,7 @@ export function ObligationRegister({ rows, listFields }: { rows: ObligationRegis
   const [attentionFilter, setAttentionFilter] = useState<AttentionFilter>("ALL");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
 
-  const categoryOptions = useMemo(() => [{ value: "ALL", label: "All categories" }, ...Array.from(new Set(rows.map((row) => row.category))).sort().map((value) => ({ value, label: value.replaceAll("_", " ") }))], [rows]);
+  const categoryOptions = useMemo(() => [{ value: "ALL", label: "All categories" }, ...Array.from(new Set(rows.map((row) => row.category))).sort().map((value) => ({ value, label: corporateStatusLabel(value) }))], [rows]);
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
     return rows.filter((row) => {

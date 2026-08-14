@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { SITE_TYPE_SUGGESTIONS } from "@/lib/corporate-admin/domain";
+import { corporateStatusLabel } from "@/components/corporate/status";
 
 type SiteDraft = {
   code: string;
@@ -128,7 +129,7 @@ export function SiteManager({ rows, definitions, isAdmin }: { rows: SiteRow[]; d
   const [editingId, setEditingId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const typeOptions = useMemo(() => [{ value: "ALL", label: "All site types" }, ...Array.from(new Set([...SITE_TYPE_SUGGESTIONS, ...rows.map((row) => row.type)])).sort().map((value) => ({ value, label: value.replaceAll("_", " ") }))], [rows]);
+  const typeOptions = useMemo(() => [{ value: "ALL", label: "All site types" }, ...Array.from(new Set([...SITE_TYPE_SUGGESTIONS, ...rows.map((row) => row.type)])).sort().map((value) => ({ value, label: corporateStatusLabel(value) }))], [rows]);
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((row) => {
@@ -220,14 +221,14 @@ export function SiteManager({ rows, definitions, isAdmin }: { rows: SiteRow[]; d
     finally { setUpdatingId(null); }
   }
 
-  const desktop = <Table><TableHeader><TableRow><TableHead>Site</TableHead><TableHead>Type</TableHead><TableHead>Organisation</TableHead><TableHead>Location</TableHead><TableHead className="text-right">Counterparties</TableHead><TableHead className="text-right">Obligations</TableHead><TableHead>Status</TableHead><TableHead className="sr-only">Actions</TableHead></TableRow></TableHeader><TableBody>{filtered.map((row) => <TableRow key={row.id}><TableCell><Link href={`/admin/corporate/sites/${row.id}`} className="font-medium underline-offset-4 hover:underline">{row.name}</Link><p className="font-mono text-xs text-muted-foreground">{row.code}</p></TableCell><TableCell>{row.type.replaceAll("_", " ")}</TableCell><TableCell>{row.organization || "—"}</TableCell><TableCell className="text-muted-foreground">{[row.city, row.stateRegion].filter(Boolean).join(", ") || "—"}</TableCell><TableCell className="text-right tabular-nums">{row.counterparties}</TableCell><TableCell className="text-right tabular-nums">{row.obligations}</TableCell><TableCell><Badge variant={row.isActive ? "default" : "secondary"}>{row.isActive ? "Active" : "Inactive"}</Badge></TableCell><TableCell>{isAdmin ? <div className="flex flex-wrap gap-2">
+  const desktop = <Table><TableHeader><TableRow><TableHead>Site</TableHead><TableHead>Type</TableHead><TableHead>Organisation</TableHead><TableHead>Location</TableHead><TableHead className="text-right">Counterparties</TableHead><TableHead className="text-right">Obligations</TableHead><TableHead>Status</TableHead><TableHead className="sr-only">Actions</TableHead></TableRow></TableHeader><TableBody>{filtered.map((row) => <TableRow key={row.id}><TableCell><Link href={`/admin/corporate/sites/${row.id}`} className="font-medium underline-offset-4 hover:underline">{row.name}</Link><p className="font-mono text-xs text-muted-foreground">{row.code}</p></TableCell><TableCell>{corporateStatusLabel(row.type)}</TableCell><TableCell>{row.organization || "—"}</TableCell><TableCell className="text-muted-foreground">{[row.city, row.stateRegion].filter(Boolean).join(", ") || "—"}</TableCell><TableCell className="text-right tabular-nums">{row.counterparties}</TableCell><TableCell className="text-right tabular-nums">{row.obligations}</TableCell><TableCell><Badge variant={row.isActive ? "default" : "secondary"}>{row.isActive ? "Active" : "Inactive"}</Badge></TableCell><TableCell>{isAdmin ? <div className="flex flex-wrap gap-2">
     <Button type="button" size="sm" variant="outline" onClick={() => beginEditSite(row)}>Edit</Button>
     {row.isActive
       ? <AfendaConfirmButton size="sm" variant="outline" title="Deactivate site?" description="The site stays in history and on existing obligations, but is no longer offered for new links or coverage." confirmLabel="Deactivate" onConfirm={() => setSiteActive(row, false)} busy={updatingId === row.id}>Deactivate</AfendaConfirmButton>
       : <Button type="button" size="sm" variant="outline" disabled={updatingId === row.id} onClick={() => void setSiteActive(row, true)}>Reactivate</Button>}
   </div> : null}</TableCell></TableRow>)}</TableBody></Table>;
 
-  const mobile = <ul className="flex flex-col gap-3">{filtered.map((row) => <li key={row.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><Link href={`/admin/corporate/sites/${row.id}`} className="font-medium underline-offset-4 hover:underline">{row.name}</Link><p className="font-mono text-xs text-muted-foreground">{row.code}</p></div><Badge variant={row.isActive ? "default" : "secondary"}>{row.isActive ? "Active" : "Inactive"}</Badge></div><p className="mt-2 text-sm text-muted-foreground">{row.type.replaceAll("_", " ")} · {row.counterparties} counterparties · {row.obligations} obligations</p>{isAdmin ? <div className="mt-3 flex flex-wrap gap-2">
+  const mobile = <ul className="flex flex-col gap-3">{filtered.map((row) => <li key={row.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><Link href={`/admin/corporate/sites/${row.id}`} className="font-medium underline-offset-4 hover:underline">{row.name}</Link><p className="font-mono text-xs text-muted-foreground">{row.code}</p></div><Badge variant={row.isActive ? "default" : "secondary"}>{row.isActive ? "Active" : "Inactive"}</Badge></div><p className="mt-2 text-sm text-muted-foreground">{corporateStatusLabel(row.type)} · {row.counterparties} counterparties · {row.obligations} obligations</p>{isAdmin ? <div className="mt-3 flex flex-wrap gap-2">
     <Button type="button" size="sm" variant="outline" onClick={() => beginEditSite(row)}>Edit</Button>
     {row.isActive
       ? <AfendaConfirmButton size="sm" variant="outline" title="Deactivate site?" description="The site stays in history and on existing obligations, but is no longer offered for new links or coverage." confirmLabel="Deactivate" onConfirm={() => setSiteActive(row, false)} busy={updatingId === row.id}>Deactivate</AfendaConfirmButton>

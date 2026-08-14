@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { corporateStatusLabel } from "@/components/corporate/status";
 
 const COLUMN_KEY = "afenda-corporate-operations-columns";
 
@@ -136,7 +137,7 @@ export function SpreadsheetOperationsGrid({ rows, sites, isAdmin }: {
         <TableBody>{rows.map((row) => <TableRow key={row.id} data-state={selected.has(row.id) ? "selected" : undefined}>
           <TableCell><Checkbox aria-label={`Select ${row.obligationCode} ${row.lineCode}`} checked={selected.has(row.id)} onCheckedChange={(checked) => toggleRow(row.id, checked === true)} /></TableCell>
           <TableCell><Link href={`/admin/corporate/obligations/${row.obligationId}`} className="font-medium hover:underline">{row.obligationTitle}</Link><span className="block font-mono text-xs text-muted-foreground">{row.obligationCode} · {row.obligationStatus}</span></TableCell>
-          <TableCell><Link href={`/admin/corporate/obligations/${row.obligationId}/lines`} className="font-medium hover:underline">{row.lineName}</Link><span className="block font-mono text-xs text-muted-foreground">{row.lineCode} · {row.lineType.replaceAll("_", " ")}{row.lineActive ? "" : " · INACTIVE"}</span></TableCell>
+          <TableCell><Link href={`/admin/corporate/obligations/${row.obligationId}/lines`} className="font-medium hover:underline">{row.lineName}</Link><span className="block font-mono text-xs text-muted-foreground">{row.lineCode} · {corporateStatusLabel(row.lineType)}{row.lineActive ? "" : " · INACTIVE"}</span></TableCell>
           {columns.sites ? <TableCell className="max-w-56"><span className="line-clamp-2">{row.sites.length > 0 ? row.sites.join(", ") : "—"}</span></TableCell> : null}
           {columns.counterparty ? <TableCell>{row.counterparty}</TableCell> : null}
           {columns.nextDue ? <TableCell className="min-w-36">{isAdmin && row.lineActive ? (editing?.id === row.id && editing.field === "nextDueDate" ? <Input autoFocus type="date" value={editValue} onChange={(event) => setEditValue(event.target.value)} onBlur={() => void saveCell(row)} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") setEditing(null); }} aria-label={`Next due date for ${row.lineName}`} /> : <button type="button" className="min-h-8 rounded px-2 font-mono text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => { setEditing({ id: row.id, field: "nextDueDate" }); setEditValue(row.nextDueDate ?? ""); }}>{row.nextDueDate ?? "Set date"}</button>) : <span className="font-mono text-xs">{row.nextDueDate ?? "—"}</span>}</TableCell> : null}

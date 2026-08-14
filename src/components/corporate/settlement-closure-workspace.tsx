@@ -9,7 +9,7 @@ import { AfendaField } from "@/components/afenda/form-layout";
 import { AfendaMetadataGrid } from "@/components/afenda/metadata-grid";
 import { AfendaEmptyState } from "@/components/afenda/page-state";
 import { AfendaResponsiveOverlay } from "@/components/afenda/responsive-overlay";
-import { CorporateStatusBadge, formatMoney, todayDateOnly } from "@/components/corporate/status";
+import { CorporateStatusBadge, formatMoney, todayDateOnly, corporateStatusLabel } from "@/components/corporate/status";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -129,7 +129,7 @@ export function SettlementClosureWorkspace({
         </CardHeader>
         <CardContent>
           {closure ? <AfendaMetadataGrid columns={3} items={[
-            { label: "Type", value: closure.terminationType?.replaceAll("_", " ") ?? "—" },
+            { label: "Type", value: corporateStatusLabel(closure.terminationType) ?? "—" },
             { label: "Notice date", value: closure.noticeDate ?? "—" },
             { label: "Effective date", value: closure.effectiveDate ?? "—" },
             { label: "Handover date", value: closure.handoverDate ?? "—" },
@@ -215,7 +215,7 @@ export function SettlementClosureWorkspace({
         open={editing !== null}
         onOpenChange={(open) => !open && setEditing(null)}
         title="Resolve reconciliation item"
-        description={editing ? `${editing.category.replaceAll("_", " ")} · ${editing.description}` : "Update final settlement evidence and status."}
+        description={editing ? `${corporateStatusLabel(editing.category)} · ${editing.description}` : "Update final settlement evidence and status."}
         footer={<><Button variant="outline" onClick={() => setEditing(null)} disabled={busy}>Cancel</Button><Button disabled={busy || !editing} onClick={async () => { if (!editing) return; const ok = await call(`/api/admin/corporate/closure-items/${editing.id}`, "PATCH", { actualAmount: actualAmount === "" ? null : Number(actualAmount), status: itemStatus, evidenceUrl: evidenceUrl || null, notes: itemNotes || null }, "Reconciliation item updated."); if (ok) setEditing(null); }}>Save resolution</Button></>}
       >
         <div className="grid gap-4 sm:grid-cols-2">

@@ -17,7 +17,7 @@ import type { CorporateCustomFieldDefinitionDto } from "@/components/corporate/c
 import { DueItemPanel } from "@/components/corporate/due-item-panel";
 import { ObligationActions } from "@/components/corporate/obligation-actions";
 import { ObligationRelationshipManager } from "@/components/corporate/obligation-relationship-manager";
-import { CorporateStatusBadge, formatMoney, todayDateOnly } from "@/components/corporate/status";
+import { CorporateStatusBadge, formatMoney, todayDateOnly, corporateStatusLabel } from "@/components/corporate/status";
 import type { DueItemDto } from "@/components/corporate/workflow-types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -180,7 +180,7 @@ export default async function ObligationDetailPage({ params }: { params: Promise
   const nextAction = obligationNextAction(uiInput);
 
   const termItems: AfendaMetadataItem[] = [
-    { label: "Category", value: obligation.category.replaceAll("_", " ") },
+    { label: "Category", value: corporateStatusLabel(obligation.category) },
     { label: "Primary counterparty", value: obligation.counterparty.name },
     { label: "Owner", value: obligation.owner?.name ?? "—" },
     { label: "Legacy asset / location reference", value: obligation.assetReference ?? "—" },
@@ -191,7 +191,7 @@ export default async function ObligationDetailPage({ params }: { params: Promise
     { label: "Schedule", value: obligation.recurring && obligation.recurrenceInterval && obligation.recurrenceUnit ? `Every ${obligation.recurrenceInterval} ${obligation.recurrenceUnit.toLowerCase()}${obligation.recurrenceInterval === 1 ? "" : "s"}` : "One-off / manual" },
     { label: "Renewal", value: obligation.renewalDate ? formatDateOnly(obligation.renewalDate) : obligation.autoRenew ? "Auto-renew enabled" : "—" },
     { label: "Notice", value: obligation.noticeDays == null ? "—" : `${obligation.noticeDays} days` },
-    { label: "Payment method", value: obligation.paymentMethod?.replaceAll("_", " ") ?? "—" },
+    { label: "Payment method", value: corporateStatusLabel(obligation.paymentMethod) ?? "—" },
     ...obligationFields.map((field) => ({ label: field.label, value: renderValue(obligationCustom[field.key]) })),
   ];
 

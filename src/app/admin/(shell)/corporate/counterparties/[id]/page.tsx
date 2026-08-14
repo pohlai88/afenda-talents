@@ -9,7 +9,7 @@ import { AfendaRecordHeader } from "@/components/afenda/record-header";
 import { AfendaSection } from "@/components/afenda/section";
 import { CounterpartyContactManager, type CounterpartyContactRow } from "@/components/corporate/counterparty-contact-manager";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
-import { CorporateStatusBadge } from "@/components/corporate/status";
+import { CorporateStatusBadge, corporateStatusLabel } from "@/components/corporate/status";
 import { Badge } from "@/components/ui/badge";
 import { requireWorkspaceUser } from "@/lib/auth-workspace";
 import { formatDateOnly } from "@/lib/corporate-admin/domain";
@@ -43,7 +43,7 @@ export default async function CounterpartyDetailPage({ params }: { params: Promi
     id: contact.id, name: contact.name, jobTitle: contact.jobTitle, department: contact.department, email: contact.email, phone: contact.phone, mobile: contact.mobile, role: contact.role, isPrimary: contact.isPrimary, isActive: contact.isActive, notes: contact.notes,
   }));
   const metadata = [
-    { label: "Type", value: counterparty.type.replaceAll("_", " ") },
+    { label: "Type", value: corporateStatusLabel(counterparty.type) },
     { label: "Registration no.", value: counterparty.registrationNo ?? "—" },
     { label: "Tax ID", value: counterparty.taxId ?? "—" },
     { label: "Country", value: counterparty.countryCode ?? "—" },
@@ -56,7 +56,7 @@ export default async function CounterpartyDetailPage({ params }: { params: Promi
 
   return (
     <AfendaPageFrame width="record">
-      <AfendaRecordHeader context="Corporate Administration · Counterparty" title={counterparty.name} identity={`${counterparty.code} · ${counterparty.type.replaceAll("_", " ")}`} status={<Badge variant={counterparty.isActive ? "default" : "secondary"}>{counterparty.isActive ? "Active" : "Inactive"}</Badge>} />
+      <AfendaRecordHeader context="Corporate Administration · Counterparty" title={counterparty.name} identity={`${counterparty.code} · ${corporateStatusLabel(counterparty.type)}`} status={<Badge variant={counterparty.isActive ? "default" : "secondary"}>{counterparty.isActive ? "Active" : "Inactive"}</Badge>} />
       <CorporateNav />
 
       <section aria-label="Counterparty operating metrics" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -74,11 +74,11 @@ export default async function CounterpartyDetailPage({ params }: { params: Promi
       <CounterpartyContactManager counterpartyId={counterparty.id} rows={contacts} isAdmin={session.role === "ADMIN"} />
 
       <AfendaSection title="Sites served" description="One counterparty can serve many sites with different service categories and effective periods.">
-        {counterparty.serviceCoverage.length === 0 ? <AfendaEmptyState compact title="No site coverage" description="Link this counterparty from a Site 360 workspace to make its operating footprint visible." /> : <ul className="divide-y">{counterparty.serviceCoverage.map((coverage) => <li key={coverage.id} className="flex flex-col gap-2 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><Link href={`/admin/corporate/sites/${coverage.site.id}`} className="font-medium underline-offset-4 hover:underline">{coverage.site.name}</Link><Badge variant={coverage.isActive ? "default" : "secondary"}>{coverage.isActive ? "Active" : "Inactive"}</Badge>{coverage.isPrimary ? <Badge variant="outline">Primary</Badge> : null}</div><p className="mt-1 text-sm text-muted-foreground">{coverage.serviceCategory.replaceAll("_", " ")} · {coverage.site.code}</p></div><p className="text-sm text-muted-foreground">{coverage.effectiveFrom ? formatDateOnly(coverage.effectiveFrom) : "—"} → {coverage.effectiveTo ? formatDateOnly(coverage.effectiveTo) : "open"}</p></li>)}</ul>}
+        {counterparty.serviceCoverage.length === 0 ? <AfendaEmptyState compact title="No site coverage" description="Link this counterparty from a Site 360 workspace to make its operating footprint visible." /> : <ul className="divide-y">{counterparty.serviceCoverage.map((coverage) => <li key={coverage.id} className="flex flex-col gap-2 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><Link href={`/admin/corporate/sites/${coverage.site.id}`} className="font-medium underline-offset-4 hover:underline">{coverage.site.name}</Link><Badge variant={coverage.isActive ? "default" : "secondary"}>{coverage.isActive ? "Active" : "Inactive"}</Badge>{coverage.isPrimary ? <Badge variant="outline">Primary</Badge> : null}</div><p className="mt-1 text-sm text-muted-foreground">{corporateStatusLabel(coverage.serviceCategory)} · {coverage.site.code}</p></div><p className="text-sm text-muted-foreground">{coverage.effectiveFrom ? formatDateOnly(coverage.effectiveFrom) : "—"} → {coverage.effectiveTo ? formatDateOnly(coverage.effectiveTo) : "open"}</p></li>)}</ul>}
       </AfendaSection>
 
       <AfendaSection title="Obligation roles" description="A counterparty can be primary, billing entity, broker, agent, insurer or another role across many obligations.">
-        {counterparty.obligationRoles.length === 0 ? <AfendaEmptyState compact title="No obligation roles" description="This counterparty is not linked to any obligation role yet." /> : <ul className="divide-y">{counterparty.obligationRoles.map((party) => <li key={`${party.obligationId}-${party.roleCode}`} className="flex flex-col gap-2 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><Link href={`/admin/corporate/obligations/${party.obligation.id}`} className="font-medium underline-offset-4 hover:underline">{party.obligation.title}</Link><CorporateStatusBadge status={party.obligation.status} />{party.isPrimary ? <Badge variant="outline">Primary</Badge> : null}</div><p className="mt-1 text-sm text-muted-foreground">{party.obligation.code} · {party.obligation.category.replaceAll("_", " ")}</p></div><Badge variant="secondary">{party.roleCode.replaceAll("_", " ")}</Badge></li>)}</ul>}
+        {counterparty.obligationRoles.length === 0 ? <AfendaEmptyState compact title="No obligation roles" description="This counterparty is not linked to any obligation role yet." /> : <ul className="divide-y">{counterparty.obligationRoles.map((party) => <li key={`${party.obligationId}-${party.roleCode}`} className="flex flex-col gap-2 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><Link href={`/admin/corporate/obligations/${party.obligation.id}`} className="font-medium underline-offset-4 hover:underline">{party.obligation.title}</Link><CorporateStatusBadge status={party.obligation.status} />{party.isPrimary ? <Badge variant="outline">Primary</Badge> : null}</div><p className="mt-1 text-sm text-muted-foreground">{party.obligation.code} · {corporateStatusLabel(party.obligation.category)}</p></div><Badge variant="secondary">{corporateStatusLabel(party.roleCode)}</Badge></li>)}</ul>}
       </AfendaSection>
     </AfendaPageFrame>
   );

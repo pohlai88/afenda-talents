@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CUSTOM_FIELD_GUIDANCE } from "@/lib/corporate-admin/custom-field-guidance";
+import { corporateStatusLabel } from "@/components/corporate/status";
 
 const scopes = ["COUNTERPARTY", "SITE", "OBLIGATION", "DUE_ITEM", "PAYMENT"] as const;
 const types = ["TEXT", "LONG_TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "URL", "EMAIL", "PHONE"] as const;
@@ -50,10 +51,10 @@ export function CustomFieldCreateForm() {
         <CardHeader><CardTitle>Add custom field</CardTitle><CardDescription>Add organisation-specific metadata without a database migration. Relationships such as Site↔Counterparty stay first-class relational data.</CardDescription></CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <AfendaField label="Record type" id="cf-scope" required guidance={CUSTOM_FIELD_GUIDANCE.scope}>
-            <Select value={scope} onValueChange={(v) => setScope(v as typeof scope)}><SelectTrigger id="cf-scope" className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{scopes.map((item) => <SelectItem key={item} value={item}>{item.replaceAll("_", " ").toLowerCase()}</SelectItem>)}</SelectGroup></SelectContent></Select>
+            <Select items={Object.fromEntries(scopes.map((s) => [s, corporateStatusLabel(s)]))} value={scope} onValueChange={(v) => setScope(v as typeof scope)}><SelectTrigger id="cf-scope" className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{scopes.map((item) => <SelectItem key={item} value={item}>{corporateStatusLabel(item)}</SelectItem>)}</SelectGroup></SelectContent></Select>
           </AfendaField>
           <AfendaField label="Field type" id="cf-type" required guidance={CUSTOM_FIELD_GUIDANCE.dataType}>
-            <Select value={dataType} onValueChange={(v) => setDataType(v as typeof dataType)}><SelectTrigger id="cf-type" className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{types.map((item) => <SelectItem key={item} value={item}>{item.replaceAll("_", " ").toLowerCase()}</SelectItem>)}</SelectGroup></SelectContent></Select>
+            <Select items={Object.fromEntries(types.map((t) => [t, corporateStatusLabel(t)]))} value={dataType} onValueChange={(v) => setDataType(v as typeof dataType)}><SelectTrigger id="cf-type" className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{types.map((item) => <SelectItem key={item} value={item}>{corporateStatusLabel(item)}</SelectItem>)}</SelectGroup></SelectContent></Select>
           </AfendaField>
           <AfendaField label="Stable key" id="cf-key" required guidance={CUSTOM_FIELD_GUIDANCE.key}>
             <Input id="cf-key" value={key} onChange={(e) => setKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"))} placeholder="policy_number" required />

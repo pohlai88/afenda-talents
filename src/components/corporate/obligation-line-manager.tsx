@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { formatMoney } from "@/components/corporate/status";
+import { formatMoney, corporateStatusLabel } from "@/components/corporate/status";
 import { defaultPeriodLabel } from "@/lib/corporate-admin/domain";
 import { OBLIGATION_LINE_TYPE_SUGGESTIONS, suggestPeriodLabel } from "@/lib/corporate-admin/obligation-lines";
 
@@ -295,7 +295,7 @@ export function ObligationLineManager({
           <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <CardTitle className="flex flex-wrap items-center gap-2 text-base">{line.name}<span className="font-mono text-xs font-normal text-muted-foreground">{line.code}</span></CardTitle>
-              <CardDescription>{line.lineType.replaceAll("_", " ").toLowerCase()} · {line.isActive ? "active" : "inactive"}</CardDescription>
+              <CardDescription>{corporateStatusLabel(line.lineType)} · {line.isActive ? "active" : "inactive"}</CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
               {isAdmin && line.isActive ? <Button type="button" size="sm" variant="outline" onClick={() => openEdit(line)}>Edit terms</Button> : null}

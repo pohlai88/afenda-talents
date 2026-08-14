@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { corporateStatusLabel } from "@/components/corporate/status";
 
 export type OperationsAgendaItem = {
   id: string;
@@ -190,7 +191,7 @@ export function CorporateOperationsConsole({
             {matrixRows.length === 0 || matrixCategories.length === 0 ? <AfendaEmptyState title="No service coverage matrix yet" description="Add Sites and service-coverage relationships to build this operational map." /> : (
               <div className="overflow-x-auto rounded-lg border">
                 <Table>
-                  <TableHeader><TableRow><TableHead className="sticky left-0 min-w-52 bg-card">Site</TableHead>{matrixCategories.map((category) => <TableHead key={category} className="min-w-48">{category.replaceAll("_", " ")}</TableHead>)}</TableRow></TableHeader>
+                  <TableHeader><TableRow><TableHead className="sticky left-0 min-w-52 bg-card">Site</TableHead>{matrixCategories.map((category) => <TableHead key={category} className="min-w-48">{corporateStatusLabel(category)}</TableHead>)}</TableRow></TableHeader>
                   <TableBody>{matrixRows.map((row) => <TableRow key={row.siteId}><TableCell className="sticky left-0 bg-card"><Link href={`/admin/corporate/sites/${row.siteId}`} className="font-medium hover:underline">{row.siteName}</Link><span className="block font-mono text-xs text-muted-foreground">{row.siteCode}</span></TableCell>{matrixCategories.map((category) => { const providers = row.providers[category] ?? []; return <TableCell key={category}>{providers.length === 0 ? <span className="text-muted-foreground">—</span> : <div className="flex flex-col gap-1">{providers.map((provider) => <Link key={provider.id} href={`/admin/corporate/counterparties/${provider.id}`} className="text-sm hover:underline">{provider.name}</Link>)}</div>}</TableCell>; })}</TableRow>)}</TableBody>
                 </Table>
               </div>
@@ -215,7 +216,7 @@ export function CorporateOperationsConsole({
               <div className="overflow-x-auto rounded-lg border">
                 <Table>
                   <TableHeader><TableRow><TableHead>Agreement</TableHead><TableHead>Line</TableHead><TableHead>Sites</TableHead><TableHead>Counterparty</TableHead><TableHead>Next due</TableHead><TableHead>Expected</TableHead><TableHead className="text-right">Open / overdue</TableHead></TableRow></TableHeader>
-                  <TableBody>{filteredGrid.map((row) => <TableRow key={row.id}><TableCell><Link href={`/admin/corporate/obligations/${row.obligationId}`} className="font-medium hover:underline">{row.obligationTitle}</Link><span className="block font-mono text-xs text-muted-foreground">{row.obligationCode} · {row.obligationStatus}</span></TableCell><TableCell><Link href={`/admin/corporate/obligations/${row.obligationId}/lines`} className="font-medium hover:underline">{row.lineName}</Link><span className="block font-mono text-xs text-muted-foreground">{row.lineCode} · {row.lineType.replaceAll("_", " ")}</span></TableCell><TableCell className="max-w-56"><span className="line-clamp-2 text-sm">{row.sites.length > 0 ? row.sites.join(", ") : "—"}</span></TableCell><TableCell>{row.counterparty}</TableCell><TableCell className="font-mono text-xs">{row.nextDueDate ?? "—"}</TableCell><TableCell>{amount(row.currency, row.expectedAmount)}</TableCell><TableCell className="text-right tabular-nums"><span className={row.overdueDueCount > 0 ? "font-semibold" : undefined}>{row.openDueCount} / {row.overdueDueCount}</span></TableCell></TableRow>)}</TableBody>
+                  <TableBody>{filteredGrid.map((row) => <TableRow key={row.id}><TableCell><Link href={`/admin/corporate/obligations/${row.obligationId}`} className="font-medium hover:underline">{row.obligationTitle}</Link><span className="block font-mono text-xs text-muted-foreground">{row.obligationCode} · {row.obligationStatus}</span></TableCell><TableCell><Link href={`/admin/corporate/obligations/${row.obligationId}/lines`} className="font-medium hover:underline">{row.lineName}</Link><span className="block font-mono text-xs text-muted-foreground">{row.lineCode} · {corporateStatusLabel(row.lineType)}</span></TableCell><TableCell className="max-w-56"><span className="line-clamp-2 text-sm">{row.sites.length > 0 ? row.sites.join(", ") : "—"}</span></TableCell><TableCell>{row.counterparty}</TableCell><TableCell className="font-mono text-xs">{row.nextDueDate ?? "—"}</TableCell><TableCell>{amount(row.currency, row.expectedAmount)}</TableCell><TableCell className="text-right tabular-nums"><span className={row.overdueDueCount > 0 ? "font-semibold" : undefined}>{row.openDueCount} / {row.overdueDueCount}</span></TableCell></TableRow>)}</TableBody>
                 </Table>
               </div>
             )}

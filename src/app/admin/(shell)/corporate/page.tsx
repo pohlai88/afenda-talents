@@ -6,7 +6,7 @@ import { AfendaMetricCard } from "@/components/afenda/metric-card";
 import { AfendaPageFrame } from "@/components/afenda/page-frame";
 import { AfendaSection } from "@/components/afenda/section";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
-import { CorporateStatusBadge, formatMoney, todayDateOnly } from "@/components/corporate/status";
+import { CorporateStatusBadge, formatMoney, todayDateOnly, corporateStatusLabel } from "@/components/corporate/status";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,7 +71,7 @@ export default async function CorporateOverviewPage() {
     id: site.id,
     href: `/admin/corporate/sites/${site.id}`,
     title: site.name,
-    description: `${site.code} · ${site.organization || site.type.replaceAll("_", " ")} · no active service-coverage relationships recorded`,
+    description: `${site.code} · ${site.organization || corporateStatusLabel(site.type)} · no active service-coverage relationships recorded`,
     status: <Badge variant="outline">Review coverage</Badge>,
   }));
 

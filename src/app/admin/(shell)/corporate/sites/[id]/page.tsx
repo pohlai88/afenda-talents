@@ -9,7 +9,7 @@ import { AfendaRecordHeader } from "@/components/afenda/record-header";
 import { AfendaSection } from "@/components/afenda/section";
 import { CorporateNav } from "@/components/corporate/corporate-nav";
 import { SiteCoverageManager, type SiteCoverageRow } from "@/components/corporate/site-coverage-manager";
-import { CorporateStatusBadge, formatMoney, todayDateOnly } from "@/components/corporate/status";
+import { CorporateStatusBadge, formatMoney, todayDateOnly, corporateStatusLabel } from "@/components/corporate/status";
 import { Badge } from "@/components/ui/badge";
 import { requireWorkspaceUser } from "@/lib/auth-workspace";
 import { deriveDueState, formatDateOnly } from "@/lib/corporate-admin/domain";
@@ -62,7 +62,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
 
   const address = [site.addressLine1, site.addressLine2, site.postalCode, site.city, site.stateRegion, site.countryCode].filter(Boolean).join(", ");
   const metadata = [
-    { label: "Site type", value: site.type.replaceAll("_", " ") },
+    { label: "Site type", value: corporateStatusLabel(site.type) },
     { label: "Organisation", value: site.organization ?? "—" },
     { label: "Address", value: address || "—" },
     { label: "Timezone", value: site.timezone ?? "—" },
@@ -71,7 +71,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <AfendaPageFrame width="record">
-      <AfendaRecordHeader context="Corporate Administration · Site" title={site.name} identity={`${site.code} · ${site.organization || site.type.replaceAll("_", " ")}`} status={<Badge variant={site.isActive ? "default" : "secondary"}>{site.isActive ? "Active" : "Inactive"}</Badge>} />
+      <AfendaRecordHeader context="Corporate Administration · Site" title={site.name} identity={`${site.code} · ${site.organization || corporateStatusLabel(site.type)}`} status={<Badge variant={site.isActive ? "default" : "secondary"}>{site.isActive ? "Active" : "Inactive"}</Badge>} />
       <CorporateNav />
 
       <section aria-label="Site operating metrics" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -93,7 +93,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
           const obligation = link.obligation;
           const due = obligation.dueItems[0];
           const dueState = due ? deriveDueState(due.status, formatDateOnly(due.dueDate), todayDateOnly()) : null;
-          return <li key={obligation.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Link href={`/admin/corporate/obligations/${obligation.id}`} className="font-medium underline-offset-4 hover:underline">{obligation.title}</Link><CorporateStatusBadge status={obligation.status} />{link.scopeRole ? <Badge variant="outline">{link.scopeRole.replaceAll("_", " ")}</Badge> : null}</div><p className="mt-1 text-sm text-muted-foreground">{obligation.code} · {obligation.counterparty.name}</p></div><div className="shrink-0 text-right">{due ? <><p className="text-sm font-medium tabular-nums">{formatMoney(due.currency, due.invoiceAmount == null ? due.expectedAmount == null ? null : Number(due.expectedAmount) : Number(due.invoiceAmount))}</p><div className="mt-1 flex items-center justify-end gap-2"><span className="text-xs text-muted-foreground">Due {formatDateOnly(due.dueDate)}</span>{dueState ? <CorporateStatusBadge status={dueState} /> : null}</div></> : <span className="text-sm text-muted-foreground">No open due item</span>}</div></li>;
+          return <li key={obligation.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Link href={`/admin/corporate/obligations/${obligation.id}`} className="font-medium underline-offset-4 hover:underline">{obligation.title}</Link><CorporateStatusBadge status={obligation.status} />{link.scopeRole ? <Badge variant="outline">{corporateStatusLabel(link.scopeRole)}</Badge> : null}</div><p className="mt-1 text-sm text-muted-foreground">{obligation.code} · {obligation.counterparty.name}</p></div><div className="shrink-0 text-right">{due ? <><p className="text-sm font-medium tabular-nums">{formatMoney(due.currency, due.invoiceAmount == null ? due.expectedAmount == null ? null : Number(due.expectedAmount) : Number(due.invoiceAmount))}</p><div className="mt-1 flex items-center justify-end gap-2"><span className="text-xs text-muted-foreground">Due {formatDateOnly(due.dueDate)}</span>{dueState ? <CorporateStatusBadge status={dueState} /> : null}</div></> : <span className="text-sm text-muted-foreground">No open due item</span>}</div></li>;
         })}</ul>}
       </AfendaSection>
     </AfendaPageFrame>

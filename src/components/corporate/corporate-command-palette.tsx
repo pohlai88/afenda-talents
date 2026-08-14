@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { corporateStatusLabel } from "@/components/corporate/status";
 
 export type CorporateSearchResult = {
   id: string;
@@ -99,7 +100,7 @@ export function CorporateCommandPalette() {
               <div className="flex flex-col gap-4">
                 {grouped.map(([kind, items]) => (
                   <section key={kind} aria-label={`${kind.toLowerCase()} search results`} className="flex flex-col gap-1">
-                    <p className="px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{kind.replaceAll("_", " ")}</p>
+                    <p className="px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{corporateStatusLabel(kind)}</p>
                     {items.map((item) => (
                       <Button key={item.id} variant="ghost" className="h-auto justify-start px-3 py-2.5 text-left" nativeButton={false} render={<Link href={item.href} onClick={() => setOpen(false)} />}>
                         <span className="flex min-w-0 flex-1 flex-col items-start gap-1">

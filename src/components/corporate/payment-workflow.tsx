@@ -10,7 +10,7 @@ import { AfendaMetadataGrid } from "@/components/afenda/metadata-grid";
 import { AfendaEmptyState } from "@/components/afenda/page-state";
 import { AfendaResponsiveOverlay } from "@/components/afenda/responsive-overlay";
 import { CustomFieldControls, type CorporateCustomFieldDefinitionDto } from "@/components/corporate/custom-field-controls";
-import { CorporateStatusBadge, formatMoney, todayDateOnly } from "@/components/corporate/status";
+import { CorporateStatusBadge, formatMoney, todayDateOnly, corporateStatusLabel } from "@/components/corporate/status";
 import type { DueItemDto, PaymentDto } from "@/components/corporate/workflow-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,7 +85,7 @@ export function PaymentWorkflow({ dueItem, fields, isAdmin }: { dueItem: DueItem
               </div>
               {payment.approvedAmount != null || payment.paidAmount != null ? (
                 <AfendaMetadataGrid columns={3} className="mt-3" items={[
-                  { label: historical ? "History source" : "Approved", value: historical ? payment.recordOrigin.replaceAll("_", " ") : formatMoney(dueItem.currency, payment.approvedAmount) },
+                  { label: historical ? "History source" : "Approved", value: historical ? corporateStatusLabel(payment.recordOrigin) : formatMoney(dueItem.currency, payment.approvedAmount) },
                   { label: "Paid", value: formatMoney(dueItem.currency, payment.paidAmount) },
                   { label: "Reference", value: payment.paymentReference || "—" },
                 ]} />

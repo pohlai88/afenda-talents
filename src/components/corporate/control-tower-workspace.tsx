@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { inBucket, managementSummary, type ControlTowerBucket, type ReminderDeliveryRow } from "@/lib/corporate-admin/control-tower";
 import type { WorkItemRow } from "@/lib/corporate-admin/work-items";
+import { CorporateStatusBadge, corporateStatusLabel } from "@/components/corporate/status";
 
 type Props = {
   items: WorkItemRow[];
@@ -74,8 +75,8 @@ export function ControlTowerWorkspace({items,reminders,currentUserId,isAdmin,tod
         {visible.length===0?<div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No unresolved work in this view.</div>:<div className="flex flex-col divide-y rounded-lg border">
           {visible.map(item=><div key={item.id} className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{item.title}</span><Badge variant={item.priority==="CRITICAL"||item.priority==="HIGH"?"destructive":"outline"}>{item.priority}</Badge>{item.escalationLevel>0?<Badge variant="destructive">Escalation L{item.escalationLevel}</Badge>:null}<Badge variant="secondary">{item.status.replaceAll("_"," ")}</Badge></div>
-              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"><span>Owner: {item.ownerName??"Unassigned"}</span><span>Due: {item.dueDate??"No due date"}</span><span>Source: {item.sourceType}</span></div>
+              <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{item.title}</span><CorporateStatusBadge status={item.priority} />{item.escalationLevel>0?<Badge variant="destructive">Escalation L{item.escalationLevel}</Badge>:null}<CorporateStatusBadge status={item.status} /></div>
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"><span>Owner: {item.ownerName??"Unassigned"}</span><span>Due: {item.dueDate??"No due date"}</span><span>Source: {corporateStatusLabel(item.sourceType)}</span></div>
             </div>
             <div className="flex flex-wrap gap-2 lg:justify-end">
               {item.sourceHref?<Button size="sm" variant="outline" nativeButton={false} render={<Link href={item.sourceHref}/>}>Open source</Button>:null}
@@ -90,7 +91,7 @@ export function ControlTowerWorkspace({items,reminders,currentUserId,isAdmin,tod
 
     <Card>
       <CardHeader><CardTitle>Reminder delivery evidence</CardTitle><CardDescription>Recent reminder attempts. Email failures/blocks remain visible instead of disappearing behind transient UI messages.</CardDescription></CardHeader>
-      <CardContent>{reminders.length===0?<p className="text-sm text-muted-foreground">No reminders have been recorded yet.</p>:<div className="flex flex-col divide-y rounded-lg border">{reminders.slice(0,50).map(row=><div key={row.id} className="grid gap-2 p-3 sm:grid-cols-[1fr_auto] sm:items-center"><div><div className="flex flex-wrap items-center gap-2"><span className="text-sm font-medium">{row.subject}</span><Badge variant={row.status==="FAILED"||row.status==="BLOCKED"?"destructive":"outline"}>{row.channel} · {row.status}</Badge></div><div className="mt-1 text-xs text-muted-foreground">Recipient: {row.recipientName??"Unavailable"} · {new Date(row.createdAt).toLocaleString()}{row.failureCode?` · ${row.failureCode}`:""}</div></div><Button size="sm" variant="ghost" nativeButton={false} render={<Link href="/admin/corporate/work-items"/>}>Open work</Button></div>)}</div>}</CardContent>
+      <CardContent>{reminders.length===0?<p className="text-sm text-muted-foreground">No reminders have been recorded yet.</p>:<div className="flex flex-col divide-y rounded-lg border">{reminders.slice(0,50).map(row=><div key={row.id} className="grid gap-2 p-3 sm:grid-cols-[1fr_auto] sm:items-center"><div><div className="flex flex-wrap items-center gap-2"><span className="text-sm font-medium">{row.subject}</span><span className="inline-flex items-center gap-1.5"><span className="text-xs text-muted-foreground">{corporateStatusLabel(row.channel)}</span><CorporateStatusBadge status={row.status} /></span></div><div className="mt-1 text-xs text-muted-foreground">Recipient: {row.recipientName??"Unavailable"} · {new Date(row.createdAt).toLocaleString()}{row.failureCode?` · ${row.failureCode}`:""}</div></div><Button size="sm" variant="ghost" nativeButton={false} render={<Link href="/admin/corporate/work-items"/>}>Open work</Button></div>)}</div>}</CardContent>
     </Card>
   </div>;
 }
