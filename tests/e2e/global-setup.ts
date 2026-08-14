@@ -109,6 +109,7 @@ async function globalSetup(): Promise<void> {
 
 		const counterpartyId = `c${randomBytes(12).toString("hex")}`;
 		const obligationId = `c${randomBytes(12).toString("hex")}`;
+		const lineId = `c${randomBytes(12).toString("hex")}`;
 		const dueItemId = `c${randomBytes(12).toString("hex")}`;
 		const paymentId = `c${randomBytes(12).toString("hex")}`;
 
@@ -131,13 +132,26 @@ async function globalSetup(): Promise<void> {
 			[obligationId, counterpartyId, adminUserId],
 		);
 
+		// Every due item hangs off a line. Creating an obligation through the API always
+		// makes this default GENERAL line (api/admin/corporate/obligations), so seeding by
+		// raw SQL has to make it too.
+		await client.query(
+			`INSERT INTO "AdministrativeObligationLine"
+         (id, "obligationId", code, name, "lineType", "expectedAmount", currency, recurring,
+          "recurrenceInterval", "recurrenceUnit", "firstDueDate", "nextDueDate",
+          "invoiceRequired", "startDate", "isActive", "createdAt", "updatedAt")
+       VALUES ($1, $2, 'GENERAL', 'General obligation', 'GENERAL', 15000.00, 'MYR', true,
+          1, 'MONTH', DATE '2026-01-01', DATE '2026-09-01', true, DATE '2026-01-01', true, NOW(), NOW())`,
+			[lineId, obligationId],
+		);
+
 		await client.query(
 			`INSERT INTO "ObligationDueItem"
-         (id, "obligationId", "periodLabel", "dueDate", "expectedAmount", "invoiceAmount", currency,
+         (id, "obligationId", "lineId", "periodLabel", "dueDate", "expectedAmount", "invoiceAmount", currency,
           "invoiceRequired", "invoiceNumber", "invoiceFileUrl", status, "customFields", "createdAt", "updatedAt")
-       VALUES ($1, $2, 'August 2026', DATE '2026-08-01', 15000.00, 15000.00, 'MYR', true,
+       VALUES ($1, $2, $3, 'August 2026', DATE '2026-08-01', 15000.00, 15000.00, 'MYR', true,
           'INV-A11Y-0826', 'https://example.com/invoice.pdf', 'COMPLETED', '{}'::jsonb, NOW(), NOW())`,
-			[dueItemId, obligationId],
+			[dueItemId, obligationId, lineId],
 		);
 
 		await client.query(
