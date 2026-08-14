@@ -64,6 +64,7 @@ export function AfendaConfirmButton({
   confirmLabel,
   onConfirm,
   busy = false,
+  disabled = false,
   destructive = false,
   variant = "outline",
   size = "sm",
@@ -74,13 +75,14 @@ export function AfendaConfirmButton({
   confirmLabel: string;
   onConfirm: ConfirmCallback;
   busy?: boolean;
+  disabled?: boolean;
   destructive?: boolean;
   variant?: ComponentProps<typeof Button>["variant"];
   size?: ComponentProps<typeof Button>["size"];
 }) {
   return (
     <AfendaConfirmAction
-      trigger={<Button type="button" variant={variant} size={size} disabled={busy}>{children}</Button>}
+      trigger={<Button type="button" variant={variant} size={size} disabled={busy || disabled}>{children}</Button>}
       title={title}
       description={description}
       confirmLabel={confirmLabel}

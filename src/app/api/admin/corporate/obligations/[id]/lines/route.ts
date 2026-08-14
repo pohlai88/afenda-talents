@@ -25,8 +25,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   try {
     const line = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "AdministrativeObligation" WHERE "id" = ${obligationId} FOR UPDATE`;
       const obligation = await tx.administrativeObligation.findUnique({ where: { id: obligationId }, select: { id: true, status: true } });
       if (!obligation) throw new Error("Obligation not found");
+      const closure = await tx.administrativeClosure.findUnique({ where: { obligationId }, select: { status: true } });
+      if (closure) throw new Error(closure.status === "CLOSED" ? "Closed administrative files are read-only" : "Agreement lines are frozen once settlement and closure has started");
       if (obligation.status === "ENDED" || obligation.status === "CANCELLED") throw new Error("Closed obligations cannot add new lines");
 
       const firstDueDate = parsed.data.firstDueDate ? parseDateOnly(parsed.data.firstDueDate) : null;
@@ -43,7 +46,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           recurrenceInterval: parsed.data.recurring ? parsed.data.recurrenceInterval : null,
           recurrenceUnit: parsed.data.recurring ? parsed.data.recurrenceUnit : null,
           firstDueDate,
-          nextDueDate: parsed.data.recurring ? nextDueDate : nextDueDate,
+          nextDueDate,
           invoiceRequired: parsed.data.invoiceRequired,
           paymentTermsDays: parsed.data.paymentTermsDays ?? null,
           startDate: parsed.data.startDate ? parseDateOnly(parsed.data.startDate) : null,

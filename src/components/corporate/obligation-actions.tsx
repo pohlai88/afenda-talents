@@ -46,34 +46,24 @@ export function ObligationActions({ id, status, recurring, nextDueDate, currency
     }
   }
 
-  if (!isAdmin || (status !== "DRAFT" && status !== "ACTIVE")) return null;
+  if (!isAdmin) return null;
   return (
     <>
       <AfendaActionBar label="Obligation actions">
         {status === "DRAFT" ? <Button disabled={busy || !canActivate} onClick={() => void call(`/api/admin/corporate/obligations/${id}`, { action: "ACTIVATE" }, "PATCH", "Obligation activated.")}>Activate</Button> : null}
         {status === "ACTIVE" && recurring && nextDueDate ? <Button disabled={busy} onClick={() => void call(`/api/admin/corporate/obligations/${id}/due-items`, { mode: "NEXT" }, "POST", `GENERAL due item ${nextDueDate} created.`)}>Generate GENERAL due</Button> : null}
         {status === "ACTIVE" ? <Button variant="outline" disabled={busy} onClick={() => setManualOpen(true)}>Add GENERAL manual due</Button> : null}
-        {status === "ACTIVE" ? (
-          <AfendaConfirmButton
-            busy={busy}
-            title="Mark this obligation as ended?"
-            description="This closes the obligation lifecycle. Existing due items and payment history remain available, but no further scheduled action should be generated from this record."
-            confirmLabel="Mark ended"
-            onConfirm={() => call(`/api/admin/corporate/obligations/${id}`, { action: "END" }, "PATCH", "Obligation ended.")}
-          >
-            Mark ended
-          </AfendaConfirmButton>
-        ) : null}
-        <AfendaConfirmButton
+        {status !== "DRAFT" ? <Button variant={status === "ACTIVE" ? "default" : "outline"} disabled={busy} onClick={() => router.push(`/admin/corporate/obligations/${id}/closure`)}>{status === "ACTIVE" ? "Terminate / settle" : "Settlement & closure"}</Button> : null}
+        {status === "DRAFT" || status === "ACTIVE" ? <AfendaConfirmButton
           busy={busy}
           destructive
           title="Cancel this obligation?"
-          description="Cancellation stops this obligation from progressing normally. Historical information remains for audit and reference, but the obligation cannot be reactivated in the current lifecycle."
+          description="Cancellation stops this obligation from progressing normally. Historical information remains for audit and reference. Use Settlement & closure afterwards if deposits, credits, cleaning, rental or other final balances still need reconciliation."
           confirmLabel="Cancel obligation"
           onConfirm={() => call(`/api/admin/corporate/obligations/${id}`, { action: "CANCEL" }, "PATCH", "Obligation cancelled.")}
         >
           Cancel obligation
-        </AfendaConfirmButton>
+        </AfendaConfirmButton> : null}
       </AfendaActionBar>
 
       <AfendaResponsiveOverlay

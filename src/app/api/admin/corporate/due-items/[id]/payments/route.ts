@@ -24,8 +24,14 @@ export async function POST(
   }
 
   const { id: dueItemId } = await context.params;
+  const initial = await db.obligationDueItem.findUnique({ where: { id: dueItemId }, select: { obligationId: true } });
+  if (!initial) return NextResponse.json({ error: "Due item not found" }, { status: 404 });
+
   try {
     const payment = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "AdministrativeObligation" WHERE "id" = ${initial.obligationId} FOR UPDATE`;
+      const closure = await tx.administrativeClosure.findUnique({ where: { obligationId: initial.obligationId }, select: { status: true } });
+      if (closure?.status === "CLOSED") throw new Error("Closed administrative files are read-only");
       await tx.$queryRaw`SELECT "id" FROM "ObligationDueItem" WHERE "id" = ${dueItemId} FOR UPDATE`;
       const dueItem = await tx.obligationDueItem.findUnique({
         where: { id: dueItemId },

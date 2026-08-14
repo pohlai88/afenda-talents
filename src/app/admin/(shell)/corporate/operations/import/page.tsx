@@ -29,11 +29,12 @@ export default async function CorporateSafeImportPage() {
       <CorporateNav />
 
       <section className="flex flex-col gap-3" aria-labelledby="master-imports">
-        <div><h2 id="master-imports" className="text-lg font-semibold">Records & commercial lines</h2><p className="text-sm text-muted-foreground">Import scalar master data or agreement-line schedules using stable record codes.</p></div>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div><h2 id="master-imports" className="text-lg font-semibold">Records, commercial lines & history</h2><p className="text-sm text-muted-foreground">Import scalar master data, agreement-line schedules or already-paid legacy history using stable business identifiers.</p></div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <Card><CardHeader><CardTitle>Agreement Lines</CardTitle><CardDescription>Amounts, schedules, dates, notes and additive Site links keyed by agreement + line code.</CardDescription></CardHeader><CardContent><Button nativeButton={false} render={<Link href="/admin/corporate/operations/import" />}>Current workspace</Button></CardContent></Card>
           <Card><CardHeader><CardTitle>Sites</CardTitle><CardDescription>Location master data keyed by Site code, including address, timezone, coordinates and active status.</CardDescription></CardHeader><CardContent><Button variant="outline" nativeButton={false} render={<Link href="/admin/corporate/operations/import/sites" />}>Import Sites</Button></CardContent></Card>
           <Card><CardHeader><CardTitle>Counterparties</CardTitle><CardDescription>Counterparty master data keyed by code, including registration, tax, contact and payment defaults.</CardDescription></CardHeader><CardContent><Button variant="outline" nativeButton={false} render={<Link href="/admin/corporate/operations/import/counterparties" />}>Import Counterparties</Button></CardContent></Card>
+          <Card><CardHeader><CardTitle>Payment History</CardTitle><CardDescription>Already-made legacy payments. Supports CSV upload, business-key matching, missing due-item creation and partial row commit.</CardDescription></CardHeader><CardContent><Button variant="outline" nativeButton={false} render={<Link href="/admin/corporate/operations/import/payments" />}>Import Payments</Button></CardContent></Card>
         </div>
       </section>
 
