@@ -101,6 +101,14 @@ async function main() {
 		parseInstrumentDocument(salesPerformanceRaw),
 		"Sales performance round",
 	);
+
+	// Corporate Administration ships 11+ models that nothing seeded, so every CA
+	// screen rendered its empty state and could not be judged. Imported lazily so
+	// the Talents seed does not pay for it when SEED_CORPORATE=0.
+	if (process.env.SEED_CORPORATE !== "0") {
+		const { seedCorporate } = await import("./seed-corporate");
+		await seedCorporate(db);
+	}
 }
 
 main()
