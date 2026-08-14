@@ -4,14 +4,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   AssessmentForm,
-  type AssessmentFormItem,
+  type AssessmentFormBlock,
 } from "@/components/assessment-form";
 import { CandidateShell } from "@/components/candidate/shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type AssessmentContext = {
-  items: AssessmentFormItem[];
+  blocks: AssessmentFormBlock[];
   saved: Record<string, { value?: number; textValue?: string }>;
 };
 
@@ -94,5 +94,5 @@ export function AssessmentWorkspaceLoader({ token }: { token: string }) {
     );
   }
 
-  return <AssessmentForm token={token} items={context.items} saved={context.saved} />;
+  return <AssessmentForm token={token} blocks={context.blocks} saved={context.saved} />;
 }

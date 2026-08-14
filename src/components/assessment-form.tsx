@@ -2,7 +2,7 @@
 
 import { CheckCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CandidateShell } from "@/components/candidate/shell";
 import {
 	AlertDialog,
@@ -20,27 +20,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { apiErrorMessage } from "@/lib/api-responses";
+import type {
+	AssessmentFormBlock,
+	AssessmentFormItem,
+} from "@/lib/candidate-form";
 import { LIKERT_LABELS } from "@/lib/instrument-labels";
 import { scrollAndFocus } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
-export type AssessmentFormItem =
-	| {
-			id: string;
-			order: number;
-			text: string;
-			type: "likert";
-			required: boolean;
-	  }
-	| {
-			id: string;
-			order: number;
-			text: string;
-			type: "short_text" | "long_text";
-			required: boolean;
-			maxLength?: number;
-			helperText?: string;
-	  };
+export type {
+	AssessmentFormBlock,
+	AssessmentFormItem,
+} from "@/lib/candidate-form";
 
 type SavedAnswer = { value?: number; textValue?: string };
 type SaveStatus = "idle" | "saving" | "saved" | "error" | "offline";
@@ -113,15 +104,20 @@ async function persistAnswer(
 
 export function AssessmentForm({
 	token,
-	items,
+	blocks,
 	saved,
 }: {
 	token: string;
-	items: AssessmentFormItem[];
+	blocks: AssessmentFormBlock[];
 	saved: Record<string, SavedAnswer>;
 }) {
 	const router = useRouter();
 	const hadSavedAnswers = Object.keys(saved).length > 0;
+	/** Progress, validation and submission only ever concern answerable items. */
+	const items = useMemo(
+		() => blocks.flatMap((block) => (block.kind === "item" ? [block.item] : [])),
+		[blocks],
+	);
 
 	const [answers, setAnswers] = useState<Record<string, SavedAnswer>>(saved);
 	const [missing, setMissing] = useState<string[]>([]);
@@ -330,7 +326,38 @@ export function AssessmentForm({
 				</div>
 
 				<ol className="mt-6 space-y-3">
-					{items.map((item) => {
+					{blocks.map((block) => {
+						if (block.kind === "section") {
+							return (
+								<li
+									key={`section-${block.id}`}
+									className="list-none pt-4 first:pt-0"
+								>
+									<div className="border-l-2 border-primary pl-3">
+										<h2 className="text-sm font-semibold text-foreground">
+											{block.title}
+										</h2>
+										{block.introduction ? (
+											<p className="mt-1 text-xs text-muted-foreground">
+												{block.introduction}
+											</p>
+										) : null}
+									</div>
+								</li>
+							);
+						}
+						if (block.kind === "info") {
+							return (
+								<li key={`info-${block.id}`} className="list-none">
+									<Card className="border-dashed bg-muted/50 shadow-none">
+										<CardContent className="px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+											{block.body}
+										</CardContent>
+									</Card>
+								</li>
+							);
+						}
+						const item = block.item;
 						const isMissing = missing.includes(item.id);
 						const answer = answers[item.id];
 						const errorId = `item-${item.id}-error`;

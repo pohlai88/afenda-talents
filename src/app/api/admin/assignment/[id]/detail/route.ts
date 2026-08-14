@@ -3,6 +3,7 @@ import { requireHiringUser } from "@/lib/auth-admin";
 import { buildCandidateTimeline } from "@/lib/candidate-timeline";
 import { db } from "@/lib/db";
 import {
+  legendFromDocument,
   normalizeContextFlags,
   normalizeDimensions,
 } from "@/lib/result-display";
@@ -43,6 +44,7 @@ export async function GET(
   }
 
   const versionDoc = await loadVersionDocument(assignment.assessmentVersionId);
+  const legend = legendFromDocument(versionDoc);
   const answerable = orderedAnswerableItems(versionDoc);
   const itemMeta = new Map(
     answerable.map((item, index) => {
@@ -127,7 +129,8 @@ export async function GET(
     timeline,
     result: assignment.result
       ? {
-          dimensions: normalizeDimensions(assignment.result.dimensionScores),
+          legend,
+          dimensions: normalizeDimensions(assignment.result.dimensionScores, legend),
           flags: normalizeContextFlags(assignment.result.validityFlags),
           totalSeconds: assignment.result.totalSeconds,
           serverWindowSeconds: assignment.result.serverWindowSeconds,

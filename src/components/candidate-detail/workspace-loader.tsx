@@ -23,7 +23,11 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TimelineEvent } from "@/lib/candidate-timeline";
-import type { UiContextFlag, UiDimension } from "@/lib/result-display";
+import type {
+  DimensionLegend,
+  UiContextFlag,
+  UiDimension,
+} from "@/lib/result-display";
 import type { Status } from "@/lib/status-constants";
 import { withRound } from "@/lib/round-url";
 
@@ -51,6 +55,7 @@ type DetailContext = {
   };
   timeline: Array<Omit<TimelineEvent, "at"> & { at: string }>;
   result: null | {
+    legend: DimensionLegend;
     dimensions: UiDimension[];
     flags: UiContextFlag[];
     totalSeconds: number;
@@ -220,6 +225,7 @@ export function CandidateDetailWorkspaceLoader({
           </div>
 
           <ScoredProfile
+            legend={result.legend}
             dimensions={result.dimensions}
             flags={result.flags}
             totalSeconds={result.totalSeconds}
@@ -251,12 +257,14 @@ export function CandidateDetailWorkspaceLoader({
 }
 
 function ScoredProfile({
+  legend,
   dimensions,
   flags,
   totalSeconds,
   serverWindowSeconds,
   rows,
 }: {
+  legend: DimensionLegend;
   dimensions: UiDimension[];
   flags: UiContextFlag[];
   totalSeconds: number;
@@ -274,16 +282,19 @@ function ScoredProfile({
         <CardHeader className="border-b bg-surface-subtle print:bg-transparent">
           <CardTitle>Profile</CardTitle>
           <CardDescription>
-            Five separate dimensions scaled from 0–100. No overall score is produced.
+            {dimensions.length} separate{" "}
+            {dimensions.length === 1 ? "dimension" : "dimensions"} scaled from 0–100.
+            No overall score is produced.
           </CardDescription>
         </CardHeader>
         <CardContent className="divide-y pt-2">
           {dimensions.map((dimension) => (
             <DimensionScale
               key={dimension.code}
-              code={dimension.code}
+              name={dimension.name}
               scaled={dimension.scaled}
-              band={dimension.band}
+              bandName={dimension.band}
+              bands={legend.bands}
             />
           ))}
         </CardContent>
@@ -314,7 +325,7 @@ function ScoredProfile({
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
-          <ItemResponsesTable rows={rows} />
+          <ItemResponsesTable rows={rows} legend={legend} />
         </CardContent>
       </Card>
     </>

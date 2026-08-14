@@ -46,13 +46,22 @@ export function dimensionDisplayName(code: string): string {
 	return DIMENSION_NAMES[code] ?? code;
 }
 
-/** Deterministic, conservative band line only — no narrative interpretation (D17). */
-export function bandInterpretation(band: Band): string {
+/**
+ * Deterministic, conservative band line only — no narrative interpretation (D17).
+ * Takes any band name, because a document may define bands other than Core v1's three.
+ */
+export function bandInterpretation(band: string): string {
 	return `This dimension falls within the ${band} band.`;
 }
 
-export function orderedDimensionCodes(codes: string[]): string[] {
-	const preferred = [...COMPETENCY_CODES, "VAL"] as string[];
+/**
+ * Codes in `preferred` order first, then any remaining codes as given. Callers holding a
+ * version document pass its own dimension order; Core v1's codes are only the fallback.
+ */
+export function orderedDimensionCodes(
+	codes: string[],
+	preferred: string[] = [...COMPETENCY_CODES, "VAL"],
+): string[] {
 	const seen = new Set<string>();
 	const ordered: string[] = [];
 	for (const code of preferred) {

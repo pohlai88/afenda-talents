@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import type { AssessmentFormItem } from "@/components/assessment-form";
 import {
   currentAssignmentId,
   resolveAssignmentToken,
 } from "@/lib/auth-candidate";
+import { buildCandidateBlocks } from "@/lib/candidate-form";
 import { db } from "@/lib/db";
-import { orderedAnswerableItems } from "@/lib/instrument-document";
 import { loadVersionDocument } from "@/lib/version-document";
 
 export const runtime = "nodejs";
@@ -41,34 +40,7 @@ export async function GET(request: Request) {
   }
 
   const doc = await loadVersionDocument(assignment.assessmentVersionId);
-  const answerable = orderedAnswerableItems(doc);
-  const items: AssessmentFormItem[] = [];
-  let order = 0;
-  for (const item of answerable) {
-    if (item.type === "likert") {
-      order += 1;
-      items.push({
-        id: item.id,
-        order,
-        text: item.text,
-        type: "likert",
-        required: item.required,
-      });
-      continue;
-    }
-    if (item.type === "short_text" || item.type === "long_text") {
-      order += 1;
-      items.push({
-        id: item.id,
-        order,
-        text: item.text,
-        type: item.type,
-        required: item.required,
-        maxLength: item.maxLength,
-        helperText: item.helperText,
-      });
-    }
-  }
+  const blocks = buildCandidateBlocks(doc);
 
   const responses = await db.response.findMany({
     where: { assignmentId: assignment.id },
@@ -81,5 +53,5 @@ export async function GET(request: Request) {
     };
   }
 
-  return NextResponse.json({ items, saved });
+  return NextResponse.json({ blocks, saved });
 }

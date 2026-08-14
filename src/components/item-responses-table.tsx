@@ -12,11 +12,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import {
-	dimensionDisplayName,
-	likertLabel,
-	orderedDimensionCodes,
-} from "@/lib/instrument-labels";
+import { likertLabel, orderedDimensionCodes } from "@/lib/instrument-labels";
+import { dimensionLabel, type DimensionLegend } from "@/lib/result-display";
 
 type Row = { order: number; text: string; value: number | string; dimension: string };
 
@@ -24,7 +21,13 @@ type Row = { order: number; text: string; value: number | string; dimension: str
  * Item-level responses: collapsed by default, grouped by dimension (UI §8.6).
  * Manual disclosure so print can always show the table (Base UI Collapsible unmounts).
  */
-export function ItemResponsesTable({ rows }: { rows: Row[] }) {
+export function ItemResponsesTable({
+	rows,
+	legend,
+}: {
+	rows: Row[];
+	legend?: DimensionLegend;
+}) {
 	const [open, setOpen] = useState(false);
 	const panelId = useId();
 
@@ -38,12 +41,14 @@ export function ItemResponsesTable({ rows }: { rows: Row[] }) {
 		for (const list of byDim.values()) {
 			list.sort((a, b) => a.order - b.order);
 		}
-		return orderedDimensionCodes([...byDim.keys()]).map((code) => ({
+		// Unscored items are grouped under VAL, which is never a document dimension.
+		const preferred = legend ? [...legend.order, "VAL"] : undefined;
+		return orderedDimensionCodes([...byDim.keys()], preferred).map((code) => ({
 			code,
-			name: dimensionDisplayName(code),
+			name: dimensionLabel(code, legend),
 			rows: byDim.get(code) ?? [],
 		}));
-	}, [rows]);
+	}, [rows, legend]);
 
 	return (
 		<div>

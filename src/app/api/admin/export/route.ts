@@ -2,11 +2,9 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-admin";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
+import { orderedDimensionCodes } from "@/lib/instrument-labels";
 import {
-  COMPETENCY_CODES,
-  orderedDimensionCodes,
-} from "@/lib/instrument-labels";
-import {
+  legendFromDocument,
   normalizeContextFlags,
   normalizeDimensions,
 } from "@/lib/result-display";
@@ -72,11 +70,15 @@ export async function GET(request: Request) {
   }
 
   const versionDocument = await loadVersionDocument(round.assessmentVersionId);
+  const legend = legendFromDocument(versionDocument);
   const flagKeys = versionDocument.responseContextRules.map((rule) => rule.id);
 
   const codesSeen = new Set<string>();
   const normalized = assignments.map((assignment) => {
-    const dimensions = normalizeDimensions(assignment.result?.dimensionScores);
+    const dimensions = normalizeDimensions(
+      assignment.result?.dimensionScores,
+      legend,
+    );
     for (const dimension of dimensions) codesSeen.add(dimension.code);
     return {
       assignment,
@@ -84,8 +86,10 @@ export async function GET(request: Request) {
       flags: normalizeContextFlags(assignment.result?.validityFlags),
     };
   });
+  // Column order follows this round's document, not Core v1's competency list.
   const dimCodes = orderedDimensionCodes(
-    codesSeen.size > 0 ? [...codesSeen] : [...COMPETENCY_CODES],
+    codesSeen.size > 0 ? [...codesSeen] : [...legend.order],
+    [...legend.order, "VAL"],
   );
 
   const header = [

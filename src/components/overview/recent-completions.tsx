@@ -21,12 +21,15 @@ export type CompletedProfile = {
 };
 
 /**
- * Five separate dimension readings. There is no total, rank, ordering by score, or
- * colour encoding of candidate quality.
+ * Separate dimension readings, however many the document defines. There is no total,
+ * rank, ordering by score, or colour encoding of candidate quality.
  */
 function DimensionReadings({ dimensions }: { dimensions: UiDimension[] }) {
   return (
-    <dl className="grid grid-cols-5 gap-2" aria-label="Dimension readings">
+    <dl
+      className="grid grid-cols-[repeat(auto-fit,minmax(2.75rem,1fr))] gap-2"
+      aria-label="Dimension readings"
+    >
       {dimensions.map((dimension) => (
         <div key={dimension.code} className="min-w-0">
           <dt className="font-mono text-[0.625rem] font-medium tracking-[0.08em] text-muted-foreground">

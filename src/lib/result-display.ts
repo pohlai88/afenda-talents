@@ -1,19 +1,44 @@
 /**
  * Normalize stored Result JSON for UI (legacy ValidityFlag vs ResponseContextOutcome).
+ *
+ * Display names and bands belong to the version document, not to Core v1: a document may
+ * define any dimension codes and any number of bands. Callers that can load the document
+ * pass a `DimensionLegend`; Core v1 labels remain the fallback for legacy rows.
  */
-import type { Band } from "@/lib/instrument-labels";
+import type { InstrumentDocument } from "@/lib/instrument-document";
+import { dimensionDisplayName } from "@/lib/instrument-labels";
 import type {
 	DimensionScore,
 	ResponseContextOutcome,
 	ValidityFlag,
 } from "@/lib/scoring";
 
+export type UiBand = {
+	id: string;
+	name: string;
+	minScaled: number;
+	maxScaled: number;
+};
+
+/** Everything the results UI needs from the version document to label a stored result. */
+export type DimensionLegend = {
+	/** Dimension code → display name. */
+	names: Record<string, string>;
+	/** Dimension codes in document order. */
+	order: string[];
+	/** Bands sorted ascending, covering 0–100. */
+	bands: UiBand[];
+};
+
 export type UiDimension = {
 	id?: string;
 	code: string;
+	/** Resolved display name — the document's, or the code itself. */
+	name: string;
 	raw: number;
 	scaled: number;
-	band: Band;
+	/** The document's band name (e.g. "Capable"), not a fixed three-band union. */
+	band: string;
 };
 
 export type UiContextFlag = {
@@ -22,6 +47,27 @@ export type UiContextFlag = {
 	triggered: boolean;
 	reason: string;
 };
+
+export function legendFromDocument(doc: InstrumentDocument): DimensionLegend {
+	const ordered = [...doc.dimensions].sort((a, b) => a.order - b.order);
+	return {
+		names: Object.fromEntries(ordered.map((d) => [d.code, d.name])),
+		order: ordered.map((d) => d.code),
+		bands: [...doc.bands]
+			.sort((a, b) => a.minScaled - b.minScaled)
+			.map((b) => ({
+				id: b.id,
+				name: b.name,
+				minScaled: b.minScaled,
+				maxScaled: b.maxScaled,
+			})),
+	};
+}
+
+/** Document name wins; Core v1 labels cover legacy rows; the bare code is the last resort. */
+export function dimensionLabel(code: string, legend?: DimensionLegend): string {
+	return legend?.names[code] ?? dimensionDisplayName(code);
+}
 
 function isOutcome(value: unknown): value is ResponseContextOutcome {
 	return (
@@ -43,30 +89,45 @@ function isLegacyFlag(value: unknown): value is ValidityFlag {
 	);
 }
 
-const BANDS = new Set<Band>(["Developing", "Effective", "Strong"]);
-
-function asBand(value: unknown): Band {
-	if (typeof value === "string" && BANDS.has(value as Band)) return value as Band;
+/**
+ * Scoring stores `band` as `{ id, name }`. Older rows stored a bare string. Either way the
+ * stored name is authoritative — never coerce it onto a fixed set, or a document whose bands
+ * are named anything else silently reads as the wrong band.
+ */
+function bandName(
+	value: unknown,
+	scaled: number,
+	bands: UiBand[] | undefined,
+): string {
+	if (typeof value === "string" && value.length > 0) return value;
 	if (value && typeof value === "object" && "name" in value) {
 		const name = (value as { name: unknown }).name;
-		if (typeof name === "string" && BANDS.has(name as Band)) return name as Band;
+		if (typeof name === "string" && name.length > 0) return name;
 	}
-	return "Effective";
+	const covering = bands?.find(
+		(band) => scaled >= band.minScaled && scaled <= band.maxScaled,
+	);
+	return covering?.name ?? "";
 }
 
-export function normalizeDimensions(raw: unknown): UiDimension[] {
+export function normalizeDimensions(
+	raw: unknown,
+	legend?: DimensionLegend,
+): UiDimension[] {
 	if (!Array.isArray(raw)) return [];
 	return raw.flatMap((d) => {
 		if (!d || typeof d !== "object") return [];
-		const row = d as Partial<DimensionScore> & { band?: Band | { name: string } };
+		const row = d as Partial<DimensionScore> & { band?: string | { name: string } };
 		if (typeof row.code !== "string") return [];
+		const scaled = typeof row.scaled === "number" ? row.scaled : 0;
 		return [
 			{
 				id: typeof row.id === "string" ? row.id : undefined,
 				code: row.code,
+				name: dimensionLabel(row.code, legend),
 				raw: typeof row.raw === "number" ? row.raw : 0,
-				scaled: typeof row.scaled === "number" ? row.scaled : 0,
-				band: asBand(row.band),
+				scaled,
+				band: bandName(row.band, scaled, legend?.bands),
 			},
 		];
 	});
