@@ -13,6 +13,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { DownloadFormat, TemplateKind } from "@/lib/instrument-download";
 
 const KIND_COPY: Array<{ value: TemplateKind; label: string; hint: string }> = [
@@ -69,17 +76,18 @@ export function DownloadTemplateButton() {
         <div className="flex flex-col gap-4 py-4">
           <Label className="flex flex-col gap-1.5">
             Starting point
-            <select
-              className="h-9 rounded-md border bg-transparent px-3 text-sm"
-              value={kind}
-              onChange={(e) => setKind(e.target.value as TemplateKind)}
-            >
-              {KIND_COPY.map((k) => (
-                <option key={k.value} value={k.value}>
-                  {k.label}
-                </option>
-              ))}
-            </select>
+            <Select value={kind} onValueChange={(v) => setKind(v as TemplateKind)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {KIND_COPY.map((k) => (
+                  <SelectItem key={k.value} value={k.value}>
+                    {k.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <span className="text-xs text-muted-foreground">
               {KIND_COPY.find((k) => k.value === kind)?.hint}
             </span>
@@ -87,17 +95,18 @@ export function DownloadTemplateButton() {
 
           <Label className="flex flex-col gap-1.5">
             Format
-            <select
-              className="h-9 rounded-md border bg-transparent px-3 text-sm"
-              value={format}
-              onChange={(e) => setFormat(e.target.value as DownloadFormat)}
-            >
-              {FORMAT_COPY.map((f) => (
-                <option key={f.value} value={f.value}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
+            <Select value={format} onValueChange={(v) => setFormat(v as DownloadFormat)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FORMAT_COPY.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <span className="text-xs text-muted-foreground">{formatHint}</span>
           </Label>
         </div>
