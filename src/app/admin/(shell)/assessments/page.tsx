@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DuplicateAssessmentButton, NewAssessmentButton } from "@/components/assessment-builder/assessments-toolbar";
+import { DownloadTemplateButton } from "@/components/assessment-builder/download-template-button";
 import { ImportAssessmentButton } from "@/components/assessment-builder/import-assessment-button";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +78,7 @@ export default async function AssessmentsPage() {
 				actions={
 					isAdmin ? (
 						<div className="flex flex-wrap items-center gap-2">
+							<DownloadTemplateButton />
 							<ImportAssessmentButton />
 							<NewAssessmentButton />
 						</div>
