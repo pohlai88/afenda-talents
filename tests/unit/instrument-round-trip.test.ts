@@ -4,6 +4,8 @@ import { parseInstrumentDocument } from "@/lib/instrument-document";
 import { blankInstrumentDocument } from "@/lib/instrument-draft";
 import { exportWorkbook } from "@/lib/instrument-template/workbook";
 import { previewImport } from "@/lib/instrument-template/merge";
+import { exportCsv } from "@/lib/instrument-template/csv";
+import { templateDocument } from "@/lib/instrument-download";
 
 const coreDocument = parseInstrumentDocument(CORE_V1_DOCUMENT);
 
@@ -80,5 +82,35 @@ describe("export then import as a new assessment", () => {
     if ("refuse" in result) return;
     expect(result.sourceMode).toBe("draft");
     expect(result.issues.filter((i) => i.severity === "hard")).toEqual([]);
+  });
+});
+
+describe("every template downloads and imports back", () => {
+  it.each(["blank", "core", "sales"] as const)(
+    "%s round-trips through xlsx with no base identity",
+    async (kind) => {
+      const entry = templateDocument(kind);
+      const bytes = await exportWorkbook(entry.document, {
+        sourceMode: entry.sourceMode,
+        baseAssessmentId: null,
+      });
+      const result = await previewImport({
+        format: "xlsx",
+        bytes,
+        target: null,
+        targetId: null,
+        liveDraftRevision: null,
+        livePublishedVersionNumber: null,
+      });
+      expect(result).not.toHaveProperty("refuse");
+      if ("refuse" in result) return;
+      expect(result.issues.filter((i) => i.severity === "hard")).toEqual([]);
+    },
+  );
+
+  it("produces a non-empty CSV for a filled example", () => {
+    const csv = exportCsv(templateDocument("sales").document);
+    expect(csv.length).toBeGreaterThan(0);
+    expect(csv.toString("utf8").split("\n").length).toBeGreaterThan(10);
   });
 });
