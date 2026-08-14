@@ -201,7 +201,7 @@ export function assertInstrumentInvariants(
 	// 3. Unreachable bands
 	// -------------------------------------------------------------------
 	if (scoringMode === "dimensional") {
-		for (const [di, dim] of dimensions.entries()) {
+		for (const dim of dimensions) {
 			if (typeof dim !== "object" || dim === null) continue;
 			const dimId = safeString((dim as Record<string, unknown>).id);
 			const n = items.filter((item) => {

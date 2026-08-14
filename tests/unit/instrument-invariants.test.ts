@@ -207,50 +207,6 @@ function makeDocWithBadCharsetId(): InstrumentDocument {
 	};
 }
 
-/** Document with n=1 scored item per dimension (tests n=0 separately). */
-function makeDocWithN0Dimension(): InstrumentDocument {
-	return {
-		schemaVersion: 1,
-		title: "N0 doc",
-		candidateIntroduction: "intro",
-		consent: { purpose: "p", whatWeCollect: "w", whoSeesIt: "s", retention: "r" },
-		estimatedMinutes: 10,
-		displayMode: "continuous",
-		scoringMode: "dimensional",
-		dimensions: [
-			{ id: "dim-1", code: "D1", name: "Dim 1", order: 0 },
-			{ id: "dim-2", code: "D2", name: "Dim 2", order: 1 },
-		],
-		bands: [
-			{ id: "b1", name: "Low", minScaled: 0, maxScaled: 100 },
-		],
-		sections: [
-			{
-				id: "sec-1",
-				title: "S1",
-				order: 0,
-				itemIds: ["item-1"],
-			},
-		],
-		items: [
-			{
-				type: "scale",
-				id: "item-1",
-				text: "Q1",
-				required: true,
-				min: 1,
-				max: 5,
-				labels: ["L1", "L2", "L3", "L4", "L5"],
-				scored: true,
-				dimensionId: "dim-1",
-				reverseScored: false,
-			},
-		],
-		responseContextRules: [],
-	};
-	// Note: dim-2 has zero scored items — violates Zod schema, so we need a
-	// raw unknown cast for testing the invariants function on invalid data.
-}
 
 // For n=0 we pass unknown so we can bypass parseInstrumentDocument
 const rawDocWithDimN0: unknown = {
