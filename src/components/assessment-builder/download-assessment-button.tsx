@@ -32,9 +32,7 @@ export function DownloadAssessmentButton({
 }) {
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<DownloadFormat>("xlsx");
-  const [source, setSource] = useState<"draft" | "published">(
-    hasPublishedVersion ? "published" : "draft",
-  );
+  const [source, setSource] = useState<"draft" | "published">("draft");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

@@ -234,6 +234,7 @@ function AssessmentRowActions({
 						Edit
 					</Button>
 					<DuplicateAssessmentButton assessmentId={assessmentId} />
+					<ImportAssessmentButton targetId={assessmentId} size="sm" />
 				</>
 			)}
 		</div>

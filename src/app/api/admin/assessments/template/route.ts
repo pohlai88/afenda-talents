@@ -45,23 +45,24 @@ export async function GET(request: Request) {
 
   const { kind, format } = parsed.data;
   const entry = templateDocument(kind);
+  const headers = downloadHeaders(format, entry.title);
+
+  let body: BodyInit;
+  if (format === "json") {
+    body = JSON.stringify(entry.document, null, 2);
+  } else if (format === "csv") {
+    body = exportCsv(entry.document) as unknown as BodyInit;
+  } else {
+    body = (await exportWorkbook(entry.document, {
+      sourceMode: entry.sourceMode,
+      baseAssessmentId: null,
+    })) as unknown as BodyInit;
+  }
 
   await audit(session.userId, "export.downloaded", undefined, {
     template: kind,
     format,
   });
 
-  const headers = downloadHeaders(format, entry.title);
-
-  if (format === "json") {
-    return new NextResponse(JSON.stringify(entry.document, null, 2), { headers });
-  }
-  if (format === "csv") {
-    return new NextResponse(exportCsv(entry.document) as unknown as BodyInit, { headers });
-  }
-  const workbook = await exportWorkbook(entry.document, {
-    sourceMode: entry.sourceMode,
-    baseAssessmentId: null,
-  });
-  return new NextResponse(workbook as unknown as BodyInit, { headers });
+  return new NextResponse(body, { headers });
 }

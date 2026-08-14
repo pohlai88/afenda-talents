@@ -142,7 +142,7 @@ export async function POST(request: Request) {
           data: {
             draftDocument: draft,
             title: draft.title,
-            status: assessment.isSystem ? "PUBLISHED" : "DRAFT",
+            status: "DRAFT",
             draftRevision: { increment: 1 },
           },
           select: { draftRevision: true },

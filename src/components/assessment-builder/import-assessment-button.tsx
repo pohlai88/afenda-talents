@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { type ComponentProps, useState } from "react";
 import { UploadIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -89,9 +89,11 @@ const SUMMARY_WARNINGS: Array<[keyof PreviewOk["diff"]["summary"], string]> = [
 export function ImportAssessmentButton({
 	targetId = null,
 	label = "Import",
+	size = "default",
 }: {
 	targetId?: string | null;
 	label?: string;
+	size?: ComponentProps<typeof Button>["size"];
 }) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
@@ -192,7 +194,7 @@ export function ImportAssessmentButton({
 				if (!next) reset();
 			}}
 		>
-			<DialogTrigger render={<Button variant="outline" />}>
+			<DialogTrigger render={<Button variant="outline" size={size} />}>
 				<UploadIcon />
 				{label}
 			</DialogTrigger>

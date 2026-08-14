@@ -64,25 +64,26 @@ export async function GET(
     return NextResponse.json({ error: resolved.error }, { status: 409 });
   }
   const { document } = resolved;
+  const headers = downloadHeaders(format, assessment.title);
+
+  let body: BodyInit;
+  if (format === "json") {
+    body = JSON.stringify(document, null, 2);
+  } else if (format === "csv") {
+    body = exportCsv(document) as unknown as BodyInit;
+  } else {
+    body = (await exportWorkbook(document, {
+      sourceMode: source === "published" ? "strict" : "draft",
+      baseAssessmentId: assessment.id,
+      baseDraftRevision: assessment.draftRevision,
+      basePublishedVersionNumber: latest?.versionNumber ?? null,
+    })) as unknown as BodyInit;
+  }
 
   await audit(session.userId, "export.downloaded", assessment.id, {
     format,
     source,
   });
 
-  const headers = downloadHeaders(format, assessment.title);
-
-  if (format === "json") {
-    return new NextResponse(JSON.stringify(document, null, 2), { headers });
-  }
-  if (format === "csv") {
-    return new NextResponse(exportCsv(document) as unknown as BodyInit, { headers });
-  }
-  const workbook = await exportWorkbook(document, {
-    sourceMode: source === "published" ? "strict" : "draft",
-    baseAssessmentId: assessment.id,
-    baseDraftRevision: assessment.draftRevision,
-    basePublishedVersionNumber: latest?.versionNumber ?? null,
-  });
-  return new NextResponse(workbook as unknown as BodyInit, { headers });
+  return new NextResponse(body, { headers });
 }
