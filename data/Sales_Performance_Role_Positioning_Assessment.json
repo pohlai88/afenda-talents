@@ -1,0 +1,1333 @@
+{
+  "schemaVersion": 1,
+  "title": "Sales Performance & Role Positioning Assessment",
+  "internalDescription": "Advanced sales-role positioning instrument for sales personnel. Measures job-relevant sales behaviours, work style and execution preferences across 12 dimensions, with five written sales simulations. Use dimension patterns, response-context flags, structured interviews, observed work samples, objective performance data and role requirements together. This is not a clinical psychological assessment and should not be used as the sole basis for hiring, promotion, termination or compensation decisions.",
+  "candidateIntroduction": "This assessment looks at how you typically sell, work with customers and colleagues, and respond under commercial pressure. Answer based on your real behaviour during the last 6–12 months, not the salesperson you think you should be. Some statements are intentionally similar or phrased in the opposite direction. The final section contains realistic sales situations; explain what you would actually do and why. This is a work-style and sales-behaviour assessment, not a clinical psychological test.",
+  "consent": {
+    "purpose": "To support structured sales-role positioning, coaching, development and selection by comparing job-relevant sales behaviours with the requirements of the role. Results are considered together with interviews, work samples and performance evidence.",
+    "whatWeCollect": "Your name and email address, your response to each statement, your written responses to sales scenarios, and how long you spend on the assessment.",
+    "whoSeesIt": "Authorised hiring, sales leadership and people-management reviewers responsible for the relevant sales role.",
+    "retention": "Responses are kept for {RETENTION_DAYS} days from the date you submit them, then deleted."
+  },
+  "estimatedMinutes": 40,
+  "displayMode": "section",
+  "dimensions": [
+    {
+      "id": "dim-HUN",
+      "code": "HUN",
+      "name": "Prospecting Drive & Initiative",
+      "description": "Creates opportunities proactively, tolerates rejection, and asks for forward movement.",
+      "order": 0
+    },
+    {
+      "id": "dim-DSC",
+      "code": "DSC",
+      "name": "Discovery & Customer Insight",
+      "description": "Diagnoses needs, decision criteria, stakeholders, and underlying business problems before prescribing.",
+      "order": 1
+    },
+    {
+      "id": "dim-COM",
+      "code": "COM",
+      "name": "Commercial Acumen & Value",
+      "description": "Connects solutions to quantified business value, economics, margin, and customer outcomes.",
+      "order": 2
+    },
+    {
+      "id": "dim-NEG",
+      "code": "NEG",
+      "name": "Negotiation & Closing Judgment",
+      "description": "Protects value, trades rather than concedes, handles objections, and asks for commitment with sound judgment.",
+      "order": 3
+    },
+    {
+      "id": "dim-RES",
+      "code": "RES",
+      "name": "Resilience & Competitive Recovery",
+      "description": "Recovers from losses and rejection, sustains productive activity, and learns without becoming defensive.",
+      "order": 4
+    },
+    {
+      "id": "dim-EXE",
+      "code": "EXE",
+      "name": "Execution & Pipeline Discipline",
+      "description": "Maintains evidence-based pipeline hygiene, prioritisation, follow-up, forecasting, and next-step control.",
+      "order": 5
+    },
+    {
+      "id": "dim-ADP",
+      "code": "ADP",
+      "name": "Learning Agility & Adaptability",
+      "description": "Learns products and markets quickly, tests new approaches, and changes tactics when evidence changes.",
+      "order": 6
+    },
+    {
+      "id": "dim-REL",
+      "code": "REL",
+      "name": "Trust, Influence & Customer Orientation",
+      "description": "Builds credibility, listens well, handles tension constructively, and protects long-term customer trust.",
+      "order": 7
+    },
+    {
+      "id": "dim-COL",
+      "code": "COL",
+      "name": "Team Selling & Collaboration",
+      "description": "Uses colleagues effectively, coordinates handoffs, shares information and credit, and contributes to collective wins.",
+      "order": 8
+    },
+    {
+      "id": "dim-AUT",
+      "code": "AUT",
+      "name": "Autonomy & Self-Management",
+      "description": "Plans and executes without excessive supervision, manages time, and takes ownership in ambiguous situations.",
+      "order": 9
+    },
+    {
+      "id": "dim-STR",
+      "code": "STR",
+      "name": "Strategic Account Thinking",
+      "description": "Maps stakeholders, competition, account potential, risks, and expansion paths beyond the immediate transaction.",
+      "order": 10
+    },
+    {
+      "id": "dim-ETH",
+      "code": "ETH",
+      "name": "Ethical Sales Judgment",
+      "description": "Represents capabilities accurately, resists mis-selling, raises risks early, and protects customer and company integrity.",
+      "order": 11
+    }
+  ],
+  "bands": [
+    {
+      "id": "band-development",
+      "name": "Development Priority",
+      "minScaled": 0,
+      "maxScaled": 39
+    },
+    {
+      "id": "band-emerging",
+      "name": "Emerging / Conditional",
+      "minScaled": 40,
+      "maxScaled": 59
+    },
+    {
+      "id": "band-capable",
+      "name": "Capable",
+      "minScaled": 60,
+      "maxScaled": 74
+    },
+    {
+      "id": "band-strong",
+      "name": "Strong",
+      "minScaled": 75,
+      "maxScaled": 89
+    },
+    {
+      "id": "band-distinctive",
+      "name": "Distinctive Strength",
+      "minScaled": 90,
+      "maxScaled": 100
+    }
+  ],
+  "sections": [
+    {
+      "id": "sec-01",
+      "title": "Winning New Business",
+      "introduction": "Think about how you create, diagnose and progress opportunities. Answer for your normal behaviour, not exceptional days.",
+      "order": 0,
+      "itemIds": [
+        "INFO-1",
+        "HUN-1",
+        "HUN-2",
+        "HUN-3",
+        "HUN-4",
+        "DSC-1",
+        "DSC-2",
+        "DSC-3",
+        "DSC-4",
+        "COM-1",
+        "COM-2",
+        "COM-3",
+        "COM-4"
+      ]
+    },
+    {
+      "id": "sec-02",
+      "title": "Pressure, Negotiation & Recovery",
+      "introduction": "Consider how you behave when the customer resists, the forecast is under pressure, or you lose.",
+      "order": 1,
+      "itemIds": [
+        "INFO-2",
+        "NEG-1",
+        "NEG-2",
+        "NEG-3",
+        "NEG-4",
+        "RES-1",
+        "RES-2",
+        "RES-3",
+        "RES-4",
+        "EXE-1",
+        "EXE-2",
+        "EXE-3",
+        "EXE-4"
+      ]
+    },
+    {
+      "id": "sec-03",
+      "title": "Adaptability, Trust & Team Selling",
+      "introduction": "Focus on how you learn, influence, and use the wider team around a customer.",
+      "order": 2,
+      "itemIds": [
+        "INFO-3",
+        "ADP-1",
+        "ADP-2",
+        "ADP-3",
+        "ADP-4",
+        "REL-1",
+        "REL-2",
+        "REL-3",
+        "REL-4",
+        "COL-1",
+        "COL-2",
+        "COL-3",
+        "COL-4"
+      ]
+    },
+    {
+      "id": "sec-04",
+      "title": "Ownership, Strategy & Judgment",
+      "introduction": "Focus on how independently you operate, how broadly you think about accounts, and how you protect credibility.",
+      "order": 3,
+      "itemIds": [
+        "INFO-4",
+        "AUT-1",
+        "AUT-2",
+        "AUT-3",
+        "AUT-4",
+        "STR-1",
+        "STR-2",
+        "STR-3",
+        "STR-4",
+        "ETH-1",
+        "ETH-2",
+        "ETH-3",
+        "ETH-4"
+      ]
+    },
+    {
+      "id": "sec-05",
+      "title": "Response Quality Check",
+      "introduction": "Answer these in the same way as the earlier statements. They are not scored as sales strengths.",
+      "order": 4,
+      "itemIds": [
+        "INFO-5",
+        "VAL-SD1",
+        "VAL-SD2",
+        "VAL-C1",
+        "VAL-C2",
+        "VAL-C3"
+      ]
+    },
+    {
+      "id": "sec-06",
+      "title": "Battle-Tested Sales Simulations",
+      "introduction": "Treat these as realistic work samples. Specific actions and trade-offs are more useful than textbook answers.",
+      "order": 5,
+      "itemIds": [
+        "INFO-6",
+        "BT-1",
+        "BT-2",
+        "BT-3",
+        "BT-4",
+        "BT-5",
+        "BT-6"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "type": "info",
+      "id": "INFO-1",
+      "body": "Think about how you create, diagnose and progress opportunities. Answer for your normal behaviour, not exceptional days."
+    },
+    {
+      "type": "likert",
+      "id": "HUN-1",
+      "text": "I create outbound activity even when inbound leads are weak or inconsistent.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-HUN",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "HUN-2",
+      "text": "I am comfortable initiating contact with senior or unfamiliar prospects.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-HUN",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "HUN-3",
+      "text": "I ask directly for a concrete next step when a conversation has enough value to continue.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-HUN",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "HUN-4",
+      "text": "If prospects do not respond quickly, I usually wait rather than find another route into the account.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-HUN",
+      "reverseScored": true
+    },
+    {
+      "type": "likert",
+      "id": "DSC-1",
+      "text": "I spend enough time understanding the customer's problem before presenting a solution.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-DSC",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "DSC-2",
+      "text": "I uncover how a customer will make the decision, not only what they say they want.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-DSC",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "DSC-3",
+      "text": "I test my assumptions with questions instead of treating the first stated need as the real need.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-DSC",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "DSC-4",
+      "text": "Once a customer has described a need, further discovery usually slows the deal down.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-DSC",
+      "reverseScored": true
+    },
+    {
+      "type": "likert",
+      "id": "COM-1",
+      "text": "I can translate product features into business outcomes the customer can evaluate.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-COM",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "COM-2",
+      "text": "I try to quantify the cost, risk, revenue impact, or operational value behind a customer's problem.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-COM",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "COM-3",
+      "text": "I consider margin, payment terms, implementation effort, and lifetime value when judging deal quality.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-COM",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "COM-4",
+      "text": "When a customer pushes back on price, discounting is usually the fastest and best path forward.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-COM",
+      "reverseScored": true
+    },
+    {
+      "type": "info",
+      "id": "INFO-2",
+      "body": "Consider how you behave when the customer resists, the forecast is under pressure, or you lose."
+    },
+    {
+      "type": "likert",
+      "id": "NEG-1",
+      "text": "When giving something in a negotiation, I seek something of value in return.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-NEG",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "NEG-2",
+      "text": "I can distinguish a genuine buying concern from a negotiating tactic.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-NEG",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "NEG-3",
+      "text": "I am willing to ask for the order or commitment when the buying conditions have been met.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-NEG",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "NEG-4",
+      "text": "I avoid pressing for a decision because it may damage the relationship.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-NEG",
+      "reverseScored": true
+    },
+    {
+      "type": "likert",
+      "id": "RES-1",
+      "text": "After losing a meaningful deal, I can identify lessons and return to productive activity quickly.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-RES",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "RES-2",
+      "text": "Repeated rejection does not stop me from maintaining the prospecting activity my pipeline requires.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-RES",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "RES-3",
+      "text": "I can receive tough feedback about my sales approach without becoming defensive.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-RES",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "RES-4",
+      "text": "A run of unsuccessful calls or meetings usually reduces my activity for several days.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-RES",
+      "reverseScored": true
+    },
+    {
+      "type": "likert",
+      "id": "EXE-1",
+      "text": "My CRM or pipeline records are current enough that another person can understand the true status of my deals.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-EXE",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "EXE-2",
+      "text": "Every meaningful opportunity I manage normally has a specific next action, owner, and date.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-EXE",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "EXE-3",
+      "text": "I separate committed forecast from hopeful upside using evidence rather than optimism.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-EXE",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "EXE-4",
+      "text": "I sometimes keep weak opportunities open because a larger pipeline feels safer than removing them.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-EXE",
+      "reverseScored": true
+    },
+    {
+      "type": "info",
+      "id": "INFO-3",
+      "body": "Focus on how you learn, influence, and use the wider team around a customer."
+    },
+    {
+      "type": "likert",
+      "id": "ADP-1",
+      "text": "I actively test different messages, channels, or approaches and keep what produces better evidence.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-ADP",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "ADP-2",
+      "text": "I can learn a new product, market, or customer segment fast enough to have credible sales conversations.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-ADP",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "ADP-3",
+      "text": "When a manager, customer, or data point shows my approach is not working, I change it rather than defend it.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-ADP",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "ADP-4",
+      "text": "Once I find a sales script that works, I prefer to keep using it even when the buying environment changes.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-ADP",
+      "reverseScored": true
+    },
+    {
+      "type": "likert",
+      "id": "REL-1",
+      "text": "I can build trust without promising more than the company can reliably deliver.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-REL",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "REL-2",
+      "text": "I listen for what the customer is not saying, including concerns, politics, and competing priorities.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-REL",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "REL-3",
+      "text": "I can have a difficult commercial conversation while preserving respect and credibility.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-REL",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "REL-4",
+      "text": "I sometimes avoid necessary disagreement because being liked by the customer feels more important.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-REL",
+      "reverseScored": true
+    },
+    {
+      "type": "likert",
+      "id": "COL-1",
+      "text": "I involve product, technical, finance, operations, or leadership colleagues when their expertise improves the deal.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-COL",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "COL-2",
+      "text": "I share useful account information early enough for teammates to act on it.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-COL",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "COL-3",
+      "text": "I am comfortable sharing credit when a sale is genuinely a team result.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-COL",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "COL-4",
+      "text": "I prefer to control important deals myself rather than coordinate with people who may work differently from me.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-COL",
+      "reverseScored": true
+    },
+    {
+      "type": "info",
+      "id": "INFO-4",
+      "body": "Focus on how independently you operate, how broadly you think about accounts, and how you protect credibility."
+    },
+    {
+      "type": "likert",
+      "id": "AUT-1",
+      "text": "I can plan my own week and territory around the highest-value activities without needing frequent direction.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-AUT",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "AUT-2",
+      "text": "When a situation is ambiguous, I take a sensible next action and surface assumptions instead of waiting for perfect instructions.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-AUT",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "AUT-3",
+      "text": "I follow through on commitments even when no manager is checking on me.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-AUT",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "AUT-4",
+      "text": "I perform best when a manager tells me exactly what to do and closely checks each step.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-AUT",
+      "reverseScored": true
+    },
+    {
+      "type": "likert",
+      "id": "STR-1",
+      "text": "For important accounts, I map who influences the decision, who can block it, and who benefits from the outcome.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-STR",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "STR-2",
+      "text": "I look for expansion paths, adjacent needs, and future value beyond the immediate opportunity.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-STR",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "STR-3",
+      "text": "I consider competitor position, political risk, timing, and customer priorities when planning an account.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-STR",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "STR-4",
+      "text": "I focus mainly on the current contact and opportunity rather than building a broader account strategy.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-STR",
+      "reverseScored": true
+    },
+    {
+      "type": "likert",
+      "id": "ETH-1",
+      "text": "I distinguish clearly between what our solution can do now, what requires conditions, and what is only planned.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-ETH",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "ETH-2",
+      "text": "I raise delivery, legal, commercial, or product risks before they become customer surprises.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-ETH",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "ETH-3",
+      "text": "I would rather lose or delay a deal than win it through a commitment I know the company may not be able to honour.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-ETH",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "ETH-4",
+      "text": "If a target is critical enough, it can be acceptable to make a customer commitment before internal confirmation.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-ETH",
+      "reverseScored": true
+    },
+    {
+      "type": "info",
+      "id": "INFO-5",
+      "body": "These items help interpret answer consistency and response style. They do not contribute to any sales dimension score."
+    },
+    {
+      "type": "likert",
+      "id": "VAL-SD1",
+      "text": "I have never overstated my confidence in a deal, even slightly.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": false,
+      "dimensionId": null,
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "VAL-SD2",
+      "text": "I have never made a sales mistake that I later wished I had handled differently.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": false,
+      "dimensionId": null,
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "VAL-C1",
+      "text": "When lead flow is weak, I create my own prospecting activity rather than waiting for opportunities.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": false,
+      "dimensionId": null,
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "VAL-C2",
+      "text": "For active opportunities, I normally know the next action and when it should happen.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": false,
+      "dimensionId": null,
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "VAL-C3",
+      "text": "I make sure customers can distinguish confirmed capabilities from possibilities or future plans.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": false,
+      "dimensionId": null,
+      "reverseScored": false
+    },
+    {
+      "type": "info",
+      "id": "INFO-6",
+      "body": "The following are work-sample prompts. There is no single script to reproduce. Be specific: show priorities, questions, sequencing, trade-offs, customer handling, internal coordination and what evidence would make you change course."
+    },
+    {
+      "type": "long_text",
+      "id": "BT-1",
+      "text": "BATTLE TEST 1 — Empty territory, 30-day pipeline build. You inherit a territory with weak inbound demand and a target that requires new business. You have 30 days to create a credible pipeline without relying on heavy discounting. Describe your first 10 working days: target selection, outreach, daily/weekly activity, messaging, qualification, CRM discipline, and what numbers or evidence you would review to decide whether to change approach.",
+      "required": true,
+      "helperText": "Write the plan you would actually run. Concrete sequencing and evidence matter more than polished language.",
+      "maxLength": 1800
+    },
+    {
+      "type": "long_text",
+      "id": "BT-2",
+      "text": "BATTLE TEST 2 — 'Just send me a proposal.' A prospect gives you a short meeting, says the problem is 'high operating cost', refuses deeper discussion, and asks for a proposal by tomorrow. You have incomplete information and several possible solutions. Explain what you do next, the questions you would still need answered, what you would and would not put in the proposal, and how you would preserve momentum without pretending certainty.",
+      "required": true,
+      "helperText": "Show discovery judgment, customer control and commercial discipline.",
+      "maxLength": 1800
+    },
+    {
+      "type": "long_text",
+      "id": "BT-3",
+      "text": "BATTLE TEST 3 — Procurement pressure. Your preferred solution is commercially viable at the current price. Procurement demands a 15% reduction, 90-day payment terms, free implementation support, and says a competitor is cheaper. The business sponsor still wants your solution. Describe how you prepare and conduct the negotiation, what you would trade, what you would protect, what information you need, and when you would walk away or escalate.",
+      "required": true,
+      "helperText": "Show value defence, trading logic, economics, stakeholder use and closing judgment.",
+      "maxLength": 1800
+    },
+    {
+      "type": "long_text",
+      "id": "BT-4",
+      "text": "BATTLE TEST 4 — Deal rescue through a team. A strategic deal is forecast to close this month. The customer champion has gone quiet, a technical concern has appeared, finance rejects the requested terms, and your manager asks for a recovery plan before 3 PM. Explain your next moves, who you involve, how you communicate internally and externally, what you remove from the forecast if evidence is missing, and how you create a new path to decision.",
+      "required": true,
+      "helperText": "Show collaboration, forecast integrity, escalation judgment and account control.",
+      "maxLength": 1800
+    },
+    {
+      "type": "long_text",
+      "id": "BT-5",
+      "text": "BATTLE TEST 5 — Target versus truth. A customer will sign this week if you confirm a capability that product says is only 'likely' for a future release. Your quarter is below target and the customer says the capability is essential. Explain exactly what you say to the customer, what you do internally, how you try to save the opportunity, and what commitment you will not make.",
+      "required": true,
+      "helperText": "Show ethical judgment without giving up commercial creativity.",
+      "maxLength": 1600
+    },
+    {
+      "type": "long_text",
+      "id": "BT-6",
+      "text": "OPTIONAL REFLECTION — Describe one important sale you lost or nearly lost. What did you initially believe, what evidence proved you wrong, what did you change, and what would you do earlier next time?",
+      "required": false,
+      "helperText": "Use a real example if you can. The goal is learning quality, not a perfect success story.",
+      "maxLength": 1600
+    }
+  ],
+  "responseContextRules": [
+    {
+      "id": "rule-social-desirability",
+      "type": "social_desirability",
+      "label": "Impression management",
+      "enabled": true,
+      "managerExplanation": "The two implausibly perfect statements were endorsed strongly. Treat unusually high self-ratings cautiously and seek behavioural evidence.",
+      "itemIds": [
+        "VAL-SD1",
+        "VAL-SD2"
+      ],
+      "threshold": 8
+    },
+    {
+      "id": "rule-consistency",
+      "type": "consistency_pairs",
+      "label": "Response consistency",
+      "enabled": true,
+      "managerExplanation": "Paired statements covering the same sales behaviour were answered differently enough to warrant follow-up.",
+      "pairs": [
+        [
+          "HUN-1",
+          "VAL-C1"
+        ],
+        [
+          "EXE-2",
+          "VAL-C2"
+        ],
+        [
+          "ETH-1",
+          "VAL-C3"
+        ]
+      ],
+      "threshold": 5
+    },
+    {
+      "id": "rule-straight-line",
+      "type": "straight_line",
+      "label": "Answer variation",
+      "enabled": true,
+      "managerExplanation": "The same response option was used repeatedly across a long run of items. Review effort and response quality before interpreting the profile.",
+      "runLength": 15
+    },
+    {
+      "id": "rule-rushed",
+      "type": "rushed_time",
+      "label": "Time on task",
+      "enabled": true,
+      "managerExplanation": "The assessment was completed unusually quickly for the number of items and written simulations. Review the written work and response quality before interpreting scores.",
+      "threshold": 720
+    }
+  ]
+}

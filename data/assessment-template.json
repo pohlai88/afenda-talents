@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "title": "REPLACE — assessment title (candidates see this)",
+  "internalDescription": "REPLACE — internal note for the hiring team. Never shown to candidates. Optional field.",
+  "candidateIntroduction": "REPLACE — short plain-language intro shown before the questions. e.g. 'This is a short self-assessment about how you work. There are no right or wrong answers.'",
+  "consent": {
+    "purpose": "REPLACE — why you are collecting this.",
+    "whatWeCollect": "REPLACE — e.g. 'Your name and email address, your answer to each statement, and how long you spend on each one.'",
+    "whoSeesIt": "REPLACE — e.g. 'Only the hiring team for this role.'",
+    "retention": "Responses are kept for {RETENTION_DAYS} days from the date you submit them, then deleted."
+  },
+  "estimatedMinutes": 10,
+  "displayMode": "continuous",
+
+  "dimensions": [
+    {
+      "id": "dim-DIM1",
+      "code": "DIM1",
+      "name": "REPLACE — dimension 1 name",
+      "description": "REPLACE — what this dimension covers. Optional field.",
+      "order": 0
+    },
+    {
+      "id": "dim-DIM2",
+      "code": "DIM2",
+      "name": "REPLACE — dimension 2 name",
+      "description": "REPLACE — what this dimension covers. Optional field.",
+      "order": 1
+    }
+  ],
+
+  "bands": [
+    { "id": "band-developing", "name": "Developing", "minScaled": 0,  "maxScaled": 44  },
+    { "id": "band-effective",  "name": "Effective",  "minScaled": 45, "maxScaled": 69  },
+    { "id": "band-strong",     "name": "Strong",     "minScaled": 70, "maxScaled": 100 }
+  ],
+
+  "sections": [
+    {
+      "id": "sec-main",
+      "title": "Self-assessment",
+      "introduction": "REPLACE — optional lead-in text for this section.",
+      "order": 0,
+      "itemIds": [
+        "INFO-1",
+        "DIM1-1",
+        "DIM1-2",
+        "DIM1-3",
+        "DIM2-1",
+        "DIM2-2",
+        "DIM2-3",
+        "VAL-1",
+        "VAL-2",
+        "VAL-3",
+        "TXT-1"
+      ]
+    }
+  ],
+
+  "items": [
+    {
+      "type": "info",
+      "id": "INFO-1",
+      "body": "REPLACE — non-question text block (instructions, a scenario, a divider). Not answered, not scored. Delete this item if you do not need one."
+    },
+
+    {
+      "type": "likert",
+      "id": "DIM1-1",
+      "text": "REPLACE — a positively worded statement for dimension 1.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-DIM1",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "DIM1-2",
+      "text": "REPLACE — another positively worded statement for dimension 1.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-DIM1",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "DIM1-3",
+      "text": "REPLACE — a NEGATIVELY worded statement for dimension 1 (agreeing means less of the trait).",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-DIM1",
+      "reverseScored": true
+    },
+
+    {
+      "type": "likert",
+      "id": "DIM2-1",
+      "text": "REPLACE — a positively worded statement for dimension 2.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-DIM2",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "DIM2-2",
+      "text": "REPLACE — another positively worded statement for dimension 2.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-DIM2",
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "DIM2-3",
+      "text": "REPLACE — a NEGATIVELY worded statement for dimension 2.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": true,
+      "dimensionId": "dim-DIM2",
+      "reverseScored": true
+    },
+
+    {
+      "type": "likert",
+      "id": "VAL-1",
+      "text": "REPLACE — an implausibly perfect statement, e.g. 'I have never been irritated by a colleague.'",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": false,
+      "dimensionId": null,
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "VAL-2",
+      "text": "REPLACE — a second implausibly perfect statement.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": false,
+      "dimensionId": null,
+      "reverseScored": false
+    },
+    {
+      "type": "likert",
+      "id": "VAL-3",
+      "text": "REPLACE — a paraphrase of DIM1-1, worded differently. Used by the consistency rule below.",
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "labels": [
+        "Strongly disagree",
+        "Disagree",
+        "Neither agree nor disagree",
+        "Agree",
+        "Strongly agree"
+      ],
+      "scored": false,
+      "dimensionId": null,
+      "reverseScored": false
+    },
+
+    {
+      "type": "short_text",
+      "id": "TXT-1",
+      "text": "REPLACE — an open-text question. Use \"long_text\" instead for a paragraph answer.",
+      "required": false,
+      "helperText": "REPLACE — optional hint under the field.",
+      "maxLength": 300
+    }
+  ],
+
+  "responseContextRules": [
+    {
+      "id": "rule-social-desirability",
+      "type": "social_desirability",
+      "label": "Impression management",
+      "enabled": true,
+      "managerExplanation": "Both social-desirability items were answered at the top of the scale.",
+      "itemIds": ["VAL-1", "VAL-2"],
+      "threshold": 8
+    },
+    {
+      "id": "rule-consistency",
+      "type": "consistency_pairs",
+      "label": "Response consistency",
+      "enabled": true,
+      "managerExplanation": "Paired items covering the same ground were answered differently.",
+      "pairs": [["DIM1-1", "VAL-3"]],
+      "threshold": 4
+    },
+    {
+      "id": "rule-straight-line",
+      "type": "straight_line",
+      "label": "Answer variation",
+      "enabled": true,
+      "managerExplanation": "The same answer was given on many items in a row.",
+      "runLength": 12
+    },
+    {
+      "id": "rule-rushed",
+      "type": "rushed_time",
+      "label": "Time on task",
+      "enabled": true,
+      "managerExplanation": "Self-reported time on task was under 4 minutes.",
+      "threshold": 240
+    }
+  ]
+}
