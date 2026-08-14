@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DuplicateAssessmentButton, NewAssessmentButton } from "@/components/assessment-builder/assessments-toolbar";
+import { DownloadAssessmentButton } from "@/components/assessment-builder/download-assessment-button";
 import { DownloadTemplateButton } from "@/components/assessment-builder/download-template-button";
 import { ImportAssessmentButton } from "@/components/assessment-builder/import-assessment-button";
 import { PageHeader } from "@/components/page-header";
@@ -146,6 +147,7 @@ export default async function AssessmentsPage() {
 													assessmentId={row.id}
 													isAdmin={isAdmin}
 													archived={row.status === "ARCHIVED"}
+													hasPublishedVersion={row.latestVersionNumber !== null}
 												/>
 											</TableCell>
 										</TableRow>
@@ -184,6 +186,7 @@ export default async function AssessmentsPage() {
 										assessmentId={row.id}
 										isAdmin={isAdmin}
 										archived={row.status === "ARCHIVED"}
+										hasPublishedVersion={row.latestVersionNumber !== null}
 									/>
 								</li>
 							))}
@@ -199,10 +202,12 @@ function AssessmentRowActions({
 	assessmentId,
 	isAdmin,
 	archived,
+	hasPublishedVersion,
 }: {
 	assessmentId: string;
 	isAdmin: boolean;
 	archived: boolean;
+	hasPublishedVersion: boolean;
 }) {
 	return (
 		<div className="flex flex-wrap gap-2 md:justify-end">
@@ -214,6 +219,10 @@ function AssessmentRowActions({
 			>
 				Preview
 			</Button>
+			<DownloadAssessmentButton
+				assessmentId={assessmentId}
+				hasPublishedVersion={hasPublishedVersion}
+			/>
 			{isAdmin && !archived && (
 				<>
 					<Button
