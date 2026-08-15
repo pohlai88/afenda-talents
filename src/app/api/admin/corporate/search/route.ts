@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { requireWorkspaceUser } from "@/lib/auth-workspace";
 import { formatDateOnly } from "@/lib/corporate-admin/domain";
 import { db } from "@/lib/db";
 
 export const runtime = "nodejs";
+
+/** Bounded so a pasted blob cannot fan out into five unbounded ILIKE scans. */
+const querySchema = z.string().min(2).max(100);
 
 export async function GET(request: Request) {
   try {
@@ -13,8 +17,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
-  const query = new URL(request.url).searchParams.get("q")?.trim() ?? "";
-  if (query.length < 2) return NextResponse.json({ results: [] });
+  const parsed = querySchema.safeParse(new URL(request.url).searchParams.get("q")?.trim() ?? "");
+  if (!parsed.success) return NextResponse.json({ results: [] });
+  const query = parsed.data;
 
   const contains = { contains: query, mode: "insensitive" as const };
   const [sites, counterparties, obligations, lines, dueItems] = await Promise.all([
